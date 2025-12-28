@@ -49,10 +49,6 @@ public partial class PortalRowViewModel : ViewModelBase
     partial void OnIsVisibleChanged(bool value)
     {
         _portalHost.SetVisibility(PortalNumber, value);
-        if (!value)
-        {
-            CurrentAssignment = "Idle";
-        }
     }
 
     [RelayCommand]

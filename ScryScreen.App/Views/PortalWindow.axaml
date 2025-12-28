@@ -33,19 +33,6 @@
                    FontSize="32"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center" />
-
-        <!-- Small corner label for debugging/setup -->
-        <Border Background="#4D000000"
-                CornerRadius="10"
-                Padding="10"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Margin="16">
-          <StackPanel>
-            <TextBlock Text="{Binding PortalNumber, StringFormat='Portal {0}'}" Foreground="White" FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding ScreenName}" Foreground="#BFFFFFFF" FontSize="12" />
-          </StackPanel>
-        </Border>
       </Grid>
     </Border>
 

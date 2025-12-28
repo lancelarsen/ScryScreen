@@ -62,8 +62,18 @@
                                     </Grid>
 
                                     <WrapPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
-                                        <ToggleSwitch Content="Visible" IsChecked="{Binding IsVisible}" />
-                                        <Button Classes="subtle" Content="Blackout" Command="{Binding BlackoutCommand}" />
+                                        <ToggleSwitch Content="Show" IsChecked="{Binding IsVisible}" />
+
+                                        <Border IsVisible="{Binding !IsVisible}"
+                                                Background="#33000000"
+                                                CornerRadius="999"
+                                                Padding="10,4"
+                                                BorderBrush="#55B88A2C"
+                                                BorderThickness="1">
+                                            <TextBlock Text="Hidden" Foreground="#FFD6C37A" FontWeight="SemiBold" />
+                                        </Border>
+
+                                        <Button Classes="subtle" Content="Blackout" Command="{Binding BlackoutCommand}" ToolTip.Tip="Quickly hide this portal (does not change what’s assigned)." />
                                         <Button Classes="primary" Content="Show Sample" Command="{Binding ShowSampleCommand}" />
                                     </WrapPanel>
                                 </Grid>
