@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.IO;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using ScryScreen.App.ViewModels;
 using ScryScreen.App.Views;
@@ -144,6 +146,30 @@ public sealed class PortalHostService
             controller.ViewModel.IsContentVisible = true;
             controller.ViewModel.IsSetup = false;
         }
+    }
+
+    public void SetContentImage(int portalNumber, string filePath, string? contentTitle = null)
+    {
+        if (!_portals.TryGetValue(portalNumber, out var controller))
+        {
+            return;
+        }
+
+        Bitmap? bitmap = null;
+        try
+        {
+            using var stream = File.OpenRead(filePath);
+            bitmap = new Bitmap(stream);
+        }
+        catch
+        {
+            // Ignore load failures; leave existing content as-is.
+            return;
+        }
+
+        controller.ViewModel.SetImage(bitmap, contentTitle ?? Path.GetFileName(filePath));
+        controller.ViewModel.IsContentVisible = true;
+        controller.ViewModel.IsSetup = false;
     }
 
     public async Task IdentifyAllAsync(int milliseconds = 1200)

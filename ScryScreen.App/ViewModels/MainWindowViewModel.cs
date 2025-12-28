@@ -18,6 +18,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _portalHost = portalHost ?? throw new ArgumentNullException(nameof(portalHost));
         _screens = new ReadOnlyCollection<ScreenInfoViewModel>(_portalHost.GetScreens().ToList());
         Portals = new ObservableCollection<PortalRowViewModel>();
+        Media = new MediaLibraryViewModel();
 
         _portalHost.PortalClosed += OnPortalClosed;
 
@@ -29,8 +30,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<PortalRowViewModel> Portals { get; }
 
+    public MediaLibraryViewModel Media { get; }
+
     [ObservableProperty]
     private PortalRowViewModel? selectedPortal;
+
+    partial void OnSelectedPortalChanged(PortalRowViewModel? value)
+    {
+        SendSelectedMediaToSelectedPortalCommand.NotifyCanExecuteChanged();
+    }
 
     [RelayCommand]
     private void AddPortal()
@@ -49,6 +57,32 @@ public partial class MainWindowViewModel : ViewModelBase
 
         Portals.Add(portalRow);
         SelectedPortal = portalRow;
+
+        SendSelectedMediaToSelectedPortalCommand.NotifyCanExecuteChanged();
+    }
+
+    public void ImportMediaFolder(string folderPath)
+    {
+        Media.ImportFolder(folderPath);
+        SendSelectedMediaToSelectedPortalCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanSendSelectedMediaToSelectedPortal()
+        => SelectedPortal is not null && Media.SelectedItem is not null;
+
+    [RelayCommand(CanExecute = nameof(CanSendSelectedMediaToSelectedPortal))]
+    private void SendSelectedMediaToSelectedPortal()
+    {
+        var portal = SelectedPortal;
+        var item = Media.SelectedItem;
+        if (portal is null || item is null)
+        {
+            return;
+        }
+
+        portal.CurrentAssignment = item.DisplayName;
+        _portalHost.SetContentImage(portal.PortalNumber, item.FilePath, item.DisplayName);
+        portal.IsVisible = true;
     }
 
     [RelayCommand]

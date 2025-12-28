@@ -8,27 +8,34 @@
         x:DataType="vm:PortalWindowViewModel"
         Title="ScryPortal"
         Background="Black"
-  Topmost="False"
-  ShowActivated="False"
+        Topmost="False"
+        ShowActivated="False"
         SystemDecorations="None"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
         WindowStartupLocation="Manual">
 
-  <Grid>
-    <!-- Base black background (always) -->
-    <Border Background="Black" />
-
+  <Border Background="Black">
     <!-- All portal output (hidden => true blackout) -->
     <Grid IsVisible="{Binding IsContentVisible}">
-      <!-- Assigned content (only after setup) -->
-      <TextBlock Text="{Binding ContentTitle}"
-                 IsVisible="{Binding !IsSetup}"
-                 Foreground="White"
-                 FontSize="48"
-                 FontWeight="SemiBold"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center" />
+      <!-- Assigned image (after setup) -->
+      <Image
+        IsVisible="{Binding IsShowingImage}"
+        Source="{Binding ContentImage}"
+        Stretch="Uniform"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center" />
+
+      <!-- Assigned text (after setup, when no image) -->
+      <TextBlock
+        IsVisible="{Binding IsShowingText}"
+        Text="{Binding ContentTitle}"
+        Foreground="#E8D9B6"
+        FontSize="48"
+        FontWeight="SemiBold"
+        TextAlignment="Center"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center" />
 
       <!-- Setup mode: persistent until first assignment -->
       <Border IsVisible="{Binding IsSetup}"
@@ -64,5 +71,5 @@
                    VerticalAlignment="Center" />
       </Border>
     </Grid>
-  </Grid>
+  </Border>
 </Window>

@@ -85,13 +85,52 @@
         <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource ScryBg0}" Padding="16">
             <TabControl>
                 <TabItem Header="Media">
-                    <Border Classes="card" Margin="0,12,0,0">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="Media Library" FontSize="16" FontWeight="SemiBold" />
-                            <TextBlock Text="Import folders, generate thumbnails, and send images/videos to portals." Foreground="{DynamicResource ScryTextMuted}" />
-                            <TextBlock Text="(Media MVP coming next)" Foreground="{DynamicResource ScryTextMuted}" />
-                        </StackPanel>
-                    </Border>
+                    <Grid RowDefinitions="Auto,*" RowSpacing="12" Margin="0,12,0,0">
+                        <WrapPanel Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
+                            <Button Classes="subtle" Content="Import Folder" Click="OnImportMediaFolder" i:Attached.Icon="mdi-folder-plus" />
+                            <TextBlock Text="{Binding Media.StatusText}" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                            <Button Classes="primary"
+                                    Content="Send to Selected Portal"
+                                    Command="{Binding SendSelectedMediaToSelectedPortalCommand}"
+                                    ToolTip.Tip="Sends the selected image to the selected portal" />
+                        </WrapPanel>
+
+                        <Grid Grid.Row="1" ColumnDefinitions="280,*" ColumnSpacing="12">
+                            <Border Classes="card" Padding="14">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Preview" FontSize="14" FontWeight="SemiBold" />
+                                    <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="8" Padding="10">
+                                        <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" Height="220" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Media.SelectedItem.DisplayName}" Foreground="{DynamicResource ScryTextMuted}" TextWrapping="Wrap" />
+                                    <TextBlock Text="Selected Portal" FontSize="14" FontWeight="SemiBold" Margin="0,6,0,0" />
+                                    <TextBlock Text="{Binding SelectedPortal.Title}" Foreground="{DynamicResource ScryTextMuted}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Classes="card" Padding="14">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Images" FontSize="14" FontWeight="SemiBold" />
+                                    <ListBox ItemsSource="{Binding Media.Items}"
+                                             SelectedItem="{Binding Media.SelectedItem}"
+                                             ItemContainerTheme="{DynamicResource ScryListBoxItemTheme}">
+                                        <ListBox.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel ItemSpacing="10" LineSpacing="10" />
+                                            </ItemsPanelTemplate>
+                                        </ListBox.ItemsPanel>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
+                                                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
                 </TabItem>
                 <TabItem Header="Apps">
                     <Border Classes="card" Margin="0,12,0,0">
