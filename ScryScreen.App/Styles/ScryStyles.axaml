@@ -144,6 +144,28 @@
     </Setter>
   </Style>
 
+  <!-- Circle Button: used for compact icon actions -->
+  <Style Selector="Button.circle">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="#0A0F18" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="22" />
+    <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
+  </Style>
+
+  <Style Selector="Button.circle:pointerover">
+    <Setter Property="Opacity" Value="0.95" />
+  </Style>
+
+  <Style Selector="Button.circle:pressed">
+    <Setter Property="Opacity" Value="0.88" />
+  </Style>
+
   <Style Selector="ToggleButton.circle:checked /template/ Border">
     <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
     <Setter Property="BorderThickness" Value="2" />
