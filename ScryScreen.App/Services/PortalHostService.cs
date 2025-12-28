@@ -73,6 +73,9 @@ public sealed class PortalHostService
         };
 
         portalWindow.Show();
+
+        // Ensure the GM console stays on top, even if a portal was created on the same monitor.
+        _owner.Activate();
         return portalVm;
     }
 
@@ -113,6 +116,9 @@ public sealed class PortalHostService
         controller.Window.WindowState = WindowState.FullScreen;
 
         controller.ViewModel.ScreenName = screen.DisplayName;
+
+        // Fullscreen transitions can pull z-order forward; keep the GM console visible.
+        _owner.Activate();
     }
 
     public void SetVisibility(int portalNumber, bool isVisible)

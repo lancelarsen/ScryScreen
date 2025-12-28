@@ -8,6 +8,8 @@
         x:DataType="vm:PortalWindowViewModel"
         Title="ScryPortal"
         Background="Black"
+  Topmost="False"
+  ShowActivated="False"
         SystemDecorations="None"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
