@@ -40,7 +40,7 @@
                 <ListBox ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" ItemContainerTheme="{DynamicResource ScryListBoxItemTheme}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Classes="card" Margin="0,0,0,12">
+                            <Border Classes="card" Margin="0,0,12,12">
                                 <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="10">
                                     <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
                                         <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
