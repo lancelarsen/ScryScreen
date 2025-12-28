@@ -16,58 +16,53 @@
         WindowStartupLocation="Manual">
 
   <Grid>
-    <!-- Player-facing content area -->
-    <Border Background="Black">
-      <Grid>
-        <TextBlock Text="{Binding ContentTitle}"
-                   IsVisible="{Binding IsContentVisible}"
-                   Foreground="White"
-                   FontSize="48"
-                   FontWeight="SemiBold"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center" />
+    <!-- Base black background (always) -->
+    <Border Background="Black" />
 
-        <TextBlock Text="Idle / Hidden"
-                   IsVisible="{Binding !IsContentVisible}"
-                   Foreground="#B0FFFFFF"
-                   FontSize="32"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center" />
-      </Grid>
-    </Border>
-
-    <!-- Setup mode: persistent until first show/assignment -->
-    <Border IsVisible="{Binding IsSetup}"
-            Background="#CC000000">
-      <Border CornerRadius="16" Background="#141B26" BorderBrush="#2A3A52" BorderThickness="1"
-              Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="620">
-        <StackPanel Spacing="10" HorizontalAlignment="Center">
-          <TextBlock Text="{Binding PortalNumber, StringFormat='Portal {0}'}"
-                     Foreground="White"
-                     FontSize="72"
-                     FontWeight="Black"
-                     HorizontalAlignment="Center" />
-          <TextBlock Text="{Binding ScreenName}"
-                     Foreground="#DFFFFFFF"
-                     FontSize="20"
-                     HorizontalAlignment="Center" />
-          <TextBlock Text="Setup Mode — assign content from ScryMaster"
-                     Foreground="#BFFFFFFF"
-                     FontSize="16"
-                     HorizontalAlignment="Center" />
-        </StackPanel>
-      </Border>
-    </Border>
-
-    <!-- Identify overlay -->
-    <Border IsVisible="{Binding IsIdentifyOverlayVisible}"
-            Background="#AA000000">
-      <TextBlock Text="{Binding PortalNumber}"
+    <!-- All portal output (hidden => true blackout) -->
+    <Grid IsVisible="{Binding IsContentVisible}">
+      <!-- Assigned content (only after setup) -->
+      <TextBlock Text="{Binding ContentTitle}"
+                 IsVisible="{Binding !IsSetup}"
                  Foreground="White"
-                 FontSize="220"
-                 FontWeight="Black"
+                 FontSize="48"
+                 FontWeight="SemiBold"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center" />
-    </Border>
+
+      <!-- Setup mode: persistent until first assignment -->
+      <Border IsVisible="{Binding IsSetup}"
+              Background="#CC000000">
+        <Border CornerRadius="16" Background="#141B26" BorderBrush="#2A3A52" BorderThickness="1"
+                Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="620">
+          <StackPanel Spacing="10" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding PortalNumber, StringFormat='Portal {0}'}"
+                       Foreground="White"
+                       FontSize="72"
+                       FontWeight="Black"
+                       HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding ScreenName}"
+                       Foreground="#DFFFFFFF"
+                       FontSize="20"
+                       HorizontalAlignment="Center" />
+            <TextBlock Text="Setup Mode — assign content from ScryMaster"
+                       Foreground="#BFFFFFFF"
+                       FontSize="16"
+                       HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+      </Border>
+
+      <!-- Identify overlay -->
+      <Border IsVisible="{Binding IsIdentifyOverlayVisible}"
+              Background="#AA000000">
+        <TextBlock Text="{Binding PortalNumber}"
+                   Foreground="White"
+                   FontSize="220"
+                   FontWeight="Black"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
+      </Border>
+    </Grid>
   </Grid>
 </Window>

@@ -126,11 +126,6 @@ public sealed class PortalHostService
         if (_portals.TryGetValue(portalNumber, out var controller))
         {
             controller.ViewModel.IsContentVisible = isVisible;
-
-            if (isVisible)
-            {
-                controller.ViewModel.IsSetup = false;
-            }
         }
     }
 

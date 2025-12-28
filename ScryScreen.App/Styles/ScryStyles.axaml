@@ -12,6 +12,7 @@
     <Color x:Key="ScryColorTextMuted">#A7B6CB</Color>
     <!-- Arcane gold accent -->
     <Color x:Key="ScryColorAccent">#D6B25E</Color>
+    <Color x:Key="ScryColorSuccess">#36D477</Color>
     <Color x:Key="ScryColorDanger">#E54848</Color>
 
     <SolidColorBrush x:Key="ScryBg0" Color="{DynamicResource ScryColorBg0}" />
@@ -22,12 +23,33 @@
     <SolidColorBrush x:Key="ScryText" Color="{DynamicResource ScryColorText}" />
     <SolidColorBrush x:Key="ScryTextMuted" Color="{DynamicResource ScryColorTextMuted}" />
     <SolidColorBrush x:Key="ScryAccent" Color="{DynamicResource ScryColorAccent}" />
+    <SolidColorBrush x:Key="ScrySuccess" Color="{DynamicResource ScryColorSuccess}" />
     <SolidColorBrush x:Key="ScryDanger" Color="{DynamicResource ScryColorDanger}" />
 
     <Thickness x:Key="ScryPadS">8</Thickness>
     <Thickness x:Key="ScryPadM">12</Thickness>
     <Thickness x:Key="ScryPadL">16</Thickness>
     <CornerRadius x:Key="ScryRadius">10</CornerRadius>
+
+    <!-- ListBox item theme with no selection fill (we draw our own selection via Border.card styles) -->
+    <ControlTheme x:Key="ScryListBoxItemTheme" TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <ContentPresenter
+              Background="Transparent"
+              BorderBrush="Transparent"
+              Padding="{TemplateBinding Padding}"
+              Content="{TemplateBinding Content}"
+              ContentTemplate="{TemplateBinding ContentTemplate}"
+              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
   </Styles.Resources>
 
   <!-- Typography defaults -->
@@ -78,14 +100,76 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
+  <!-- Icon-only ToggleButton: fully transparent in all states (no Fluent/OS accent fill) -->
+  <Style Selector="ToggleButton.icon">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="Transparent"
+                BorderBrush="Transparent"
+                BorderThickness="0"
+                CornerRadius="18">
+          <ContentPresenter HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="ToggleButton.icon:pointerover">
+    <Setter Property="Opacity" Value="0.92" />
+  </Style>
+
+  <Style Selector="ToggleButton.icon:pressed">
+    <Setter Property="Opacity" Value="0.85" />
+  </Style>
+
   <!-- Selection: accent outline, no full-row fill -->
   <Style Selector="ListBoxItem:selected">
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
+  <!-- Force the ListBoxItem template background to stay transparent (prevents theme selection fill behind our cards) -->
+  <Style Selector="ListBoxItem /template/ Border">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ListBoxItem:pointerover /template/ Border">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ListBoxItem:selected /template/ Border">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ListBoxItem:selected:pointerover /template/ Border">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
   <Style Selector="ListBoxItem:selected Border.card">
     <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
     <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <!-- Lists: keep backgrounds transparent so the panel color shows through -->
+  <Style Selector="ListBox">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="ListBox /template/ ScrollViewer">
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 
   <!-- Inputs -->

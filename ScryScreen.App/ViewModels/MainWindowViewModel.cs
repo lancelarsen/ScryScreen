@@ -43,7 +43,6 @@ public partial class MainWindowViewModel : ViewModelBase
         var portalRow = new PortalRowViewModel(_portalHost, portalNumber, Screens)
         {
             SelectedScreen = defaultScreen,
-            IsVisible = false,
         };
 
         portalRow.DeleteRequested += OnDeletePortalRequested;

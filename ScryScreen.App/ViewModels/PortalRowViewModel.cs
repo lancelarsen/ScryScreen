@@ -17,7 +17,7 @@ public partial class PortalRowViewModel : ViewModelBase
         _portalHost = portalHost;
         PortalNumber = portalNumber;
         AvailableScreens = availableScreens;
-        isVisible = false;
+        IsVisible = true;
         currentAssignment = "Idle";
     }
 

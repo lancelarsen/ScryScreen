@@ -9,7 +9,7 @@ public partial class PortalWindowViewModel : ViewModelBase
         PortalNumber = portalNumber;
         ScreenName = "Unassigned";
         ContentTitle = "Idle";
-        IsContentVisible = false;
+        IsContentVisible = true;
         IsSetup = true;
         IsIdentifyOverlayVisible = false;
     }

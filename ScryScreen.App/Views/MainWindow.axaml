@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:ScryScreen.App.ViewModels"
+    xmlns:i="https://github.com/projektanker/icons.avalonia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -36,7 +37,7 @@
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="Portals" FontSize="16" FontWeight="SemiBold" Margin="2,2,2,12" />
 
-                <ListBox ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}">
+                <ListBox ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" ItemContainerTheme="{DynamicResource ScryListBoxItemTheme}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border Classes="card" Margin="0,0,0,12">
@@ -46,9 +47,9 @@
                                         <TextBlock Text="{Binding CurrentAssignment}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
                                     </StackPanel>
 
-                                    <Button Grid.Row="0" Grid.Column="1"
+                                        <Button Grid.Row="0" Grid.Column="1"
                                             Classes="icon"
-                                            Content="✕"
+                                            i:Attached.Icon="mdi-close"
                                             ToolTip.Tip="Close portal"
                                             Command="{Binding ClosePortalCommand}" />
 
@@ -62,18 +63,14 @@
                                     </Grid>
 
                                     <WrapPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
-                                        <ToggleSwitch Content="Show" IsChecked="{Binding IsVisible}" />
-
-                                        <Border IsVisible="{Binding !IsVisible}"
-                                                Background="#33000000"
-                                                CornerRadius="999"
-                                                Padding="10,4"
-                                                BorderBrush="#55B88A2C"
-                                                BorderThickness="1">
-                                            <TextBlock Text="Hidden" Foreground="#FFD6C37A" FontWeight="SemiBold" />
-                                        </Border>
-
-                                        <Button Classes="subtle" Content="Blackout" Command="{Binding BlackoutCommand}" ToolTip.Tip="Quickly hide this portal (does not change what’s assigned)." />
+                                        <ToggleButton Classes="icon"
+                                                      IsChecked="{Binding IsVisible}"
+                                                      ToolTip.Tip="Toggle portal visibility">
+                                            <Grid>
+                                                <i:Icon IsVisible="{Binding IsVisible}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
+                                                <i:Icon IsVisible="{Binding !IsVisible}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
+                                            </Grid>
+                                        </ToggleButton>
                                         <Button Classes="primary" Content="Show Sample" Command="{Binding ShowSampleCommand}" />
                                     </WrapPanel>
                                 </Grid>
