@@ -10,6 +10,8 @@ public partial class PortalRowViewModel : ViewModelBase
 {
     private readonly PortalHostService _portalHost;
 
+    public event Action<int>? DeleteRequested;
+
     public PortalRowViewModel(PortalHostService portalHost, int portalNumber, IReadOnlyList<ScreenInfoViewModel> availableScreens)
     {
         _portalHost = portalHost;
@@ -65,5 +67,11 @@ public partial class PortalRowViewModel : ViewModelBase
         CurrentAssignment = "Sample Content";
         _portalHost.SetContentText(PortalNumber, CurrentAssignment);
         IsVisible = true;
+    }
+
+    [RelayCommand]
+    private void DeletePortal()
+    {
+        DeleteRequested?.Invoke(PortalNumber);
     }
 }

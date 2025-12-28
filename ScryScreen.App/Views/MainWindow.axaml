@@ -50,6 +50,7 @@
                                         <ToggleSwitch Content="Visible" IsChecked="{Binding IsVisible}" />
                                         <Button Content="Blackout" Command="{Binding BlackoutCommand}" />
                                         <Button Content="Show Sample" Command="{Binding ShowSampleCommand}" />
+                                        <Button Content="Delete" Command="{Binding DeletePortalCommand}" />
                                     </StackPanel>
 
                                     <TextBlock Text="{Binding CurrentAssignment}" Foreground="#BFFFFFFF" FontSize="12" />

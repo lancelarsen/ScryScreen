@@ -15,6 +15,8 @@ public sealed class PortalHostService
     private readonly Window _owner;
     private readonly Dictionary<int, PortalWindowController> _portals = new();
 
+    public event Action<int>? PortalClosed;
+
     public PortalHostService(Window owner)
     {
         _owner = owner ?? throw new ArgumentNullException(nameof(owner));
@@ -49,6 +51,14 @@ public sealed class PortalHostService
         var controller = new PortalWindowController(portalNumber, portalWindow, portalVm);
         _portals.Add(portalNumber, controller);
 
+        portalWindow.Closed += (_, _) =>
+        {
+            if (_portals.Remove(portalNumber))
+            {
+                PortalClosed?.Invoke(portalNumber);
+            }
+        };
+
         portalWindow.Opened += (_, _) =>
         {
             if (initialScreen is not null)
@@ -66,6 +76,22 @@ public sealed class PortalHostService
         return portalVm;
     }
 
+    public void ClosePortal(int portalNumber)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.Window.Close();
+        }
+    }
+
+    public void CloseAll()
+    {
+        foreach (var portalNumber in _portals.Keys.ToArray())
+        {
+            ClosePortal(portalNumber);
+        }
+    }
+
     public void AssignToScreen(int portalNumber, ScreenInfoViewModel screen)
     {
         if (!_portals.TryGetValue(portalNumber, out var controller))
@@ -75,9 +101,15 @@ public sealed class PortalHostService
 
         var bounds = screen.Bounds;
 
-        // Move the window first, then fullscreen.
-        controller.Window.Position = bounds.Position;
+        // IMPORTANT: position is in pixels; size is in DIPs.
+        // For reliable multi-monitor moves on Windows, restore -> move/resize -> fullscreen.
         controller.Window.WindowState = WindowState.Normal;
+        controller.Window.Position = bounds.Position;
+
+        var scaling = screen.Scaling <= 0 ? 1.0 : screen.Scaling;
+        controller.Window.Width = bounds.Width / scaling;
+        controller.Window.Height = bounds.Height / scaling;
+
         controller.Window.WindowState = WindowState.FullScreen;
 
         controller.ViewModel.ScreenName = screen.DisplayName;
@@ -88,6 +120,11 @@ public sealed class PortalHostService
         if (_portals.TryGetValue(portalNumber, out var controller))
         {
             controller.ViewModel.IsContentVisible = isVisible;
+
+            if (isVisible)
+            {
+                controller.ViewModel.IsSetup = false;
+            }
         }
     }
 
@@ -97,6 +134,7 @@ public sealed class PortalHostService
         {
             controller.ViewModel.ContentTitle = contentTitle;
             controller.ViewModel.IsContentVisible = true;
+            controller.ViewModel.IsSetup = false;
         }
     }
 

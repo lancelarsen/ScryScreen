@@ -19,6 +19,8 @@ public partial class MainWindowViewModel : ViewModelBase
         _screens = new ReadOnlyCollection<ScreenInfoViewModel>(_portalHost.GetScreens().ToList());
         Portals = new ObservableCollection<PortalRowViewModel>();
 
+        _portalHost.PortalClosed += OnPortalClosed;
+
         // Start with one portal for convenience.
         AddPortal();
     }
@@ -44,6 +46,8 @@ public partial class MainWindowViewModel : ViewModelBase
             IsVisible = false,
         };
 
+        portalRow.DeleteRequested += OnDeletePortalRequested;
+
         Portals.Add(portalRow);
         SelectedPortal = portalRow;
     }
@@ -52,5 +56,32 @@ public partial class MainWindowViewModel : ViewModelBase
     private Task IdentifyPortalsAsync()
     {
         return _portalHost.IdentifyAllAsync();
+    }
+
+    public void Shutdown()
+    {
+        _portalHost.CloseAll();
+    }
+
+    private void OnDeletePortalRequested(int portalNumber)
+    {
+        _portalHost.ClosePortal(portalNumber);
+    }
+
+    private void OnPortalClosed(int portalNumber)
+    {
+        var row = Portals.FirstOrDefault(p => p.PortalNumber == portalNumber);
+        if (row is null)
+        {
+            return;
+        }
+
+        row.DeleteRequested -= OnDeletePortalRequested;
+        Portals.Remove(row);
+
+        if (ReferenceEquals(SelectedPortal, row))
+        {
+            SelectedPortal = Portals.FirstOrDefault();
+        }
     }
 }

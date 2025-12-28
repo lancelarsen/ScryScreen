@@ -21,5 +21,7 @@ public sealed class ScreenInfoViewModel
 
     public PixelRect Bounds => _screen.Bounds;
 
+    public double Scaling => _screen.Scaling;
+
     public override string ToString() => DisplayName;
 }

@@ -1,0 +1,1 @@
+dotnet run --project .\ScryScreen.App\ScryScreen.App.csproj -c Debug

@@ -10,6 +10,7 @@ public partial class PortalWindowViewModel : ViewModelBase
         ScreenName = "Unassigned";
         ContentTitle = "Idle";
         IsContentVisible = false;
+        IsSetup = true;
         IsIdentifyOverlayVisible = false;
     }
 
@@ -23,6 +24,9 @@ public partial class PortalWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private string contentTitle = string.Empty;
+
+    [ObservableProperty]
+    private bool isSetup;
 
     [ObservableProperty]
     private bool isIdentifyOverlayVisible;
