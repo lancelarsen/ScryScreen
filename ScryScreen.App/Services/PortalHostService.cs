@@ -30,8 +30,15 @@ public sealed class PortalHostService
             return Array.Empty<ScreenInfoViewModel>();
         }
 
-        return screens.All
-            .Select((s, index) => new ScreenInfoViewModel(index, s))
+        var all = screens.All
+            .Select((s, index) => (Screen: s, Index: index))
+            .ToList();
+
+        var total = all.Count;
+        return all
+            .Select(x => new ScreenInfoViewModel(x.Index, x.Screen, total))
+            .OrderByDescending(x => x.IsPrimary)
+            .ThenBy(x => x.Index)
             .ToList();
     }
 
