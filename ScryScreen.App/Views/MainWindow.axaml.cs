@@ -4,15 +4,102 @@ using Avalonia.Platform.Storage;
 using System.Linq;
 using System.ComponentModel;
 using ScryScreen.App.ViewModels;
+using Avalonia;
+using System;
 
 namespace ScryScreen.App.Views;
 
 public partial class MainWindow : Window
 {
+    private bool _pinning;
+    private MainWindowViewModel? _vm;
+
     public MainWindow()
     {
         InitializeComponent();
         Closing += OnClosing;
+
+        Opened += (_, _) => DockToTopFullWidth();
+        PositionChanged += (_, _) => DockToTopFullWidth();
+        PropertyChanged += (_, _) => DockToTopFullWidth();
+        DataContextChanged += (_, _) => HookViewModel();
+        HookViewModel();
+    }
+
+    private void HookViewModel()
+    {
+        if (_vm is not null)
+        {
+            _vm.PropertyChanged -= OnViewModelPropertyChanged;
+        }
+
+        _vm = DataContext as MainWindowViewModel;
+        if (_vm is not null)
+        {
+            _vm.PropertyChanged += OnViewModelPropertyChanged;
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // When sections are shown/hidden, the window height changes (SizeToContent=Height).
+        // Keep the window pinned to the top of the active screen.
+        if (e.PropertyName is nameof(MainWindowViewModel.IsPortalsSectionVisible)
+            or nameof(MainWindowViewModel.IsLibrarySectionVisible)
+            or nameof(MainWindowViewModel.IsControlsSectionVisible))
+        {
+            DockToTopFullWidth();
+        }
+    }
+
+    private void DockToTopFullWidth()
+    {
+        if (_pinning)
+        {
+            return;
+        }
+
+        var screens = Screens;
+        if (screens is null)
+        {
+            return;
+        }
+
+        // Find the screen containing the window's current position.
+        var currentScreen = screens.ScreenFromPoint(Position) ?? screens.Primary;
+        if (currentScreen is null)
+        {
+            return;
+        }
+
+        var workingArea = currentScreen.WorkingArea;
+
+        var scaling = currentScreen.Scaling <= 0 ? 1.0 : currentScreen.Scaling;
+        var targetWidth = workingArea.Width / scaling;
+
+        _pinning = true;
+        try
+        {
+            var targetX = workingArea.X;
+            var targetY = workingArea.Y;
+            if (Position.X != targetX || Position.Y != targetY)
+            {
+                Position = new PixelPoint(targetX, targetY);
+            }
+
+            if (!double.IsNaN(targetWidth) && targetWidth > 0)
+            {
+                // Allow a small epsilon to avoid churn from fractional DIP conversions.
+                if (double.IsNaN(Width) || Math.Abs(Width - targetWidth) > 0.5)
+                {
+                    Width = targetWidth;
+                }
+            }
+        }
+        finally
+        {
+            _pinning = false;
+        }
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -21,6 +108,11 @@ public partial class MainWindow : Window
         {
             vm.Shutdown();
         }
+    }
+
+    private void OnCloseApp(object? sender, RoutedEventArgs e)
+    {
+        Close();
     }
 
     private async void OnImportMediaFolder(object? sender, RoutedEventArgs e)

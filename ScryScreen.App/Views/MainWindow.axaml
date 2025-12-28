@@ -10,7 +10,13 @@
         Icon="/Assets/avalonia-logo.ico"
     Title="ScryScreen — ScryMaster"
     Topmost="True"
-    Background="{DynamicResource ScryBg0}">
+    Background="{DynamicResource ScryBg0}"
+    WindowStartupLocation="Manual"
+    SizeToContent="Height"
+    SystemDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    ExtendClientAreaChromeHints="NoChrome"
+    CanResize="False">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -28,6 +34,7 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10">
                     <Button Classes="primary" Content="Add Portal" Command="{Binding AddPortalCommand}" />
                     <Button Classes="subtle" Content="Identify" Command="{Binding IdentifyPortalsCommand}" />
+                    <Button Classes="icon" i:Attached.Icon="mdi-close" ToolTip.Tip="Close ScryScreen" Click="OnCloseApp" />
                 </StackPanel>
             </DockPanel>
         </Border>
