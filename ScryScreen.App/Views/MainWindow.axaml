@@ -18,8 +18,8 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid ColumnDefinitions="320,*,360" RowDefinitions="Auto,*" Background="{DynamicResource ScryBg0}">
-        <Border Grid.ColumnSpan="3" Background="{DynamicResource ScryBg1}" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="0,0,0,1" Padding="16,12">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Background="{DynamicResource ScryBg0}">
+        <Border Background="{DynamicResource ScryBg1}" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="0,0,0,1" Padding="16,12">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Left" Spacing="2">
                     <TextBlock Text="ScryScreen" FontSize="18" FontWeight="SemiBold" />
@@ -32,57 +32,100 @@
             </DockPanel>
         </Border>
 
-        <!-- Left: Portals -->
-        <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource ScryPanel}" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="0,0,1,0" Padding="14">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="Portals" FontSize="16" FontWeight="SemiBold" Margin="2,2,2,12" />
+        <!-- Section toggles -->
+        <Border Grid.Row="1" Background="{DynamicResource ScryBg0}" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="0,0,0,1" Padding="12,8">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <!-- Portals -->
+                <ToggleButton Classes="circle"
+                              IsChecked="{Binding IsPortalsSectionVisible}"
+                              ToolTip.Tip="Show/Hide Portals">
+                    <Grid>
+                        <i:Icon IsVisible="{Binding IsPortalsSectionVisible}" Value="mdi-monitor" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                        <i:Icon IsVisible="{Binding !IsPortalsSectionVisible}" Value="mdi-monitor-off" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                    </Grid>
+                </ToggleButton>
 
-                <ListBox ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" ItemContainerTheme="{DynamicResource ScryListBoxItemTheme}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border Classes="card" Margin="0,0,12,12">
-                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="10">
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
-                                        <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding CurrentAssignment}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
-                                    </StackPanel>
+                <!-- Media / Apps -->
+                <ToggleButton Classes="circle"
+                              IsChecked="{Binding IsLibrarySectionVisible}"
+                              ToolTip.Tip="Show/Hide Media &amp; Apps">
+                    <Grid>
+                        <i:Icon IsVisible="{Binding IsLibrarySectionVisible}" Value="mdi-image-plus" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                        <i:Icon IsVisible="{Binding !IsLibrarySectionVisible}" Value="mdi-image-off" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                    </Grid>
+                </ToggleButton>
 
-                                        <Button Grid.Row="0" Grid.Column="1"
-                                            Classes="icon"
-                                            i:Attached.Icon="mdi-close"
-                                            ToolTip.Tip="Close portal"
-                                            Command="{Binding ClosePortalCommand}" />
-
-                                    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                        <TextBlock Grid.Column="0" Text="Screen" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1"
-                                                  MinWidth="140"
-                                                  HorizontalAlignment="Stretch"
-                                                  ItemsSource="{Binding AvailableScreens}"
-                                                  SelectedItem="{Binding SelectedScreen}" />
-                                    </Grid>
-
-                                    <WrapPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
-                                        <ToggleButton Classes="icon"
-                                                      IsChecked="{Binding IsVisible}"
-                                                      ToolTip.Tip="Toggle portal visibility">
-                                            <Grid>
-                                                <i:Icon IsVisible="{Binding IsVisible}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
-                                                <i:Icon IsVisible="{Binding !IsVisible}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
-                                            </Grid>
-                                        </ToggleButton>
-                                        <Button Classes="primary" Content="Show Sample" Command="{Binding ShowSampleCommand}" />
-                                    </WrapPanel>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
+                <!-- Controls -->
+                <ToggleButton Classes="circle"
+                              IsChecked="{Binding IsControlsSectionVisible}"
+                              ToolTip.Tip="Show/Hide Controls">
+                    <Grid>
+                        <i:Icon IsVisible="{Binding IsControlsSectionVisible}" Value="mdi-cog" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                        <i:Icon IsVisible="{Binding !IsControlsSectionVisible}" Value="mdi-cog-off" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                    </Grid>
+                </ToggleButton>
+            </StackPanel>
         </Border>
 
-        <!-- Center: Content Browser (placeholder for M0) -->
-        <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource ScryBg0}" Padding="16">
+        <!-- Top: Portals (expandable, compact) -->
+        <Border Grid.Row="2"
+                IsVisible="{Binding IsPortalsSectionVisible}"
+                Background="{DynamicResource ScryBg0}"
+                BorderBrush="{DynamicResource ScryBorder}"
+                BorderThickness="0,0,0,1"
+                Padding="12,10">
+            <ListBox ItemsSource="{Binding Portals}"
+                     SelectedItem="{Binding SelectedPortal}"
+                     ItemContainerTheme="{DynamicResource ScryListBoxItemTheme}"
+                     MaxHeight="240">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" ItemSpacing="12" LineSpacing="12" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="card" Width="300">
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8">
+                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
+                                    <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding CurrentAssignment}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
+                                </StackPanel>
+
+                                <Button Grid.Row="0" Grid.Column="1"
+                                        Classes="icon"
+                                        i:Attached.Icon="mdi-close"
+                                        ToolTip.Tip="Close portal"
+                                        Command="{Binding ClosePortalCommand}" />
+
+                                <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                    <TextBlock Grid.Column="0" Text="Screen" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1"
+                                              MinWidth="160"
+                                              HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding AvailableScreens}"
+                                              SelectedItem="{Binding SelectedScreen}" />
+                                </Grid>
+
+                                <WrapPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
+                                    <ToggleButton Classes="icon"
+                                                  IsChecked="{Binding IsVisible}"
+                                                  ToolTip.Tip="Toggle portal visibility">
+                                        <Grid>
+                                            <i:Icon IsVisible="{Binding IsVisible}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
+                                            <i:Icon IsVisible="{Binding !IsVisible}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
+                                        </Grid>
+                                    </ToggleButton>
+                                </WrapPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- Middle: Content Browser -->
+        <Border Grid.Row="3" IsVisible="{Binding IsLibrarySectionVisible}" Background="{DynamicResource ScryBg0}" Padding="16">
             <TabControl>
                 <TabItem Header="Media">
                     <Grid RowDefinitions="Auto,*" RowSpacing="12" Margin="0,12,0,0">
@@ -95,12 +138,12 @@
                                     ToolTip.Tip="Sends the selected image to the selected portal" />
                         </WrapPanel>
 
-                        <Grid Grid.Row="1" ColumnDefinitions="280,*" ColumnSpacing="12">
+                        <Grid Grid.Row="1" ColumnDefinitions="240,*" ColumnSpacing="12">
                             <Border Classes="card" Padding="14">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Preview" FontSize="14" FontWeight="SemiBold" />
                                     <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="8" Padding="10">
-                                        <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" Height="220" />
+                                        <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" Height="180" />
                                     </Border>
                                     <TextBlock Text="{Binding Media.SelectedItem.DisplayName}" Foreground="{DynamicResource ScryTextMuted}" TextWrapping="Wrap" />
                                     <TextBlock Text="Selected Portal" FontSize="14" FontWeight="SemiBold" Margin="0,6,0,0" />
@@ -144,17 +187,20 @@
             </TabControl>
         </Border>
 
-        <!-- Right: Inspector / Controls (placeholder for M0) -->
-        <Border Grid.Row="1" Grid.Column="2" Background="{DynamicResource ScryPanel}" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1,0,0,0" Padding="16">
-            <StackPanel Spacing="12">
-                <TextBlock Text="Inspector / Controls" FontSize="16" FontWeight="SemiBold" />
-                <Border Classes="card">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Selected Portal" FontWeight="SemiBold" />
-                        <TextBlock Text="(Per-portal controls appear here next)" Foreground="{DynamicResource ScryTextMuted}" />
-                    </StackPanel>
-                </Border>
-            </StackPanel>
+        <!-- Bottom: Inspector / Controls -->
+        <Border Grid.Row="4"
+                IsVisible="{Binding IsControlsSectionVisible}"
+                Background="{DynamicResource ScryPanel}"
+                BorderBrush="{DynamicResource ScryBorder}"
+                BorderThickness="0,1,0,0"
+                Padding="12,10">
+            <Border Classes="card">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Inspector / Controls" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SelectedPortal.Title}" Foreground="{DynamicResource ScryTextMuted}" />
+                    <TextBlock Text="(Per-portal controls appear here next)" Foreground="{DynamicResource ScryTextMuted}" />
+                </StackPanel>
+            </Border>
         </Border>
     </Grid>
 

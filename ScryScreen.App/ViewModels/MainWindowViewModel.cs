@@ -35,6 +35,15 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private PortalRowViewModel? selectedPortal;
 
+    [ObservableProperty]
+    private bool isPortalsSectionVisible = true;
+
+    [ObservableProperty]
+    private bool isLibrarySectionVisible = true;
+
+    [ObservableProperty]
+    private bool isControlsSectionVisible = false;
+
     partial void OnSelectedPortalChanged(PortalRowViewModel? value)
     {
         SendSelectedMediaToSelectedPortalCommand.NotifyCanExecuteChanged();

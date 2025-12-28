@@ -1,5 +1,7 @@
 ﻿using Avalonia;
 using System;
+using System.Diagnostics;
+using System.IO;
 using Projektanker.Icons.Avalonia;
 using Projektanker.Icons.Avalonia.MaterialDesign;
 
@@ -11,8 +13,38 @@ sealed class Program
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        var logPath = GetLogPath();
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+            Trace.Listeners.Add(new TextWriterTraceListener(logPath));
+            Trace.AutoFlush = true;
+
+            AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+                Trace.WriteLine($"[UnhandledException] {e.ExceptionObject}");
+
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                File.AppendAllText(logPath, $"[Fatal] {ex}\n");
+            }
+            catch
+            {
+                // ignored
+            }
+
+            throw;
+        }
+    }
+
+    private static string GetLogPath()
+        => Path.Combine(AppContext.BaseDirectory, "ScryScreen.startup.log");
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()

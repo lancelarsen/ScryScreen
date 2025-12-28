@@ -122,6 +122,41 @@
     </Setter>
   </Style>
 
+  <!-- Circle ToggleButton: used for section visibility controls -->
+  <Style Selector="ToggleButton.circle">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="#0A0F18"
+                BorderBrush="{DynamicResource ScryBorder}"
+                BorderThickness="1"
+                CornerRadius="22">
+          <ContentPresenter HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="ToggleButton.circle:checked /template/ Border">
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="ToggleButton.circle:pointerover /template/ Border">
+    <Setter Property="Opacity" Value="0.95" />
+  </Style>
+
+  <Style Selector="ToggleButton.circle:pressed /template/ Border">
+    <Setter Property="Opacity" Value="0.88" />
+  </Style>
+
   <Style Selector="ToggleButton.icon:pointerover">
     <Setter Property="Opacity" Value="0.92" />
   </Style>

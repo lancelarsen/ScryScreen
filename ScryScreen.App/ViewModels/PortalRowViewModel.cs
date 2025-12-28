@@ -52,20 +52,6 @@ public partial class PortalRowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Blackout()
-    {
-        IsVisible = false;
-    }
-
-    [RelayCommand]
-    private void ShowSample()
-    {
-        CurrentAssignment = "Sample Content";
-        _portalHost.SetContentText(PortalNumber, CurrentAssignment);
-        IsVisible = true;
-    }
-
-    [RelayCommand]
     private void DeletePortal()
     {
         DeleteRequested?.Invoke(PortalNumber);
