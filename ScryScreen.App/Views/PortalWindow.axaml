@@ -35,15 +35,15 @@
                    VerticalAlignment="Center" />
 
         <!-- Small corner label for debugging/setup -->
-        <Border Background="#66000000"
-                CornerRadius="6"
+        <Border Background="#4D000000"
+                CornerRadius="10"
                 Padding="10"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"
                 Margin="16">
           <StackPanel>
-            <TextBlock Text="{Binding ScreenName}" Foreground="#DFFFFFFF" FontSize="16" />
-            <TextBlock Text="{Binding PortalNumber, StringFormat='Portal {0}'}" Foreground="White" FontSize="18" FontWeight="Bold" />
+            <TextBlock Text="{Binding PortalNumber, StringFormat='Portal {0}'}" Foreground="White" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ScreenName}" Foreground="#BFFFFFFF" FontSize="12" />
           </StackPanel>
         </Border>
       </Grid>
@@ -51,22 +51,25 @@
 
     <!-- Setup mode: persistent until first show/assignment -->
     <Border IsVisible="{Binding IsSetup}"
-            Background="#AA000000">
-      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
-      <TextBlock Text="{Binding PortalNumber, StringFormat='Portal {0}'}"
-                   Foreground="White"
-                   FontSize="72"
-                   FontWeight="Black"
-                   HorizontalAlignment="Center" />
-        <TextBlock Text="{Binding ScreenName}"
-                   Foreground="#DFFFFFFF"
-                   FontSize="22"
-                   HorizontalAlignment="Center" />
-        <TextBlock Text="Setup Mode"
-                   Foreground="#BFFFFFFF"
-                   FontSize="18"
-                   HorizontalAlignment="Center" />
-      </StackPanel>
+            Background="#CC000000">
+      <Border CornerRadius="16" Background="#141B26" BorderBrush="#2A3A52" BorderThickness="1"
+              Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="620">
+        <StackPanel Spacing="10" HorizontalAlignment="Center">
+          <TextBlock Text="{Binding PortalNumber, StringFormat='Portal {0}'}"
+                     Foreground="White"
+                     FontSize="72"
+                     FontWeight="Black"
+                     HorizontalAlignment="Center" />
+          <TextBlock Text="{Binding ScreenName}"
+                     Foreground="#DFFFFFFF"
+                     FontSize="20"
+                     HorizontalAlignment="Center" />
+          <TextBlock Text="Setup Mode — assign content from ScryMaster"
+                     Foreground="#BFFFFFFF"
+                     FontSize="16"
+                     HorizontalAlignment="Center" />
+        </StackPanel>
+      </Border>
     </Border>
 
     <!-- Identify overlay -->

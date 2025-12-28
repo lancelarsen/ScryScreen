@@ -8,7 +8,8 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
     Title="ScryScreen — ScryMaster"
-    Topmost="True">
+    Topmost="True"
+    Background="{DynamicResource ScryBg0}">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -16,46 +17,56 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid ColumnDefinitions="280,*,340" RowDefinitions="Auto,*" Background="#1A1A1A">
-        <Border Grid.ColumnSpan="3" Background="#111" Padding="12">
-            <TextBlock Text="ScryScreen (v0.1) — ScryMaster" Foreground="White" FontSize="18" FontWeight="SemiBold"/>
+    <Grid ColumnDefinitions="320,*,360" RowDefinitions="Auto,*" Background="{DynamicResource ScryBg0}">
+        <Border Grid.ColumnSpan="3" Background="{DynamicResource ScryBg1}" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="0,0,0,1" Padding="16,12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Spacing="2">
+                    <TextBlock Text="ScryScreen" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="ScryMaster (v0.1)" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10">
+                    <Button Classes="primary" Content="Add Portal" Command="{Binding AddPortalCommand}" />
+                    <Button Classes="subtle" Content="Identify" Command="{Binding IdentifyPortalsCommand}" />
+                </StackPanel>
+            </DockPanel>
         </Border>
 
         <!-- Left: Portals -->
-        <Border Grid.Row="1" Grid.Column="0" Background="#151515" BorderBrush="#2A2A2A" BorderThickness="0,1,1,0" Padding="12">
+        <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource ScryPanel}" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="0,0,1,0" Padding="14">
             <DockPanel>
-                <StackPanel DockPanel.Dock="Top" Spacing="10">
-                    <TextBlock Text="Portals" Foreground="White" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock DockPanel.Dock="Top" Text="Portals" FontSize="16" FontWeight="SemiBold" Margin="2,2,2,12" />
 
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Add Portal" Command="{Binding AddPortalCommand}" />
-                        <Button Content="Identify" Command="{Binding IdentifyPortalsCommand}" />
-                    </StackPanel>
-                </StackPanel>
-
-                <ListBox ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" Margin="0,12,0,0">
+                <ListBox ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="#1E1E1E" CornerRadius="8" Padding="10" Margin="0,0,0,10">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="{Binding Title}" Foreground="White" FontSize="15" FontWeight="SemiBold" />
+                            <Border Classes="card" Margin="0,0,0,12">
+                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="10">
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
+                                        <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding CurrentAssignment}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
+                                    </StackPanel>
 
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="Screen:" Foreground="#BFFFFFFF" VerticalAlignment="Center"/>
-                                        <ComboBox Width="160"
+                                    <Button Grid.Row="0" Grid.Column="1"
+                                            Classes="icon"
+                                            Content="✕"
+                                            ToolTip.Tip="Close portal"
+                                            Command="{Binding ClosePortalCommand}" />
+
+                                    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                        <TextBlock Grid.Column="0" Text="Screen" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Column="1"
+                                                  MinWidth="140"
+                                                  HorizontalAlignment="Stretch"
                                                   ItemsSource="{Binding AvailableScreens}"
                                                   SelectedItem="{Binding SelectedScreen}" />
-                                    </StackPanel>
+                                    </Grid>
 
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <WrapPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
                                         <ToggleSwitch Content="Visible" IsChecked="{Binding IsVisible}" />
-                                        <Button Content="Blackout" Command="{Binding BlackoutCommand}" />
-                                        <Button Content="Show Sample" Command="{Binding ShowSampleCommand}" />
-                                        <Button Content="Delete" Command="{Binding DeletePortalCommand}" />
-                                    </StackPanel>
-
-                                    <TextBlock Text="{Binding CurrentAssignment}" Foreground="#BFFFFFFF" FontSize="12" />
-                                </StackPanel>
+                                        <Button Classes="subtle" Content="Blackout" Command="{Binding BlackoutCommand}" />
+                                        <Button Classes="primary" Content="Show Sample" Command="{Binding ShowSampleCommand}" />
+                                    </WrapPanel>
+                                </Grid>
                             </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -64,18 +75,39 @@
         </Border>
 
         <!-- Center: Content Browser (placeholder for M0) -->
-        <Border Grid.Row="1" Grid.Column="1" Background="#1A1A1A" BorderBrush="#2A2A2A" BorderThickness="0,1,0,0" Padding="18">
-            <StackPanel Spacing="10">
-                <TextBlock Text="Content Browser" Foreground="White" FontSize="16" FontWeight="SemiBold" />
-                <TextBlock Text="(Milestone 0 placeholder — media/app browsing comes next)" Foreground="#BFFFFFFF" />
-            </StackPanel>
+        <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource ScryBg0}" Padding="16">
+            <TabControl>
+                <TabItem Header="Media">
+                    <Border Classes="card" Margin="0,12,0,0">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Media Library" FontSize="16" FontWeight="SemiBold" />
+                            <TextBlock Text="Import folders, generate thumbnails, and send images/videos to portals." Foreground="{DynamicResource ScryTextMuted}" />
+                            <TextBlock Text="(Media MVP coming next)" Foreground="{DynamicResource ScryTextMuted}" />
+                        </StackPanel>
+                    </Border>
+                </TabItem>
+                <TabItem Header="Apps">
+                    <Border Classes="card" Margin="0,12,0,0">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="ScryPortalApps" FontSize="16" FontWeight="SemiBold" />
+                            <TextBlock Text="Launch apps like Initiative Tracker and assign them to portals." Foreground="{DynamicResource ScryTextMuted}" />
+                            <TextBlock Text="(App framework coming after Media MVP)" Foreground="{DynamicResource ScryTextMuted}" />
+                        </StackPanel>
+                    </Border>
+                </TabItem>
+            </TabControl>
         </Border>
 
         <!-- Right: Inspector / Controls (placeholder for M0) -->
-        <Border Grid.Row="1" Grid.Column="2" Background="#151515" BorderBrush="#2A2A2A" BorderThickness="1,1,0,0" Padding="18">
-            <StackPanel Spacing="10">
-                <TextBlock Text="Inspector / Controls" Foreground="White" FontSize="16" FontWeight="SemiBold" />
-                <TextBlock Text="(Milestone 0 placeholder — per-portal controls appear here)" Foreground="#BFFFFFFF" />
+        <Border Grid.Row="1" Grid.Column="2" Background="{DynamicResource ScryPanel}" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1,0,0,0" Padding="16">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Inspector / Controls" FontSize="16" FontWeight="SemiBold" />
+                <Border Classes="card">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Selected Portal" FontWeight="SemiBold" />
+                        <TextBlock Text="(Per-portal controls appear here next)" Foreground="{DynamicResource ScryTextMuted}" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </Border>
     </Grid>

@@ -74,4 +74,11 @@ public partial class PortalRowViewModel : ViewModelBase
     {
         DeleteRequested?.Invoke(PortalNumber);
     }
+
+    [RelayCommand]
+    private void ClosePortal()
+    {
+        // Close = remove this portal window + row.
+        DeleteRequested?.Invoke(PortalNumber);
+    }
 }

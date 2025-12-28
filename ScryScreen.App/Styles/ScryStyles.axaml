@@ -1,0 +1,99 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Palette -->
+  <Styles.Resources>
+    <Color x:Key="ScryColorBg0">#070A10</Color>
+    <Color x:Key="ScryColorBg1">#0B1220</Color>
+    <Color x:Key="ScryColorPanel">#0E1829</Color>
+    <Color x:Key="ScryColorCard">#0B1627</Color>
+    <Color x:Key="ScryColorBorder">#233653</Color>
+    <Color x:Key="ScryColorText">#EAF2FF</Color>
+    <Color x:Key="ScryColorTextMuted">#A7B6CB</Color>
+    <!-- Arcane gold accent -->
+    <Color x:Key="ScryColorAccent">#D6B25E</Color>
+    <Color x:Key="ScryColorDanger">#E54848</Color>
+
+    <SolidColorBrush x:Key="ScryBg0" Color="{DynamicResource ScryColorBg0}" />
+    <SolidColorBrush x:Key="ScryBg1" Color="{DynamicResource ScryColorBg1}" />
+    <SolidColorBrush x:Key="ScryPanel" Color="{DynamicResource ScryColorPanel}" />
+    <SolidColorBrush x:Key="ScryCard" Color="{DynamicResource ScryColorCard}" />
+    <SolidColorBrush x:Key="ScryBorder" Color="{DynamicResource ScryColorBorder}" />
+    <SolidColorBrush x:Key="ScryText" Color="{DynamicResource ScryColorText}" />
+    <SolidColorBrush x:Key="ScryTextMuted" Color="{DynamicResource ScryColorTextMuted}" />
+    <SolidColorBrush x:Key="ScryAccent" Color="{DynamicResource ScryColorAccent}" />
+    <SolidColorBrush x:Key="ScryDanger" Color="{DynamicResource ScryColorDanger}" />
+
+    <Thickness x:Key="ScryPadS">8</Thickness>
+    <Thickness x:Key="ScryPadM">12</Thickness>
+    <Thickness x:Key="ScryPadL">16</Thickness>
+    <CornerRadius x:Key="ScryRadius">10</CornerRadius>
+  </Styles.Resources>
+
+  <!-- Typography defaults -->
+  <Style Selector="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource ScryText}" />
+  </Style>
+
+  <!-- Cards -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource ScryCard}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource ScryRadius}" />
+    <Setter Property="Padding" Value="{DynamicResource ScryPadM}" />
+    <Setter Property="BoxShadow" Value="0 10 28 0 #66000000" />
+  </Style>
+
+  <!-- Buttons -->
+  <Style Selector="Button">
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource ScryAccent}" />
+    <Setter Property="Foreground" Value="#1A1200" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="Button.danger">
+    <Setter Property="Background" Value="{DynamicResource ScryDanger}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="Button.subtle">
+    <Setter Property="Background" Value="#16263B" />
+    <Setter Property="Foreground" Value="{DynamicResource ScryText}" />
+  </Style>
+
+  <Style Selector="Button.icon">
+    <Setter Property="Background" Value="#16263B" />
+    <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
+    <Setter Property="CornerRadius" Value="18" />
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <!-- Selection: accent outline, no full-row fill -->
+  <Style Selector="ListBoxItem:selected">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ListBoxItem:selected Border.card">
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <!-- Inputs -->
+  <Style Selector="ComboBox">
+    <Setter Property="MinHeight" Value="34" />
+  </Style>
+
+  <Style Selector="ToggleSwitch">
+    <Setter Property="MinHeight" Value="28" />
+  </Style>
+</Styles>
