@@ -9,7 +9,7 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
     Title="ScryScreen — ScryMaster"
-    Topmost="True"
+    Topmost="{Binding IsAlwaysOnTop}"
     Background="{DynamicResource ScryBg0}"
     WindowStartupLocation="Manual"
     SizeToContent="Height"
@@ -64,7 +64,16 @@
                     </ToggleButton>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <ToggleButton Classes="circle"
+                                  IsChecked="{Binding IsAlwaysOnTop}"
+                                  ToolTip.Tip="Always on top">
+                        <Grid>
+                            <i:Icon IsVisible="{Binding IsAlwaysOnTop}" Value="mdi-pin" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                            <i:Icon IsVisible="{Binding !IsAlwaysOnTop}" Value="mdi-pin-outline" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                        </Grid>
+                    </ToggleButton>
+
                     <Button Classes="circle" i:Attached.Icon="mdi-close" ToolTip.Tip="Close ScryScreen" Click="OnCloseApp" />
                 </StackPanel>
             </Grid>
@@ -90,38 +99,54 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Classes="card" Width="280">
-                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8">
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
-                                        <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding CurrentAssignment}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
-                                    </StackPanel>
+                            <Border Classes="card" Width="320" Padding="8,6">
+                                <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
+                                    <!-- (1) Portal number badge -->
+                                    <Border Width="24" Height="24"
+                                            CornerRadius="12"
+                                            Background="#0A0F18"
+                                            BorderBrush="{DynamicResource ScryBorder}"
+                                            BorderThickness="1"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding PortalNumber}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ScryTextMuted}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
 
-                                    <Button Grid.Row="0" Grid.Column="1"
+                                    <!-- Visibility -->
+                                    <ToggleButton Grid.Column="1"
+                                                  Classes="icon"
+                                                  Width="30"
+                                                  Height="30"
+                                                  IsChecked="{Binding IsVisible}"
+                                                  ToolTip.Tip="Toggle portal visibility">
+                                        <Grid>
+                                            <i:Icon IsVisible="{Binding IsVisible}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
+                                            <i:Icon IsVisible="{Binding !IsVisible}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
+                                        </Grid>
+                                    </ToggleButton>
+
+                                    <!-- Monitor dropdown (compact) -->
+                                    <ComboBox Grid.Column="2"
+                                              Width="140"
+                                              MinHeight="28"
+                                              FontSize="12"
+                                              HorizontalAlignment="Right"
+                                              ItemsSource="{Binding AvailableScreens}"
+                                              SelectedItem="{Binding SelectedScreen}" />
+
+                                    <!-- Close -->
+                                    <Button Grid.Column="3"
                                             Classes="icon"
+                                            Width="30"
+                                            Height="30"
+                                            HorizontalAlignment="Right"
                                             i:Attached.Icon="mdi-close"
                                             ToolTip.Tip="Close portal"
                                             Command="{Binding ClosePortalCommand}" />
-
-                                    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                        <TextBlock Grid.Column="0" Text="Screen" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1"
-                                                  MinWidth="160"
-                                                  HorizontalAlignment="Stretch"
-                                                  ItemsSource="{Binding AvailableScreens}"
-                                                  SelectedItem="{Binding SelectedScreen}" />
-                                    </Grid>
-
-                                    <WrapPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
-                                        <ToggleButton Classes="icon"
-                                                      IsChecked="{Binding IsVisible}"
-                                                      ToolTip.Tip="Toggle portal visibility">
-                                            <Grid>
-                                                <i:Icon IsVisible="{Binding IsVisible}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
-                                                <i:Icon IsVisible="{Binding !IsVisible}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
-                                            </Grid>
-                                        </ToggleButton>
-                                    </WrapPanel>
                                 </Grid>
                             </Border>
                         </DataTemplate>

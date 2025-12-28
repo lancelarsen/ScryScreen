@@ -44,6 +44,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool isControlsSectionVisible = false;
 
+    [ObservableProperty]
+    private bool isAlwaysOnTop = true;
+
     partial void OnSelectedPortalChanged(PortalRowViewModel? value)
     {
         SendSelectedMediaToSelectedPortalCommand.NotifyCanExecuteChanged();
