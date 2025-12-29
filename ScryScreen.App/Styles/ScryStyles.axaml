@@ -299,6 +299,31 @@
     <Setter Property="MinHeight" Value="34" />
   </Style>
 
+  <!-- Tabs: tighten header sizing/spacing for the Media/Apps strip -->
+  <Style Selector="TabControl.tabsTight">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="TabControl.tabsTight /template/ Border">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="TabControl.tabsTight /template/ ContentPresenter">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0" />
+  </Style>
+
+  <Style Selector="TabControl.tabsTight TabItem">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Padding" Value="0,0,0,4" />
+    <Setter Property="Margin" Value="0,0,18,0" />
+  </Style>
+
+  <Style Selector="TabControl.tabsTight TabItem:pointerover">
+    <Setter Property="Opacity" Value="0.95" />
+  </Style>
+
   <Style Selector="ToggleSwitch">
     <Setter Property="MinHeight" Value="28" />
   </Style>

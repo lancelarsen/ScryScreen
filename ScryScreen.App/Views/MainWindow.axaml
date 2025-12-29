@@ -195,7 +195,7 @@
                                  Height="22" />
                     </Button>
 
-                    <Button Classes="circle" ToolTip.Tip="Filter 1" Command="{Binding IdentifyPortalsCommand}">
+                    <Button Classes="circle" ToolTip.Tip="Show Portal Numbers" Command="{Binding IdentifyPortalsCommand}">
                         <svg:Svg Path="/Assets/Icons/filter_1.svg"
                                  Width="22"
                                  Height="22" />
@@ -205,10 +205,10 @@
         </Border>
 
         <!-- Middle: Content Browser -->
-        <Border Grid.Row="2" IsVisible="{Binding IsLibrarySectionVisible}" Background="{DynamicResource ScryBg0}" Padding="16">
-            <TabControl>
+        <Border Grid.Row="2" IsVisible="{Binding IsLibrarySectionVisible}" Background="{DynamicResource ScryBg0}" Padding="12,10">
+            <TabControl Classes="tabsTight" Padding="0" Margin="0">
                 <TabItem Header="Media">
-                    <Grid RowDefinitions="*" Margin="0,12,0,0">
+                    <Grid RowDefinitions="*" Margin="0,8,0,0">
                         <Grid ColumnDefinitions="240,*" ColumnSpacing="12">
                             <Border Classes="card" Padding="14">
                                 <StackPanel Spacing="10">
