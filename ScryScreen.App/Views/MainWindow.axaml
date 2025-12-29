@@ -272,61 +272,69 @@
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <ToggleButton Classes="circleSmall"
                                                           IsChecked="{Binding IsFillHeight, Mode=OneWay}"
+                                                          IsHitTestVisible="{Binding IsFillHeight, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetScaleFillHeightCommand}"
-                                                          ToolTip.Tip="Fill Height (crops top/bottom)">
+                                                          ToolTip.Tip="Fill Height (crops left/right)">
                                                 <TextBlock Text="H" FontWeight="SemiBold" />
                                             </ToggleButton>
 
                                             <ToggleButton Classes="circleSmall"
                                                           IsChecked="{Binding IsFillWidth, Mode=OneWay}"
+                                                          IsHitTestVisible="{Binding IsFillWidth, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetScaleFillWidthCommand}"
-                                                          ToolTip.Tip="Fill Width (crops left/right)">
+                                                          ToolTip.Tip="Fill Width (crops top/bottom)">
                                                 <TextBlock Text="W" FontWeight="SemiBold" />
                                             </ToggleButton>
                                         </StackPanel>
 
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <!-- For Fill Height: vertical align (Top/Center/Bottom) -->
+                                            <!-- For Fill Width (W): vertical align (Top/Center/Bottom) -->
                                             <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillHeight}"
+                                                          IsVisible="{Binding IsFillWidth}"
                                                           IsChecked="{Binding IsAlignStart, Mode=OneWay}"
+                                                          IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignStartCommand}"
                                                           ToolTip.Tip="Top">
                                                 <TextBlock Text="T" FontWeight="SemiBold" />
                                             </ToggleButton>
                                             <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillHeight}"
+                                                          IsVisible="{Binding IsFillWidth}"
                                                           IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
+                                                          IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignCenterCommand}"
                                                           ToolTip.Tip="Center">
                                                 <TextBlock Text="C" FontWeight="SemiBold" />
                                             </ToggleButton>
                                             <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillHeight}"
+                                                          IsVisible="{Binding IsFillWidth}"
                                                           IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
+                                                          IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignEndCommand}"
                                                           ToolTip.Tip="Bottom">
                                                 <TextBlock Text="B" FontWeight="SemiBold" />
                                             </ToggleButton>
 
-                                            <!-- For Fill Width: horizontal align (Left/Center/Right) -->
+                                            <!-- For Fill Height (H): horizontal align (Left/Center/Right) -->
                                             <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillWidth}"
+                                                          IsVisible="{Binding IsFillHeight}"
                                                           IsChecked="{Binding IsAlignStart, Mode=OneWay}"
+                                                          IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignStartCommand}"
                                                           ToolTip.Tip="Left">
                                                 <TextBlock Text="L" FontWeight="SemiBold" />
                                             </ToggleButton>
                                             <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillWidth}"
+                                                          IsVisible="{Binding IsFillHeight}"
                                                           IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
+                                                          IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignCenterCommand}"
                                                           ToolTip.Tip="Center">
                                                 <TextBlock Text="C" FontWeight="SemiBold" />
                                             </ToggleButton>
                                             <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillWidth}"
+                                                          IsVisible="{Binding IsFillHeight}"
                                                           IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
+                                                          IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignEndCommand}"
                                                           ToolTip.Tip="Right">
                                                 <TextBlock Text="R" FontWeight="SemiBold" />

@@ -26,6 +26,7 @@ public partial class App : Application
             DisableAvaloniaDataAnnotationValidation();
 
             var mainWindow = new MainWindow();
+            ErrorReporter.Initialize(mainWindow);
             var portalHost = new PortalHostService(mainWindow);
             mainWindow.DataContext = new MainWindowViewModel(portalHost);
             desktop.MainWindow = mainWindow;

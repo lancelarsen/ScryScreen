@@ -80,9 +80,9 @@ public partial class PortalRowViewModel : ViewModelBase
 
             var alignText = Align switch
             {
-                MediaAlign.Start => ScaleMode == MediaScaleMode.FillHeight ? "Top" : "Left",
+                MediaAlign.Start => ScaleMode == MediaScaleMode.FillHeight ? "Left" : "Top",
                 MediaAlign.Center => "Center",
-                MediaAlign.End => ScaleMode == MediaScaleMode.FillHeight ? "Bottom" : "Right",
+                MediaAlign.End => ScaleMode == MediaScaleMode.FillHeight ? "Right" : "Bottom",
                 _ => Align.ToString(),
             };
 
@@ -168,10 +168,10 @@ public partial class PortalRowViewModel : ViewModelBase
         var scale = ScaleMode switch
         {
             // Match PortalWindow behavior (see PortalWindow.axaml.cs):
-            // FillHeight => fill width (sx)
-            // FillWidth  => fill height (sy)
-            MediaScaleMode.FillHeight => sx,
-            MediaScaleMode.FillWidth => sy,
+            // FillHeight (H) => fill height (sy)
+            // FillWidth  (W) => fill width (sx)
+            MediaScaleMode.FillHeight => sy,
+            MediaScaleMode.FillWidth => sx,
             _ => sx,
         };
 
@@ -185,7 +185,7 @@ public partial class PortalRowViewModel : ViewModelBase
         var leftoverY = monitorH - displayH;
 
         // Align only on the axis that might overflow/letterbox for the selected scale mode.
-        // FillHeight => vertical align; FillWidth => horizontal align.
+        // FillHeight (H) => horizontal align; FillWidth (W) => vertical align.
         var ax = Align switch
         {
             MediaAlign.Start => 0.0,
@@ -194,8 +194,8 @@ public partial class PortalRowViewModel : ViewModelBase
             _ => 0.5,
         };
 
-        PreviewImageLeft = ScaleMode == MediaScaleMode.FillWidth ? leftoverX * ax : leftoverX * 0.5;
-        PreviewImageTop = ScaleMode == MediaScaleMode.FillHeight ? leftoverY * ax : leftoverY * 0.5;
+        PreviewImageLeft = ScaleMode == MediaScaleMode.FillHeight ? leftoverX * ax : leftoverX * 0.5;
+        PreviewImageTop = ScaleMode == MediaScaleMode.FillWidth ? leftoverY * ax : leftoverY * 0.5;
     }
 
     partial void OnIsVisibleChanged(bool value)

@@ -102,29 +102,12 @@ public partial class PortalWindow : Window
         _lastHostH = hostH;
 
         // NOTE: To match the requested UI:
-        // - Fill Height => scale to fill WIDTH, crop vertically (Top/Center/Bottom)
-        // - Fill Width  => scale to fill HEIGHT, crop horizontally (Left/Center/Right)
+        // - Fill Height (H) => scale to fill HEIGHT, crop horizontally (Left/Center/Right)
+        // - Fill Width  (W) => scale to fill WIDTH, crop vertically (Top/Center/Bottom)
         if (!double.IsNaN(ContentImage.Width)) ContentImage.Width = double.NaN;
         if (!double.IsNaN(ContentImage.Height)) ContentImage.Height = double.NaN;
 
         if (vm.ScaleMode == MediaScaleMode.FillHeight)
-        {
-            if (Math.Abs(ContentImage.Width - hostW) > 0.01) ContentImage.Width = hostW;
-            if (ContentImage.HorizontalAlignment != Avalonia.Layout.HorizontalAlignment.Center)
-                ContentImage.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
-
-            var vertical = vm.Align switch
-            {
-                MediaAlign.Start => Avalonia.Layout.VerticalAlignment.Top,
-                MediaAlign.Center => Avalonia.Layout.VerticalAlignment.Center,
-                MediaAlign.End => Avalonia.Layout.VerticalAlignment.Bottom,
-                _ => Avalonia.Layout.VerticalAlignment.Center,
-            };
-
-            if (ContentImage.VerticalAlignment != vertical)
-                ContentImage.VerticalAlignment = vertical;
-        }
-        else
         {
             if (Math.Abs(ContentImage.Height - hostH) > 0.01) ContentImage.Height = hostH;
             if (ContentImage.VerticalAlignment != Avalonia.Layout.VerticalAlignment.Center)
@@ -140,6 +123,23 @@ public partial class PortalWindow : Window
 
             if (ContentImage.HorizontalAlignment != horizontal)
                 ContentImage.HorizontalAlignment = horizontal;
+        }
+        else
+        {
+            if (Math.Abs(ContentImage.Width - hostW) > 0.01) ContentImage.Width = hostW;
+            if (ContentImage.HorizontalAlignment != Avalonia.Layout.HorizontalAlignment.Center)
+                ContentImage.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
+
+            var vertical = vm.Align switch
+            {
+                MediaAlign.Start => Avalonia.Layout.VerticalAlignment.Top,
+                MediaAlign.Center => Avalonia.Layout.VerticalAlignment.Center,
+                MediaAlign.End => Avalonia.Layout.VerticalAlignment.Bottom,
+                _ => Avalonia.Layout.VerticalAlignment.Center,
+            };
+
+            if (ContentImage.VerticalAlignment != vertical)
+                ContentImage.VerticalAlignment = vertical;
         }
     }
 }

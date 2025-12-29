@@ -67,7 +67,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // Reset to a sane default for the new axis.
         SelectedAlign = MediaAlign.Center;
-        ApplyDisplayOptionsToAllPortals();
+        ApplyDisplayOptionsToAssignedPortals();
     }
 
     partial void OnSelectedAlignChanged(MediaAlign value)
@@ -75,7 +75,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsAlignStart));
         OnPropertyChanged(nameof(IsAlignCenter));
         OnPropertyChanged(nameof(IsAlignEnd));
-        ApplyDisplayOptionsToAllPortals();
+        ApplyDisplayOptionsToAssignedPortals();
     }
 
     [RelayCommand]
@@ -108,10 +108,15 @@ public partial class MainWindowViewModel : ViewModelBase
         SelectedAlign = MediaAlign.End;
     }
 
-    private void ApplyDisplayOptionsToAllPortals()
+    private void ApplyDisplayOptionsToAssignedPortals()
     {
         foreach (var portal in Portals)
         {
+            if (string.IsNullOrWhiteSpace(portal.AssignedMediaFilePath))
+            {
+                continue;
+            }
+
             portal.ScaleMode = SelectedScaleMode;
             portal.Align = SelectedAlign;
             _portalHost.SetDisplayOptions(portal.PortalNumber, portal.ScaleMode, portal.Align);

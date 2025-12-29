@@ -1,0 +1,38 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ScryScreen.App.Views.ErrorDialog"
+        Width="860"
+        Height="520"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        Title="ScryScreen Error"
+        Background="#1E1E1E">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16" RowSpacing="10">
+    <TextBlock x:Name="ContextText"
+               FontSize="16"
+               FontWeight="SemiBold"
+               Foreground="#F0F0F0"
+               TextWrapping="Wrap" />
+
+    <TextBlock Grid.Row="1"
+               Foreground="#C8C8C8"
+               Text="Copy this into chat or an issue report:" />
+
+    <Border Grid.Row="2" Background="#111" BorderBrush="#333" BorderThickness="1" CornerRadius="6" Padding="10">
+      <TextBox x:Name="DetailsBox"
+               IsReadOnly="True"
+               AcceptsReturn="True"
+               TextWrapping="NoWrap"
+               ScrollViewer.VerticalScrollBarVisibility="Auto"
+               ScrollViewer.HorizontalScrollBarVisibility="Auto"
+               FontFamily="Consolas" />
+    </Border>
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+      <Button x:Name="CopyButton" Content="Copy" />
+      <Button x:Name="CloseButton" Content="Close" IsDefault="True" />
+      <Button x:Name="QuitButton" Content="Quit App" />
+    </StackPanel>
+  </Grid>
+</Window>
