@@ -29,6 +29,8 @@ public partial class App : Application
             var portalHost = new PortalHostService(mainWindow);
             mainWindow.DataContext = new MainWindowViewModel(portalHost);
             desktop.MainWindow = mainWindow;
+            mainWindow.Show();
+            mainWindow.Activate();
         }
 
         base.OnFrameworkInitializationCompleted();

@@ -65,8 +65,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Find the screen containing the window's current position.
-        var currentScreen = screens.ScreenFromPoint(Position) ?? screens.Primary;
+        // Always dock to the primary screen.
+        // Using the window's current Position during startup can pick the wrong monitor
+        // (e.g., when virtual screen coordinates don't start at 0,0).
+        var currentScreen = screens.Primary;
         if (currentScreen is null)
         {
             return;

@@ -12,8 +12,6 @@
     <Color x:Key="ScryColorTextMuted">#A7B6CB</Color>
     <!-- Arcane gold accent -->
     <Color x:Key="ScryColorAccent">#D6B25E</Color>
-    <!-- Portal badge outline (matches underline red) -->
-    <Color x:Key="ScryColorBadgeMaroon">#E54848</Color>
     <Color x:Key="ScryColorSuccess">#36D477</Color>
     <Color x:Key="ScryColorDanger">#E54848</Color>
 
@@ -25,7 +23,8 @@
     <SolidColorBrush x:Key="ScryText" Color="{DynamicResource ScryColorText}" />
     <SolidColorBrush x:Key="ScryTextMuted" Color="{DynamicResource ScryColorTextMuted}" />
     <SolidColorBrush x:Key="ScryAccent" Color="{DynamicResource ScryColorAccent}" />
-    <SolidColorBrush x:Key="ScryBadgeMaroon" Color="{DynamicResource ScryColorBadgeMaroon}" />
+    <!-- Portal badge outline: match the red underline (danger) exactly -->
+    <SolidColorBrush x:Key="ScryBadgeMaroon" Color="{DynamicResource ScryColorDanger}" />
     <SolidColorBrush x:Key="ScrySuccess" Color="{DynamicResource ScryColorSuccess}" />
     <SolidColorBrush x:Key="ScryDanger" Color="{DynamicResource ScryColorDanger}" />
 

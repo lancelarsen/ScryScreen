@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:ScryScreen.App.ViewModels"
     xmlns:i="https://github.com/projektanker/icons.avalonia"
+    xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -188,8 +189,17 @@
 
                 <!-- Portal actions (moved from header) -->
                 <StackPanel Grid.Column="1" Spacing="10" VerticalAlignment="Top">
-                    <Button Classes="circle" i:Attached.Icon="mdi-plus" ToolTip.Tip="Add Portal" Command="{Binding AddPortalCommand}" />
-                    <Button Classes="circle" i:Attached.Icon="mdi-eye" ToolTip.Tip="Identify Portals" Command="{Binding IdentifyPortalsCommand}" />
+                    <Button Classes="circle" ToolTip.Tip="Add Portal" Command="{Binding AddPortalCommand}">
+                        <svg:Svg Path="/Assets/Icons/add_to_queue.svg"
+                                 Width="22"
+                                 Height="22" />
+                    </Button>
+
+                    <Button Classes="circle" ToolTip.Tip="Filter 1" Command="{Binding IdentifyPortalsCommand}">
+                        <svg:Svg Path="/Assets/Icons/filter_1.svg"
+                                 Width="22"
+                                 Height="22" />
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
@@ -206,6 +216,11 @@
                                     <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="8" Padding="10">
                                         <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" Height="180" />
                                     </Border>
+
+                                    <TextBlock Text="Click to assign to Portals"
+                                               Foreground="{DynamicResource ScryTextMuted}"
+                                               FontSize="12"
+                                               Margin="0,2,0,0" />
 
                                     <ItemsControl ItemsSource="{Binding Portals}" Margin="0,4,0,0">
                                         <ItemsControl.ItemsPanel>
