@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using ScryScreen.App.ViewModels;
 
 namespace ScryScreen.App.Views;
@@ -15,6 +16,11 @@ public partial class PortalWindow : Window
     private MediaAlign _lastAlign;
     private bool _lastIsShowingImage;
     private object? _lastImageRef;
+
+    private double _lastImageW = double.NaN;
+    private double _lastImageH = double.NaN;
+    private double _lastLeft = double.NaN;
+    private double _lastTop = double.NaN;
 
     public PortalWindow()
     {
@@ -59,18 +65,20 @@ public partial class PortalWindow : Window
 
         if (DataContext is not PortalWindowViewModel vm || !vm.IsShowingImage || vm.ContentImage is null)
         {
-            // Only change properties if needed; avoids layout invalidations during steady-state.
             if (!double.IsNaN(ContentImage.Width)) ContentImage.Width = double.NaN;
             if (!double.IsNaN(ContentImage.Height)) ContentImage.Height = double.NaN;
-            if (ContentImage.HorizontalAlignment != Avalonia.Layout.HorizontalAlignment.Center)
-                ContentImage.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
-            if (ContentImage.VerticalAlignment != Avalonia.Layout.VerticalAlignment.Center)
-                ContentImage.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+            Canvas.SetLeft(ContentImage, 0);
+            Canvas.SetTop(ContentImage, 0);
 
             _lastHostW = double.NaN;
             _lastHostH = double.NaN;
             _lastIsShowingImage = false;
             _lastImageRef = null;
+
+            _lastImageW = double.NaN;
+            _lastImageH = double.NaN;
+            _lastLeft = double.NaN;
+            _lastTop = double.NaN;
             return;
         }
 
@@ -78,6 +86,13 @@ public partial class PortalWindow : Window
         var hostH = ImageHost.Bounds.Height;
 
         if (hostW <= 0 || hostH <= 0)
+        {
+            return;
+        }
+
+        var pxW = vm.ContentImage.PixelSize.Width;
+        var pxH = vm.ContentImage.PixelSize.Height;
+        if (pxW <= 0 || pxH <= 0)
         {
             return;
         }
@@ -104,42 +119,62 @@ public partial class PortalWindow : Window
         // NOTE: To match the requested UI:
         // - Fill Height (H) => scale to fill HEIGHT, crop horizontally (Left/Center/Right)
         // - Fill Width  (W) => scale to fill WIDTH, crop vertically (Top/Center/Bottom)
-        if (!double.IsNaN(ContentImage.Width)) ContentImage.Width = double.NaN;
-        if (!double.IsNaN(ContentImage.Height)) ContentImage.Height = double.NaN;
+        var scale = vm.ScaleMode == MediaScaleMode.FillHeight
+            ? hostH / pxH
+            : hostW / pxW;
+
+        if (scale <= 0 || double.IsNaN(scale) || double.IsInfinity(scale))
+            return;
+
+        var imageW = pxW * scale;
+        var imageH = pxH * scale;
+
+        // Center on the non-alignment axis.
+        var left = (hostW - imageW) * 0.5;
+        var top = (hostH - imageH) * 0.5;
+
+        var a = vm.Align switch
+        {
+            MediaAlign.Start => 0.0,
+            MediaAlign.Center => 0.5,
+            MediaAlign.End => 1.0,
+            _ => 0.5,
+        };
 
         if (vm.ScaleMode == MediaScaleMode.FillHeight)
         {
-            if (Math.Abs(ContentImage.Height - hostH) > 0.01) ContentImage.Height = hostH;
-            if (ContentImage.VerticalAlignment != Avalonia.Layout.VerticalAlignment.Center)
-                ContentImage.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
-
-            var horizontal = vm.Align switch
-            {
-                MediaAlign.Start => Avalonia.Layout.HorizontalAlignment.Left,
-                MediaAlign.Center => Avalonia.Layout.HorizontalAlignment.Center,
-                MediaAlign.End => Avalonia.Layout.HorizontalAlignment.Right,
-                _ => Avalonia.Layout.HorizontalAlignment.Center,
-            };
-
-            if (ContentImage.HorizontalAlignment != horizontal)
-                ContentImage.HorizontalAlignment = horizontal;
+            // Horizontal alignment (L/C/R)
+            left = (hostW - imageW) * a;
         }
         else
         {
-            if (Math.Abs(ContentImage.Width - hostW) > 0.01) ContentImage.Width = hostW;
-            if (ContentImage.HorizontalAlignment != Avalonia.Layout.HorizontalAlignment.Center)
-                ContentImage.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
+            // Vertical alignment (T/C/B)
+            top = (hostH - imageH) * a;
+        }
 
-            var vertical = vm.Align switch
-            {
-                MediaAlign.Start => Avalonia.Layout.VerticalAlignment.Top,
-                MediaAlign.Center => Avalonia.Layout.VerticalAlignment.Center,
-                MediaAlign.End => Avalonia.Layout.VerticalAlignment.Bottom,
-                _ => Avalonia.Layout.VerticalAlignment.Center,
-            };
+        // Only set if changed to avoid unnecessary layout churn.
+        if (double.IsNaN(_lastImageW) || Math.Abs(_lastImageW - imageW) > 0.01)
+        {
+            ContentImage.Width = imageW;
+            _lastImageW = imageW;
+        }
 
-            if (ContentImage.VerticalAlignment != vertical)
-                ContentImage.VerticalAlignment = vertical;
+        if (double.IsNaN(_lastImageH) || Math.Abs(_lastImageH - imageH) > 0.01)
+        {
+            ContentImage.Height = imageH;
+            _lastImageH = imageH;
+        }
+
+        if (double.IsNaN(_lastLeft) || Math.Abs(_lastLeft - left) > 0.01)
+        {
+            Canvas.SetLeft(ContentImage, left);
+            _lastLeft = left;
+        }
+
+        if (double.IsNaN(_lastTop) || Math.Abs(_lastTop - top) > 0.01)
+        {
+            Canvas.SetTop(ContentImage, top);
+            _lastTop = top;
         }
     }
 }

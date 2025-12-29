@@ -23,11 +23,11 @@
           IsVisible="{Binding IsShowingImage}"
           Background="Black"
           ClipToBounds="True">
-        <Image x:Name="ContentImage"
-           Source="{Binding ContentImage}"
-         Stretch="Uniform"
-         HorizontalAlignment="Center"
-         VerticalAlignment="Center" />
+        <Canvas x:Name="ImageCanvas">
+          <Image x:Name="ContentImage"
+                 Source="{Binding ContentImage}"
+                 Stretch="Fill" />
+        </Canvas>
       </Border>
 
       <!-- Assigned text (after setup, when no image) -->
