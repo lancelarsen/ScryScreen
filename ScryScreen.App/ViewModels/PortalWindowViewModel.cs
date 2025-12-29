@@ -15,6 +15,8 @@ public partial class PortalWindowViewModel : ViewModelBase
         IsContentVisible = true;
         IsSetup = true;
         IsIdentifyOverlayVisible = false;
+        ScaleMode = MediaScaleMode.FillHeight;
+        Align = MediaAlign.Center;
     }
 
     public int PortalNumber { get; }
@@ -64,6 +66,12 @@ public partial class PortalWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool isIdentifyOverlayVisible;
+
+    [ObservableProperty]
+    private MediaScaleMode scaleMode;
+
+    [ObservableProperty]
+    private MediaAlign align;
 
     public void ShowIdentifyOverlay() => IsIdentifyOverlayVisible = true;
 

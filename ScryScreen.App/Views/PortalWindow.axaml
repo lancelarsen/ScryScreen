@@ -19,12 +19,16 @@
     <!-- All portal output (hidden => true blackout) -->
     <Grid IsVisible="{Binding IsContentVisible}">
       <!-- Assigned image (after setup) -->
-      <Image
-        IsVisible="{Binding IsShowingImage}"
-        Source="{Binding ContentImage}"
-        Stretch="Uniform"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Center" />
+      <Border x:Name="ImageHost"
+          IsVisible="{Binding IsShowingImage}"
+          Background="Black"
+          ClipToBounds="True">
+        <Image x:Name="ContentImage"
+           Source="{Binding ContentImage}"
+         Stretch="Uniform"
+         HorizontalAlignment="Center"
+         VerticalAlignment="Center" />
+      </Border>
 
       <!-- Assigned text (after setup, when no image) -->
       <TextBlock

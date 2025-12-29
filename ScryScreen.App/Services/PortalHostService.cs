@@ -157,7 +157,7 @@ public sealed class PortalHostService
         }
     }
 
-    public void SetContentImage(int portalNumber, string filePath, string? contentTitle = null)
+    public void SetContentImage(int portalNumber, string filePath, string? contentTitle = null, MediaScaleMode scaleMode = MediaScaleMode.FillHeight, MediaAlign align = MediaAlign.Center)
     {
         if (!_portals.TryGetValue(portalNumber, out var controller))
         {
@@ -176,9 +176,20 @@ public sealed class PortalHostService
             return;
         }
 
+        controller.ViewModel.ScaleMode = scaleMode;
+        controller.ViewModel.Align = align;
         controller.ViewModel.SetImage(bitmap, contentTitle ?? Path.GetFileName(filePath));
         controller.ViewModel.IsContentVisible = true;
         controller.ViewModel.IsSetup = false;
+    }
+
+    public void SetDisplayOptions(int portalNumber, MediaScaleMode scaleMode, MediaAlign align)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.ScaleMode = scaleMode;
+            controller.ViewModel.Align = align;
+        }
     }
 
     public async Task IdentifyAllAsync(int milliseconds = 1200)

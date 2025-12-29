@@ -112,7 +112,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:CompileBindings="False">
                                 <Border Classes="card" Width="320" Padding="8,6">
-                                    <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
                                         <!-- Controls row -->
                                         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                             <!-- (1) Portal number badge -->
@@ -159,6 +159,7 @@
                                                       FontSize="12"
                                                       HorizontalAlignment="Stretch"
                                                       ItemsSource="{Binding AvailableScreens}"
+                                                      DisplayMemberBinding="{Binding DisplayLabel}"
                                                       SelectedItem="{Binding SelectedScreen}" />
 
                                             <!-- Close -->
@@ -179,6 +180,58 @@
                                                 CornerRadius="8"
                                                 Padding="6">
                                             <Image Source="{Binding AssignedPreview}" Stretch="Uniform" Height="80" />
+                                        </Border>
+
+                                        <!-- Monitor + media aspect preview -->
+                                        <Border Grid.Row="2"
+                                                IsVisible="{Binding HasMonitorPreview}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Margin="0,6,0,0">
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
+                                                <Border Background="#0A0F18"
+                                                        BorderBrush="{DynamicResource ScryBorder}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="8"
+                                                        Padding="6">
+                                                    <Viewbox Width="120" Height="60" Stretch="Uniform">
+                                                        <Canvas Width="{Binding SelectedScreen.WidthPx}"
+                                                                Height="{Binding SelectedScreen.HeightPx}">
+                                                            <!-- Screen outline -->
+                                                            <Border Width="{Binding SelectedScreen.WidthPx}"
+                                                                    Height="{Binding SelectedScreen.HeightPx}"
+                                                                    Background="#05070B"
+                                                                    BorderBrush="#3A557D"
+                                                                    BorderThickness="10"
+                                                                    CornerRadius="40"
+                                                                    ClipToBounds="True">
+                                                                <Canvas>
+                                                                    <!-- Media rect (cropped/letterboxed by clipping) -->
+                                                                    <Border IsVisible="{Binding HasMediaPreview}"
+                                                                            Width="{Binding PreviewImageWidth}"
+                                                                            Height="{Binding PreviewImageHeight}"
+                                                                            Background="#16263B"
+                                                                            Opacity="0.95"
+                                                                            Canvas.Left="{Binding PreviewImageLeft}"
+                                                                            Canvas.Top="{Binding PreviewImageTop}" />
+                                                                </Canvas>
+                                                            </Border>
+                                                        </Canvas>
+                                                    </Viewbox>
+                                                </Border>
+
+                                                <StackPanel Spacing="2" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding SelectedScreen.ResolutionText}"
+                                                               FontSize="12"
+                                                               Foreground="{DynamicResource ScryTextMuted}" />
+                                                    <TextBlock Text="{Binding SelectedScreen.AspectRatioText}"
+                                                               FontSize="12"
+                                                               Foreground="{DynamicResource ScryTextMuted}" />
+                                                    <TextBlock Text="{Binding FitModeText}"
+                                                               FontSize="12"
+                                                               Foreground="{DynamicResource ScryTextMuted}" />
+                                                </StackPanel>
+                                            </Grid>
                                         </Border>
                                     </Grid>
                                 </Border>
@@ -213,6 +266,73 @@
                             <Border Classes="card" Padding="14">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Preview" FontSize="14" FontWeight="SemiBold" />
+
+                                    <!-- Display options: scale + align -->
+                                    <StackPanel Spacing="8">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <ToggleButton Classes="circleSmall"
+                                                          IsChecked="{Binding IsFillHeight, Mode=OneWay}"
+                                                          Command="{Binding SetScaleFillHeightCommand}"
+                                                          ToolTip.Tip="Fill Height (crops top/bottom)">
+                                                <TextBlock Text="H" FontWeight="SemiBold" />
+                                            </ToggleButton>
+
+                                            <ToggleButton Classes="circleSmall"
+                                                          IsChecked="{Binding IsFillWidth, Mode=OneWay}"
+                                                          Command="{Binding SetScaleFillWidthCommand}"
+                                                          ToolTip.Tip="Fill Width (crops left/right)">
+                                                <TextBlock Text="W" FontWeight="SemiBold" />
+                                            </ToggleButton>
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <!-- For Fill Height: vertical align (Top/Center/Bottom) -->
+                                            <ToggleButton Classes="circleSmall"
+                                                          IsVisible="{Binding IsFillHeight}"
+                                                          IsChecked="{Binding IsAlignStart, Mode=OneWay}"
+                                                          Command="{Binding SetAlignStartCommand}"
+                                                          ToolTip.Tip="Top">
+                                                <TextBlock Text="T" FontWeight="SemiBold" />
+                                            </ToggleButton>
+                                            <ToggleButton Classes="circleSmall"
+                                                          IsVisible="{Binding IsFillHeight}"
+                                                          IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
+                                                          Command="{Binding SetAlignCenterCommand}"
+                                                          ToolTip.Tip="Center">
+                                                <TextBlock Text="C" FontWeight="SemiBold" />
+                                            </ToggleButton>
+                                            <ToggleButton Classes="circleSmall"
+                                                          IsVisible="{Binding IsFillHeight}"
+                                                          IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
+                                                          Command="{Binding SetAlignEndCommand}"
+                                                          ToolTip.Tip="Bottom">
+                                                <TextBlock Text="B" FontWeight="SemiBold" />
+                                            </ToggleButton>
+
+                                            <!-- For Fill Width: horizontal align (Left/Center/Right) -->
+                                            <ToggleButton Classes="circleSmall"
+                                                          IsVisible="{Binding IsFillWidth}"
+                                                          IsChecked="{Binding IsAlignStart, Mode=OneWay}"
+                                                          Command="{Binding SetAlignStartCommand}"
+                                                          ToolTip.Tip="Left">
+                                                <TextBlock Text="L" FontWeight="SemiBold" />
+                                            </ToggleButton>
+                                            <ToggleButton Classes="circleSmall"
+                                                          IsVisible="{Binding IsFillWidth}"
+                                                          IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
+                                                          Command="{Binding SetAlignCenterCommand}"
+                                                          ToolTip.Tip="Center">
+                                                <TextBlock Text="C" FontWeight="SemiBold" />
+                                            </ToggleButton>
+                                            <ToggleButton Classes="circleSmall"
+                                                          IsVisible="{Binding IsFillWidth}"
+                                                          IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
+                                                          Command="{Binding SetAlignEndCommand}"
+                                                          ToolTip.Tip="Right">
+                                                <TextBlock Text="R" FontWeight="SemiBold" />
+                                            </ToggleButton>
+                                        </StackPanel>
+                                    </StackPanel>
                                     <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="8" Padding="10">
                                         <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" Height="180" />
                                     </Border>

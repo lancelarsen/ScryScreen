@@ -14,7 +14,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly PortalHostService _portalHost;
     private readonly ReadOnlyCollection<ScreenInfoViewModel> _screens;
 
-    private sealed record PortalContentSnapshot(bool IsVisible, string CurrentAssignment, string? AssignedMediaFilePath);
+    private sealed record PortalContentSnapshot(bool IsVisible, string CurrentAssignment, string? AssignedMediaFilePath, MediaScaleMode ScaleMode, MediaAlign Align);
     private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentSnapshot>> _portalHistory = new();
 
     public MainWindowViewModel(PortalHostService portalHost)
@@ -23,6 +23,9 @@ public partial class MainWindowViewModel : ViewModelBase
         _screens = new ReadOnlyCollection<ScreenInfoViewModel>(_portalHost.GetScreens().ToList());
         Portals = new ObservableCollection<PortalRowViewModel>();
         Media = new MediaLibraryViewModel();
+
+        SelectedScaleMode = MediaScaleMode.FillHeight;
+        SelectedAlign = MediaAlign.Center;
 
         Media.PropertyChanged += OnMediaPropertyChanged;
 
@@ -37,6 +40,83 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<PortalRowViewModel> Portals { get; }
 
     public MediaLibraryViewModel Media { get; }
+
+    [ObservableProperty]
+    private MediaScaleMode selectedScaleMode;
+
+    [ObservableProperty]
+    private MediaAlign selectedAlign;
+
+    public bool IsFillHeight => SelectedScaleMode == MediaScaleMode.FillHeight;
+
+    public bool IsFillWidth => SelectedScaleMode == MediaScaleMode.FillWidth;
+
+    public bool IsAlignStart => SelectedAlign == MediaAlign.Start;
+
+    public bool IsAlignCenter => SelectedAlign == MediaAlign.Center;
+
+    public bool IsAlignEnd => SelectedAlign == MediaAlign.End;
+
+    partial void OnSelectedScaleModeChanged(MediaScaleMode value)
+    {
+        OnPropertyChanged(nameof(IsFillHeight));
+        OnPropertyChanged(nameof(IsFillWidth));
+        OnPropertyChanged(nameof(IsAlignStart));
+        OnPropertyChanged(nameof(IsAlignCenter));
+        OnPropertyChanged(nameof(IsAlignEnd));
+
+        // Reset to a sane default for the new axis.
+        SelectedAlign = MediaAlign.Center;
+        ApplyDisplayOptionsToAllPortals();
+    }
+
+    partial void OnSelectedAlignChanged(MediaAlign value)
+    {
+        OnPropertyChanged(nameof(IsAlignStart));
+        OnPropertyChanged(nameof(IsAlignCenter));
+        OnPropertyChanged(nameof(IsAlignEnd));
+        ApplyDisplayOptionsToAllPortals();
+    }
+
+    [RelayCommand]
+    private void SetScaleFillHeight()
+    {
+        SelectedScaleMode = MediaScaleMode.FillHeight;
+    }
+
+    [RelayCommand]
+    private void SetScaleFillWidth()
+    {
+        SelectedScaleMode = MediaScaleMode.FillWidth;
+    }
+
+    [RelayCommand]
+    private void SetAlignStart()
+    {
+        SelectedAlign = MediaAlign.Start;
+    }
+
+    [RelayCommand]
+    private void SetAlignCenter()
+    {
+        SelectedAlign = MediaAlign.Center;
+    }
+
+    [RelayCommand]
+    private void SetAlignEnd()
+    {
+        SelectedAlign = MediaAlign.End;
+    }
+
+    private void ApplyDisplayOptionsToAllPortals()
+    {
+        foreach (var portal in Portals)
+        {
+            portal.ScaleMode = SelectedScaleMode;
+            portal.Align = SelectedAlign;
+            _portalHost.SetDisplayOptions(portal.PortalNumber, portal.ScaleMode, portal.Align);
+        }
+    }
 
     [ObservableProperty]
     private bool isPortalsSectionVisible = true;
@@ -69,11 +149,15 @@ public partial class MainWindowViewModel : ViewModelBase
         var portalRow = new PortalRowViewModel(_portalHost, portalNumber, Screens)
         {
             SelectedScreen = defaultScreen,
+            ScaleMode = SelectedScaleMode,
+            Align = SelectedAlign,
         };
 
         portalRow.DeleteRequested += OnDeletePortalRequested;
 
         Portals.Add(portalRow);
+
+        _portalHost.SetDisplayOptions(portalNumber, portalRow.ScaleMode, portalRow.Align);
 
         UpdatePortalMediaSelectionFlags();
     }
@@ -126,7 +210,9 @@ public partial class MainWindowViewModel : ViewModelBase
         stack.Push(new PortalContentSnapshot(
             IsVisible: portal.IsVisible,
             CurrentAssignment: portal.CurrentAssignment,
-            AssignedMediaFilePath: portal.AssignedMediaFilePath));
+            AssignedMediaFilePath: portal.AssignedMediaFilePath,
+            ScaleMode: portal.ScaleMode,
+            Align: portal.Align));
     }
 
     private void ApplyMediaToPortal(PortalRowViewModel portal, string displayName, string filePath)
@@ -134,7 +220,9 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.CurrentAssignment = displayName;
         portal.AssignedMediaFilePath = filePath;
         portal.SetAssignedPreviewFromFile(filePath);
-        _portalHost.SetContentImage(portal.PortalNumber, filePath, displayName);
+        portal.ScaleMode = SelectedScaleMode;
+        portal.Align = SelectedAlign;
+        _portalHost.SetContentImage(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align);
         portal.IsVisible = true;
     }
 
@@ -155,11 +243,13 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.IsVisible = snapshot.IsVisible;
         portal.CurrentAssignment = snapshot.CurrentAssignment;
         portal.AssignedMediaFilePath = snapshot.AssignedMediaFilePath;
+        portal.ScaleMode = snapshot.ScaleMode;
+        portal.Align = snapshot.Align;
 
         if (!string.IsNullOrWhiteSpace(snapshot.AssignedMediaFilePath))
         {
             portal.SetAssignedPreviewFromFile(snapshot.AssignedMediaFilePath);
-            _portalHost.SetContentImage(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment);
+            _portalHost.SetContentImage(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align);
         }
         else
         {
