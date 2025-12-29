@@ -76,6 +76,7 @@ public partial class MainWindow : Window
 
         var scaling = currentScreen.Scaling <= 0 ? 1.0 : currentScreen.Scaling;
         var targetWidth = workingArea.Width / scaling;
+        var targetMaxHeight = workingArea.Height / scaling;
 
         _pinning = true;
         try
@@ -93,6 +94,15 @@ public partial class MainWindow : Window
                 if (double.IsNaN(Width) || Math.Abs(Width - targetWidth) > 0.5)
                 {
                     Width = targetWidth;
+                }
+            }
+
+            if (!double.IsNaN(targetMaxHeight) && targetMaxHeight > 0)
+            {
+                // Prevent SizeToContent from growing past the visible working area.
+                if (double.IsNaN(MaxHeight) || Math.Abs(MaxHeight - targetMaxHeight) > 0.5)
+                {
+                    MaxHeight = targetMaxHeight;
                 }
             }
         }
