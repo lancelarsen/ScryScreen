@@ -74,4 +74,11 @@ public partial class PortalWindowViewModel : ViewModelBase
         ContentTitle = title;
         ContentImage = bitmap;
     }
+
+    public void ClearContent(string title = "Idle")
+    {
+        ContentTitle = title;
+        ContentImage = null;
+        IsSetup = true;
+    }
 }

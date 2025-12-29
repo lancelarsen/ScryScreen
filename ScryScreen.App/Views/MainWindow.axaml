@@ -99,11 +99,11 @@
                         </ItemsControl.ItemsPanel>
 
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate x:CompileBindings="False">
                                 <Border Classes="card" Width="320" Padding="8,6">
                                     <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
                                         <!-- Controls row -->
-                                        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
+                                        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                             <!-- (1) Portal number badge -->
                                             <Border Width="24" Height="24"
                                                     CornerRadius="12"
@@ -132,8 +132,19 @@
                                                 </Grid>
                                             </ToggleButton>
 
+                                            <!-- Clear content -->
+                                            <Button Grid.Column="2"
+                                                    Classes="icon"
+                                                    Width="30"
+                                                    Height="30"
+                                                    HorizontalAlignment="Right"
+                                                    i:Attached.Icon="mdi-eraser"
+                                                    ToolTip.Tip="Clear portal content"
+                                                    Command="{Binding DataContext.ClearPortalContentCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding .}" />
+
                                             <!-- Monitor dropdown (compact) -->
-                                            <ComboBox Grid.Column="2"
+                                            <ComboBox Grid.Column="3"
                                                       Width="140"
                                                       MinHeight="28"
                                                       FontSize="12"
@@ -142,7 +153,7 @@
                                                       SelectedItem="{Binding SelectedScreen}" />
 
                                             <!-- Close -->
-                                            <Button Grid.Column="3"
+                                                <Button Grid.Column="4"
                                                     Classes="icon"
                                                     Width="30"
                                                     Height="30"
@@ -213,43 +224,84 @@
 
                             <Border Grid.Column="1" Classes="card" Padding="14">
                                 <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
+                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
                                         <Button Grid.Column="0" Classes="subtle" Content="Add Folder" Click="OnImportMediaFolder" i:Attached.Icon="mdi-folder-plus" />
                                         <TextBlock Grid.Column="1" Text="{Binding Media.ImagesHeader}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+
+                                        <!-- View mode: grouped vs flat -->
+                                        <ToggleButton Grid.Column="2"
+                                                      Classes="circleSmall"
+                                                      ToolTip.Tip="Grouped by folder"
+                                                      IsChecked="{Binding Media.IsGroupedView, Mode=TwoWay}">
+                                            <i:Icon Value="mdi-folder-multiple-image" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                        </ToggleButton>
+
+                                        <ToggleButton Grid.Column="3"
+                                                      Classes="circleSmall"
+                                                      ToolTip.Tip="Flat view"
+                                                      IsChecked="{Binding Media.IsFlatView, Mode=TwoWay}">
+                                            <i:Icon Value="mdi-view-grid" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                        </ToggleButton>
                                     </Grid>
 
                                     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                                        <ItemsControl ItemsSource="{Binding Media.Groups}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="vm:MediaFolderGroupViewModel">
-                                                    <StackPanel Spacing="8" Margin="0,0,0,12">
-                                                        <TextBlock Text="{Binding DisplayHeader}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
+                                        <Grid>
+                                            <!-- Grouped view (by directory) -->
+                                            <ItemsControl ItemsSource="{Binding Media.Groups}" IsVisible="{Binding Media.IsGroupedView}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:MediaFolderGroupViewModel">
+                                                        <StackPanel Spacing="8" Margin="0,0,0,12">
+                                                            <TextBlock Text="{Binding DisplayHeader}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
 
-                                                        <ItemsControl ItemsSource="{Binding Items}">
-                                                            <ItemsControl.ItemsPanel>
-                                                                <ItemsPanelTemplate>
-                                                                    <WrapPanel ItemSpacing="10" LineSpacing="10" />
-                                                                </ItemsPanelTemplate>
-                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl ItemsSource="{Binding Items}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <WrapPanel ItemSpacing="10" LineSpacing="10" />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
 
-                                                            <ItemsControl.ItemTemplate>
-                                                                <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
-                                                                    <Button Background="Transparent"
-                                                                            BorderThickness="0"
-                                                                            Padding="0"
-                                                                            Command="{Binding DataContext.Media.SelectItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                            CommandParameter="{Binding .}">
-                                                                        <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
-                                                                            <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                                                                        </Border>
-                                                                    </Button>
-                                                                </DataTemplate>
-                                                            </ItemsControl.ItemTemplate>
-                                                        </ItemsControl>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
+                                                                        <Button Background="Transparent"
+                                                                                BorderThickness="0"
+                                                                                Padding="0"
+                                                                                Command="{Binding DataContext.Media.SelectItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                                CommandParameter="{Binding .}">
+                                                                            <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
+                                                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                                            </Border>
+                                                                        </Button>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- Flat view (no directory separation) -->
+                                            <ItemsControl ItemsSource="{Binding Media.Items}" IsVisible="{Binding Media.IsFlatView}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel ItemSpacing="10" LineSpacing="10" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
+                                                        <Button Background="Transparent"
+                                                                BorderThickness="0"
+                                                                Padding="0"
+                                                                Command="{Binding DataContext.Media.SelectItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding .}">
+                                                            <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
+                                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                            </Border>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
                                     </ScrollViewer>
                                 </Grid>
                             </Border>

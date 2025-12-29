@@ -148,6 +148,15 @@ public sealed class PortalHostService
         }
     }
 
+    public void ClearContent(int portalNumber, string contentTitle = "Idle")
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.ClearContent(contentTitle);
+            controller.ViewModel.IsContentVisible = true;
+        }
+    }
+
     public void SetContentImage(int portalNumber, string filePath, string? contentTitle = null)
     {
         if (!_portals.TryGetValue(portalNumber, out var controller))

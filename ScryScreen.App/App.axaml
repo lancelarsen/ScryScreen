@@ -2,8 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="ScryScreen.App.App"
              xmlns:local="using:ScryScreen.App"
+             xmlns:conv="using:ScryScreen.App.Converters"
              RequestedThemeVariant="Dark">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.Resources>
+        <conv:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+    </Application.Resources>
 
     <Application.DataTemplates>
         <local:ViewLocator/>

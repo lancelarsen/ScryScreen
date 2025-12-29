@@ -43,6 +43,20 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
     [ObservableProperty]
     private string statusText = "No media imported";
 
+    [ObservableProperty]
+    private bool isGroupedView = true;
+
+    public bool IsFlatView
+    {
+        get => !IsGroupedView;
+        set => IsGroupedView = !value;
+    }
+
+    partial void OnIsGroupedViewChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsFlatView));
+    }
+
     private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         OnPropertyChanged(nameof(ImagesCount));

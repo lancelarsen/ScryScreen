@@ -187,6 +187,25 @@ public partial class MainWindowViewModel : ViewModelBase
         return _portalHost.IdentifyAllAsync();
     }
 
+    [RelayCommand]
+    private void ClearPortalContent(PortalRowViewModel? portal)
+    {
+        if (portal is null)
+        {
+            return;
+        }
+
+        _portalHistory.Remove(portal.PortalNumber);
+
+        portal.AssignedMediaFilePath = null;
+        portal.CurrentAssignment = "Idle";
+        portal.AssignedPreview = null;
+        portal.IsSelectedForCurrentMedia = false;
+
+        _portalHost.ClearContent(portal.PortalNumber);
+        UpdatePortalMediaSelectionFlags();
+    }
+
     public void Shutdown()
     {
         _portalHost.CloseAll();
