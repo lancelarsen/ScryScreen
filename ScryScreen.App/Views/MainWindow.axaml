@@ -87,85 +87,87 @@
                 BorderThickness="0,0,0,1"
                 Padding="12,10">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                <ListBox Grid.Column="0"
-                         ItemsSource="{Binding Portals}"
-                         SelectedItem="{Binding SelectedPortal}"
-                         ItemContainerTheme="{DynamicResource ScryListBoxItemTheme}"
-                         MaxHeight="220">
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" ItemSpacing="12" LineSpacing="12" />
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border Classes="card" Width="320" Padding="8,6">
-                                <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
-                                    <!-- Controls row -->
-                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
-                                        <!-- (1) Portal number badge -->
-                                        <Border Width="24" Height="24"
-                                                CornerRadius="12"
+                <ScrollViewer Grid.Column="0"
+                              MaxHeight="220"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Portals}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" ItemSpacing="12" LineSpacing="12" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="card" Width="320" Padding="8,6">
+                                    <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
+                                        <!-- Controls row -->
+                                        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
+                                            <!-- (1) Portal number badge -->
+                                            <Border Width="24" Height="24"
+                                                    CornerRadius="12"
+                                                    Background="#0A0F18"
+                                                    BorderBrush="{DynamicResource ScryBorder}"
+                                                    BorderThickness="1"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding PortalNumber}"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ScryTextMuted}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Border>
+
+                                            <!-- Visibility -->
+                                            <ToggleButton Grid.Column="1"
+                                                          Classes="icon"
+                                                          Width="30"
+                                                          Height="30"
+                                                          IsChecked="{Binding IsVisible}"
+                                                          ToolTip.Tip="Toggle portal visibility">
+                                                <Grid>
+                                                    <i:Icon IsVisible="{Binding IsVisible}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
+                                                    <i:Icon IsVisible="{Binding !IsVisible}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
+                                                </Grid>
+                                            </ToggleButton>
+
+                                            <!-- Monitor dropdown (compact) -->
+                                            <ComboBox Grid.Column="2"
+                                                      Width="140"
+                                                      MinHeight="28"
+                                                      FontSize="12"
+                                                      HorizontalAlignment="Right"
+                                                      ItemsSource="{Binding AvailableScreens}"
+                                                      SelectedItem="{Binding SelectedScreen}" />
+
+                                            <!-- Close -->
+                                            <Button Grid.Column="3"
+                                                    Classes="icon"
+                                                    Width="30"
+                                                    Height="30"
+                                                    HorizontalAlignment="Right"
+                                                    i:Attached.Icon="mdi-close"
+                                                    ToolTip.Tip="Close portal"
+                                                    Command="{Binding ClosePortalCommand}" />
+                                        </Grid>
+
+                                        <!-- Assigned media preview (matches Media preview source/orientation) -->
+                                        <Border Grid.Row="1"
+                                                IsVisible="{Binding HasAssignedPreview}"
                                                 Background="#0A0F18"
                                                 BorderBrush="{DynamicResource ScryBorder}"
                                                 BorderThickness="1"
-                                                VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding PortalNumber}"
-                                                       FontSize="12"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource ScryTextMuted}"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center" />
+                                                CornerRadius="8"
+                                                Padding="6">
+                                            <Image Source="{Binding AssignedPreview}" Stretch="Uniform" Height="80" />
                                         </Border>
-
-                                        <!-- Visibility -->
-                                        <ToggleButton Grid.Column="1"
-                                                      Classes="icon"
-                                                      Width="30"
-                                                      Height="30"
-                                                      IsChecked="{Binding IsVisible}"
-                                                      ToolTip.Tip="Toggle portal visibility">
-                                            <Grid>
-                                                <i:Icon IsVisible="{Binding IsVisible}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
-                                                <i:Icon IsVisible="{Binding !IsVisible}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
-                                            </Grid>
-                                        </ToggleButton>
-
-                                        <!-- Monitor dropdown (compact) -->
-                                        <ComboBox Grid.Column="2"
-                                                  Width="140"
-                                                  MinHeight="28"
-                                                  FontSize="12"
-                                                  HorizontalAlignment="Right"
-                                                  ItemsSource="{Binding AvailableScreens}"
-                                                  SelectedItem="{Binding SelectedScreen}" />
-
-                                        <!-- Close -->
-                                        <Button Grid.Column="3"
-                                                Classes="icon"
-                                                Width="30"
-                                                Height="30"
-                                                HorizontalAlignment="Right"
-                                                i:Attached.Icon="mdi-close"
-                                                ToolTip.Tip="Close portal"
-                                                Command="{Binding ClosePortalCommand}" />
                                     </Grid>
-
-                                    <!-- Assigned media preview (matches Media preview source/orientation) -->
-                                    <Border Grid.Row="1"
-                                            IsVisible="{Binding HasAssignedPreview}"
-                                            Background="#0A0F18"
-                                            BorderBrush="{DynamicResource ScryBorder}"
-                                            BorderThickness="1"
-                                            CornerRadius="8"
-                                            Padding="6">
-                                        <Image Source="{Binding AssignedPreview}" Stretch="Uniform" Height="80" />
-                                    </Border>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
 
                 <!-- Portal actions (moved from header) -->
                 <StackPanel Grid.Column="1" Spacing="10" VerticalAlignment="Top">
@@ -188,36 +190,68 @@
                                         <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" Height="180" />
                                     </Border>
 
-                                    <Button Classes="primary"
-                                            Content="Send to Selected Portal"
-                                            Command="{Binding SendSelectedMediaToSelectedPortalCommand}"
-                                            ToolTip.Tip="Sends the selected image to the selected portal" />
+                                    <ItemsControl ItemsSource="{Binding Portals}" Margin="0,4,0,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
+                                                <ToggleButton Classes="circleSmall"
+                                                              Content="{Binding PortalNumber}"
+                                                              ToolTip.Tip="Toggle this image on this portal"
+                                                              IsChecked="{Binding IsSelectedForCurrentMedia}"
+                                                              Command="{Binding DataContext.ToggleSelectedMediaForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              CommandParameter="{Binding .}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
                             </Border>
 
                             <Border Grid.Column="1" Classes="card" Padding="14">
-                                <StackPanel Spacing="10">
-                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
+                                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
                                         <Button Grid.Column="0" Classes="subtle" Content="Add Folder" Click="OnImportMediaFolder" i:Attached.Icon="mdi-folder-plus" />
                                         <TextBlock Grid.Column="1" Text="{Binding Media.ImagesHeader}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     </Grid>
-                                    <ListBox ItemsSource="{Binding Media.Items}"
-                                             SelectedItem="{Binding Media.SelectedItem}"
-                                             ItemContainerTheme="{DynamicResource ScryListBoxItemTheme}">
-                                        <ListBox.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel ItemSpacing="10" LineSpacing="10" />
-                                            </ItemsPanelTemplate>
-                                        </ListBox.ItemsPanel>
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
-                                                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                                                </Border>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                </StackPanel>
+
+                                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding Media.Groups}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:MediaFolderGroupViewModel">
+                                                    <StackPanel Spacing="8" Margin="0,0,0,12">
+                                                        <TextBlock Text="{Binding DisplayHeader}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
+
+                                                        <ItemsControl ItemsSource="{Binding Items}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <WrapPanel ItemSpacing="10" LineSpacing="10" />
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
+                                                                    <Button Background="Transparent"
+                                                                            BorderThickness="0"
+                                                                            Padding="0"
+                                                                            Command="{Binding DataContext.Media.SelectItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                            CommandParameter="{Binding .}">
+                                                                        <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
+                                                                            <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                                        </Border>
+                                                                    </Button>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
                             </Border>
                         </Grid>
                     </Grid>
@@ -244,7 +278,6 @@
             <Border Classes="card">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Inspector / Controls" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding SelectedPortal.Title}" Foreground="{DynamicResource ScryTextMuted}" />
                     <TextBlock Text="(Per-portal controls appear here next)" Foreground="{DynamicResource ScryTextMuted}" />
                 </StackPanel>
             </Border>

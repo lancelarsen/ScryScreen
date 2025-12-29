@@ -39,6 +39,12 @@ public partial class PortalRowViewModel : ViewModelBase
     private string currentAssignment;
 
     [ObservableProperty]
+    private string? assignedMediaFilePath;
+
+    [ObservableProperty]
+    private bool isSelectedForCurrentMedia;
+
+    [ObservableProperty]
     private Bitmap? assignedPreview;
 
     public bool HasAssignedPreview => AssignedPreview is not null;
