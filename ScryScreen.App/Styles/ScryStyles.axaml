@@ -12,6 +12,8 @@
     <Color x:Key="ScryColorTextMuted">#A7B6CB</Color>
     <!-- Arcane gold accent -->
     <Color x:Key="ScryColorAccent">#D6B25E</Color>
+    <!-- Portal badge outline (matches underline red) -->
+    <Color x:Key="ScryColorBadgeMaroon">#E54848</Color>
     <Color x:Key="ScryColorSuccess">#36D477</Color>
     <Color x:Key="ScryColorDanger">#E54848</Color>
 
@@ -23,6 +25,7 @@
     <SolidColorBrush x:Key="ScryText" Color="{DynamicResource ScryColorText}" />
     <SolidColorBrush x:Key="ScryTextMuted" Color="{DynamicResource ScryColorTextMuted}" />
     <SolidColorBrush x:Key="ScryAccent" Color="{DynamicResource ScryColorAccent}" />
+    <SolidColorBrush x:Key="ScryBadgeMaroon" Color="{DynamicResource ScryColorBadgeMaroon}" />
     <SolidColorBrush x:Key="ScrySuccess" Color="{DynamicResource ScryColorSuccess}" />
     <SolidColorBrush x:Key="ScryDanger" Color="{DynamicResource ScryColorDanger}" />
 
@@ -166,6 +169,28 @@
     </Setter>
   </Style>
 
+  <!-- Small Circle Button: used for compact icon actions (matches ToggleButton.circleSmall) -->
+  <Style Selector="Button.circleSmall">
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="#0A0F18" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="18" />
+    <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
+  </Style>
+
+  <Style Selector="Button.circleSmall:pointerover">
+    <Setter Property="Background" Value="#16263B" />
+  </Style>
+
+  <Style Selector="Button.circleSmall:pressed">
+    <Setter Property="Background" Value="#1B2E47" />
+  </Style>
+
   <!-- Circle Button: used for compact icon actions -->
   <Style Selector="Button.circle">
     <Setter Property="Width" Value="44" />
@@ -181,11 +206,11 @@
   </Style>
 
   <Style Selector="Button.circle:pointerover">
-    <Setter Property="Opacity" Value="0.95" />
+    <Setter Property="Background" Value="#16263B" />
   </Style>
 
   <Style Selector="Button.circle:pressed">
-    <Setter Property="Opacity" Value="0.88" />
+    <Setter Property="Background" Value="#1B2E47" />
   </Style>
 
   <Style Selector="ToggleButton.circle:checked /template/ Border">
@@ -198,20 +223,26 @@
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
+  <!-- For icon toggles where "checked" is not a selection (e.g., visibility), keep the neutral border -->
+  <Style Selector="ToggleButton.circleSmall.noAccent:checked /template/ Border">
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
   <Style Selector="ToggleButton.circle:pointerover /template/ Border">
-    <Setter Property="Opacity" Value="0.95" />
+    <Setter Property="Background" Value="#16263B" />
   </Style>
 
   <Style Selector="ToggleButton.circleSmall:pointerover /template/ Border">
-    <Setter Property="Opacity" Value="0.95" />
+    <Setter Property="Background" Value="#16263B" />
   </Style>
 
   <Style Selector="ToggleButton.circle:pressed /template/ Border">
-    <Setter Property="Opacity" Value="0.88" />
+    <Setter Property="Background" Value="#1B2E47" />
   </Style>
 
   <Style Selector="ToggleButton.circleSmall:pressed /template/ Border">
-    <Setter Property="Opacity" Value="0.88" />
+    <Setter Property="Background" Value="#1B2E47" />
   </Style>
 
   <Style Selector="ToggleButton.icon:pointerover">

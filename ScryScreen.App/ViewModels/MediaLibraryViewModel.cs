@@ -22,6 +22,10 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
 
     public int ImagesCount => Items.Count;
 
+    public bool HasAnyMedia => Items.Count > 0;
+
+    public bool HasNoMedia => Items.Count == 0;
+
     public string ImagesHeader => Items.Count > 0
         ? $"Images ({Items.Count})"
         : "Images";
@@ -61,6 +65,8 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(ImagesCount));
         OnPropertyChanged(nameof(ImagesHeader));
+        OnPropertyChanged(nameof(HasAnyMedia));
+        OnPropertyChanged(nameof(HasNoMedia));
     }
 
     public void ImportFolder(string folderPath)
@@ -139,6 +145,8 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(ImagesCount));
         OnPropertyChanged(nameof(ImagesHeader));
+        OnPropertyChanged(nameof(HasAnyMedia));
+        OnPropertyChanged(nameof(HasNoMedia));
 
         SelectedItem = Items.FirstOrDefault();
     }
