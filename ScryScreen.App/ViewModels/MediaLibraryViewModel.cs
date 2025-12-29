@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using Avalonia.Media.Imaging;
@@ -11,11 +12,28 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
 {
     public ObservableCollection<MediaItemViewModel> Items { get; } = new();
 
+    public MediaLibraryViewModel()
+    {
+        Items.CollectionChanged += OnItemsCollectionChanged;
+    }
+
+    public int ImagesCount => Items.Count;
+
+    public string ImagesHeader => Items.Count > 0
+        ? $"Images ({Items.Count})"
+        : "Images";
+
     [ObservableProperty]
     private MediaItemViewModel? selectedItem;
 
     [ObservableProperty]
     private string statusText = "No media imported";
+
+    private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(ImagesCount));
+        OnPropertyChanged(nameof(ImagesHeader));
+    }
 
     public void ImportFolder(string folderPath)
     {
@@ -56,6 +74,9 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
         StatusText = files.Count == 0
             ? "No supported images found"
             : $"{files.Count} image(s)";
+
+        OnPropertyChanged(nameof(ImagesCount));
+        OnPropertyChanged(nameof(ImagesHeader));
 
         SelectedItem = Items.FirstOrDefault();
     }

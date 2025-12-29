@@ -93,6 +93,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         portal.CurrentAssignment = item.DisplayName;
+        portal.SetAssignedPreviewFromFile(item.FilePath);
         _portalHost.SetContentImage(portal.PortalNumber, item.FilePath, item.DisplayName);
         portal.IsVisible = true;
     }

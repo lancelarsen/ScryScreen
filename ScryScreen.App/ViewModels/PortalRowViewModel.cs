@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScryScreen.App.Services;
@@ -35,6 +37,36 @@ public partial class PortalRowViewModel : ViewModelBase
 
     [ObservableProperty]
     private string currentAssignment;
+
+    [ObservableProperty]
+    private Bitmap? assignedPreview;
+
+    public bool HasAssignedPreview => AssignedPreview is not null;
+
+    partial void OnAssignedPreviewChanged(Bitmap? oldValue, Bitmap? newValue)
+    {
+        oldValue?.Dispose();
+        OnPropertyChanged(nameof(HasAssignedPreview));
+    }
+
+    public void SetAssignedPreviewFromFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            AssignedPreview = null;
+            return;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(filePath);
+            AssignedPreview = new Bitmap(stream);
+        }
+        catch
+        {
+            AssignedPreview = null;
+        }
+    }
 
     partial void OnSelectedScreenChanged(ScreenInfoViewModel? value)
     {
