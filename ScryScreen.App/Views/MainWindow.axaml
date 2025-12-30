@@ -275,7 +275,7 @@
                                                           IsHitTestVisible="{Binding IsFillHeight, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetScaleFillHeightCommand}"
                                                           ToolTip.Tip="Fill Height (crops left/right)">
-                                                <TextBlock Text="H" FontWeight="SemiBold" />
+                                                <svg:Svg Path="/Assets/Icons/fit_height.svg" Width="18" Height="18" />
                                             </ToggleButton>
 
                                             <ToggleButton Classes="circleSmall"
@@ -283,7 +283,7 @@
                                                           IsHitTestVisible="{Binding IsFillWidth, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetScaleFillWidthCommand}"
                                                           ToolTip.Tip="Fill Width (crops top/bottom)">
-                                                <TextBlock Text="W" FontWeight="SemiBold" />
+                                                <svg:Svg Path="/Assets/Icons/fit_width.svg" Width="18" Height="18" />
                                             </ToggleButton>
                                         </StackPanel>
 
@@ -295,7 +295,7 @@
                                                           IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignStartCommand}"
                                                           ToolTip.Tip="Top">
-                                                <TextBlock Text="T" FontWeight="SemiBold" />
+                                                <svg:Svg Path="/Assets/Icons/align_top.svg" Width="18" Height="18" />
                                             </ToggleButton>
                                             <ToggleButton Classes="circleSmall"
                                                           IsVisible="{Binding IsFillWidth}"
@@ -303,7 +303,7 @@
                                                           IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignCenterCommand}"
                                                           ToolTip.Tip="Center">
-                                                <TextBlock Text="C" FontWeight="SemiBold" />
+                                                <svg:Svg Path="/Assets/Icons/align_v_center.svg" Width="18" Height="18" />
                                             </ToggleButton>
                                             <ToggleButton Classes="circleSmall"
                                                           IsVisible="{Binding IsFillWidth}"
@@ -311,7 +311,7 @@
                                                           IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignEndCommand}"
                                                           ToolTip.Tip="Bottom">
-                                                <TextBlock Text="B" FontWeight="SemiBold" />
+                                                <svg:Svg Path="/Assets/Icons/align_bottom.svg" Width="18" Height="18" />
                                             </ToggleButton>
 
                                             <!-- For Fill Height (H): horizontal align (Left/Center/Right) -->
@@ -321,7 +321,7 @@
                                                           IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignStartCommand}"
                                                           ToolTip.Tip="Left">
-                                                <TextBlock Text="L" FontWeight="SemiBold" />
+                                                <svg:Svg Path="/Assets/Icons/align_left.svg" Width="18" Height="18" />
                                             </ToggleButton>
                                             <ToggleButton Classes="circleSmall"
                                                           IsVisible="{Binding IsFillHeight}"
@@ -329,7 +329,7 @@
                                                           IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignCenterCommand}"
                                                           ToolTip.Tip="Center">
-                                                <TextBlock Text="C" FontWeight="SemiBold" />
+                                                <svg:Svg Path="/Assets/Icons/align_h_center.svg" Width="18" Height="18" />
                                             </ToggleButton>
                                             <ToggleButton Classes="circleSmall"
                                                           IsVisible="{Binding IsFillHeight}"
@@ -337,7 +337,7 @@
                                                           IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
                                                           Command="{Binding SetAlignEndCommand}"
                                                           ToolTip.Tip="Right">
-                                                <TextBlock Text="R" FontWeight="SemiBold" />
+                                                <svg:Svg Path="/Assets/Icons/align_right.svg" Width="18" Height="18" />
                                             </ToggleButton>
                                         </StackPanel>
                                     </StackPanel>
