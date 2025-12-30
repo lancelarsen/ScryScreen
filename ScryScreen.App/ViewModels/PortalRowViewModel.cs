@@ -189,24 +189,44 @@ public partial class PortalRowViewModel : ViewModelBase
         var sx = monitorW / (double)mediaW;
         var sy = monitorH / (double)mediaH;
 
-        var scale = ScaleMode switch
-        {
-            // Match PortalWindow behavior (see PortalWindow.axaml.cs):
-            // FillHeight (H) => fill height (sy)
-            // FillWidth  (W) => fill width (sx)
-            MediaScaleMode.FillHeight => sy,
-            MediaScaleMode.FillWidth => sx,
-            _ => sx,
-        };
+        // Stabilize the filled axis to avoid sub-pixel drift that can show as a 1px gap.
+        // FillHeight (H) => displayed height matches monitorH exactly.
+        // FillWidth  (W) => displayed width  matches monitorW exactly.
+        var displayW = 0.0;
+        var displayH = 0.0;
 
-        var displayW = mediaW * scale;
-        var displayH = mediaH * scale;
+        switch (ScaleMode)
+        {
+            case MediaScaleMode.FillHeight:
+                displayH = monitorH;
+                displayW = mediaW * sy;
+                break;
+            case MediaScaleMode.FillWidth:
+                displayW = monitorW;
+                displayH = mediaH * sx;
+                break;
+            default:
+                displayW = monitorW;
+                displayH = mediaH * sx;
+                break;
+        }
 
         PreviewImageWidth = displayW;
         PreviewImageHeight = displayH;
 
         var leftoverX = monitorW - displayW;
         var leftoverY = monitorH - displayH;
+
+        // Clamp tiny floating-point leftovers to 0 to prevent hairline slivers.
+        if (Math.Abs(leftoverX) < 1e-6)
+        {
+            leftoverX = 0;
+        }
+
+        if (Math.Abs(leftoverY) < 1e-6)
+        {
+            leftoverY = 0;
+        }
 
         // Align only on the axis that might overflow/letterbox for the selected scale mode.
         // FillHeight (H) => horizontal align; FillWidth (W) => vertical align.
