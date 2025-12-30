@@ -92,12 +92,32 @@ public partial class PortalRowViewModel : ViewModelBase
 
     public bool HasAssignedPreview => AssignedPreview is not null;
 
+    // Once the monitor preview is available, the monitor preview becomes the canonical “what the portal shows” preview.
+    // Keep the old top thumbnail only as a fallback when no monitor is selected.
+    public bool ShowTopAssignedPreview => HasAssignedPreview && !HasMonitorPreview;
+
+    public string MonitorPreviewToolTip
+    {
+        get
+        {
+            if (SelectedScreen is null)
+            {
+                return string.Empty;
+            }
+
+            // Put the most important info first and keep it compact for a hover tooltip.
+            return $"{SelectedScreen.ResolutionText}\n{SelectedScreen.AspectRatioText}\n{FitModeText}";
+        }
+    }
+
     partial void OnAssignedPreviewChanged(Bitmap? oldValue, Bitmap? newValue)
     {
         oldValue?.Dispose();
         OnPropertyChanged(nameof(HasAssignedPreview));
+        OnPropertyChanged(nameof(ShowTopAssignedPreview));
         OnPropertyChanged(nameof(HasMediaPreview));
         OnPropertyChanged(nameof(HasMonitorAndMediaPreview));
+        OnPropertyChanged(nameof(MonitorPreviewToolTip));
         UpdateMonitorPreviewGeometry();
     }
 
@@ -130,18 +150,22 @@ public partial class PortalRowViewModel : ViewModelBase
         _portalHost.AssignToScreen(PortalNumber, value);
         OnPropertyChanged(nameof(HasMonitorPreview));
         OnPropertyChanged(nameof(HasMonitorAndMediaPreview));
+        OnPropertyChanged(nameof(ShowTopAssignedPreview));
+        OnPropertyChanged(nameof(MonitorPreviewToolTip));
         UpdateMonitorPreviewGeometry();
     }
 
     partial void OnScaleModeChanged(MediaScaleMode value)
     {
         OnPropertyChanged(nameof(FitModeText));
+        OnPropertyChanged(nameof(MonitorPreviewToolTip));
         UpdateMonitorPreviewGeometry();
     }
 
     partial void OnAlignChanged(MediaAlign value)
     {
         OnPropertyChanged(nameof(FitModeText));
+        OnPropertyChanged(nameof(MonitorPreviewToolTip));
         UpdateMonitorPreviewGeometry();
     }
 

@@ -171,9 +171,9 @@
                                                     Command="{Binding ClosePortalCommand}" />
                                         </Grid>
 
-                                        <!-- Assigned media preview (matches Media preview source/orientation) -->
+                                        <!-- Assigned media preview (fallback only when no monitor preview is available) -->
                                         <Border Grid.Row="1"
-                                                IsVisible="{Binding HasAssignedPreview}"
+                                                IsVisible="{Binding ShowTopAssignedPreview}"
                                                 Background="#0A0F18"
                                                 BorderBrush="{DynamicResource ScryBorder}"
                                                 BorderThickness="1"
@@ -182,56 +182,44 @@
                                             <Image Source="{Binding AssignedPreview}" Stretch="Uniform" Height="80" />
                                         </Border>
 
-                                        <!-- Monitor + media aspect preview -->
+                                        <!-- Monitor + media preview (matches portal crop/align) -->
                                         <Border Grid.Row="2"
                                                 IsVisible="{Binding HasMonitorPreview}"
                                                 Background="Transparent"
                                                 BorderThickness="0"
                                                 Margin="0,6,0,0">
-                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
-                                                <Border Background="#0A0F18"
-                                                        BorderBrush="{DynamicResource ScryBorder}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="8"
-                                                        Padding="6">
-                                                    <Viewbox Width="120" Height="60" Stretch="Uniform">
-                                                        <Canvas Width="{Binding SelectedScreen.WidthPx}"
-                                                                Height="{Binding SelectedScreen.HeightPx}">
-                                                            <!-- Screen outline -->
-                                                            <Border Width="{Binding SelectedScreen.WidthPx}"
-                                                                    Height="{Binding SelectedScreen.HeightPx}"
-                                                                    Background="#05070B"
-                                                                    BorderBrush="#3A557D"
-                                                                    BorderThickness="10"
-                                                                    CornerRadius="40"
-                                                                    ClipToBounds="True">
-                                                                <Canvas>
-                                                                    <!-- Media rect (cropped/letterboxed by clipping) -->
-                                                                    <Border IsVisible="{Binding HasMediaPreview}"
-                                                                            Width="{Binding PreviewImageWidth}"
-                                                                            Height="{Binding PreviewImageHeight}"
-                                                                            Background="#16263B"
-                                                                            Opacity="0.95"
-                                                                            Canvas.Left="{Binding PreviewImageLeft}"
-                                                                            Canvas.Top="{Binding PreviewImageTop}" />
-                                                                </Canvas>
-                                                            </Border>
-                                                        </Canvas>
-                                                    </Viewbox>
-                                                </Border>
-
-                                                <StackPanel Spacing="2" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding SelectedScreen.ResolutionText}"
-                                                               FontSize="12"
-                                                               Foreground="{DynamicResource ScryTextMuted}" />
-                                                    <TextBlock Text="{Binding SelectedScreen.AspectRatioText}"
-                                                               FontSize="12"
-                                                               Foreground="{DynamicResource ScryTextMuted}" />
-                                                    <TextBlock Text="{Binding FitModeText}"
-                                                               FontSize="12"
-                                                               Foreground="{DynamicResource ScryTextMuted}" />
-                                                </StackPanel>
-                                            </Grid>
+                                            <Border Background="#0A0F18"
+                                                    BorderBrush="{DynamicResource ScryBorder}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="8"
+                                                    Padding="6"
+                                                    ToolTip.Tip="{Binding MonitorPreviewToolTip}">
+                                                <Viewbox Width="120" Height="60" Stretch="Uniform">
+                                                    <Canvas Width="{Binding SelectedScreen.WidthPx}"
+                                                            Height="{Binding SelectedScreen.HeightPx}">
+                                                        <!-- Screen outline -->
+                                                        <Border Width="{Binding SelectedScreen.WidthPx}"
+                                                                Height="{Binding SelectedScreen.HeightPx}"
+                                                                Background="#05070B"
+                                                                BorderBrush="#3A557D"
+                                                                BorderThickness="10"
+                                                                CornerRadius="40"
+                                                                ClipToBounds="True">
+                                                            <Canvas>
+                                                                <!-- Media preview (cropped/letterboxed by clipping) -->
+                                                                <Border IsVisible="{Binding HasMediaPreview}"
+                                                                        Width="{Binding PreviewImageWidth}"
+                                                                        Height="{Binding PreviewImageHeight}"
+                                                                        Background="#16263B"
+                                                                        Canvas.Left="{Binding PreviewImageLeft}"
+                                                                        Canvas.Top="{Binding PreviewImageTop}">
+                                                                    <Image Source="{Binding AssignedPreview}" Stretch="Fill" />
+                                                                </Border>
+                                                            </Canvas>
+                                                        </Border>
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </Border>
                                         </Border>
                                     </Grid>
                                 </Border>
