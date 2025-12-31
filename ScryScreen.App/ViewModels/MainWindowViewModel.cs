@@ -15,7 +15,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ReadOnlyCollection<ScreenInfoViewModel> _screens;
     private string? _lastSelectedMediaPath;
 
-    private sealed record PortalContentSnapshot(bool IsVisible, string CurrentAssignment, string? AssignedMediaFilePath, MediaScaleMode ScaleMode, MediaAlign Align);
+    private sealed record PortalContentSnapshot(bool IsVisible, string CurrentAssignment, string? AssignedMediaFilePath, bool IsVideo, bool IsVideoPlaying, bool IsVideoLoop, MediaScaleMode ScaleMode, MediaAlign Align);
     private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentSnapshot>> _portalHistory = new();
 
     public MainWindowViewModel(PortalHostService portalHost)
@@ -41,6 +41,18 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<PortalRowViewModel> Portals { get; }
 
     public MediaLibraryViewModel Media { get; }
+
+    [ObservableProperty]
+    private bool isVideoAutoPlay = true;
+
+    [ObservableProperty]
+    private bool isVideoLoop = false;
+
+    public bool IsSelectedMediaVideo => Media.SelectedItem?.IsVideo == true;
+
+    partial void OnIsVideoAutoPlayChanged(bool value) => ApplyVideoOptionsToAssignedPortals();
+
+    partial void OnIsVideoLoopChanged(bool value) => ApplyVideoOptionsToAssignedPortals();
 
     public enum LibraryTab
     {
@@ -166,6 +178,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (e.PropertyName == nameof(MediaLibraryViewModel.SelectedItem))
         {
             UpdatePortalMediaSelectionFlags();
+            OnPropertyChanged(nameof(IsSelectedMediaVideo));
 
             var selectedPath = Media.SelectedItem?.FilePath;
             if (_lastSelectedMediaPath is null && selectedPath is not null && !IsControlsSectionVisible)
@@ -284,6 +297,9 @@ public partial class MainWindowViewModel : ViewModelBase
             IsVisible: portal.IsVisible,
             CurrentAssignment: portal.CurrentAssignment,
             AssignedMediaFilePath: portal.AssignedMediaFilePath,
+            IsVideo: portal.IsVideoAssigned,
+            IsVideoPlaying: portal.IsVideoPlaying,
+            IsVideoLoop: portal.IsVideoLoop,
             ScaleMode: portal.ScaleMode,
             Align: portal.Align));
     }
@@ -292,11 +308,42 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         portal.CurrentAssignment = displayName;
         portal.AssignedMediaFilePath = filePath;
-        portal.SetAssignedPreviewFromFile(filePath);
         portal.ScaleMode = SelectedScaleMode;
         portal.Align = SelectedAlign;
-        _portalHost.SetContentImage(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align);
+
+        var selected = Media.SelectedItem;
+        if (selected?.IsVideo == true)
+        {
+            portal.AssignedPreview = selected.Thumbnail;
+            portal.IsVideoLoop = IsVideoLoop;
+            _portalHost.SetContentVideo(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align, autoPlay: IsVideoAutoPlay, loop: IsVideoLoop);
+            portal.IsVideoPlaying = IsVideoAutoPlay;
+        }
+        else
+        {
+            portal.SetAssignedPreviewFromFile(filePath);
+            _portalHost.SetContentImage(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align);
+            portal.IsVideoPlaying = false;
+            portal.IsVideoLoop = false;
+        }
         portal.IsVisible = true;
+    }
+
+    private void ApplyVideoOptionsToAssignedPortals()
+    {
+        if (Media.SelectedItem?.IsVideo != true)
+        {
+            return;
+        }
+
+        var selectedPath = Media.SelectedItem.FilePath;
+        foreach (var portal in Portals)
+        {
+            if (string.Equals(portal.AssignedMediaFilePath, selectedPath, StringComparison.OrdinalIgnoreCase))
+            {
+                _portalHost.SetVideoOptions(portal.PortalNumber, autoPlay: IsVideoAutoPlay, loop: IsVideoLoop);
+            }
+        }
     }
 
     private void RestorePreviousContent(PortalRowViewModel portal)
@@ -316,17 +363,29 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.IsVisible = snapshot.IsVisible;
         portal.CurrentAssignment = snapshot.CurrentAssignment;
         portal.AssignedMediaFilePath = snapshot.AssignedMediaFilePath;
+        portal.IsVideoLoop = snapshot.IsVideoLoop;
+        portal.IsVideoPlaying = snapshot.IsVideoPlaying;
         portal.ScaleMode = snapshot.ScaleMode;
         portal.Align = snapshot.Align;
 
         if (!string.IsNullOrWhiteSpace(snapshot.AssignedMediaFilePath))
         {
-            portal.SetAssignedPreviewFromFile(snapshot.AssignedMediaFilePath);
-            _portalHost.SetContentImage(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align);
+            if (snapshot.IsVideo)
+            {
+                portal.AssignedPreview = null;
+                _portalHost.SetContentVideo(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align, autoPlay: snapshot.IsVideoPlaying, loop: snapshot.IsVideoLoop);
+            }
+            else
+            {
+                portal.SetAssignedPreviewFromFile(snapshot.AssignedMediaFilePath);
+                _portalHost.SetContentImage(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align);
+            }
         }
         else
         {
             portal.AssignedPreview = null;
+            portal.IsVideoPlaying = false;
+            portal.IsVideoLoop = false;
             _portalHost.SetContentText(portal.PortalNumber, snapshot.CurrentAssignment);
         }
 
@@ -364,6 +423,8 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.CurrentAssignment = "Idle";
         portal.AssignedPreview = null;
         portal.IsSelectedForCurrentMedia = false;
+        portal.IsVideoPlaying = false;
+        portal.IsVideoLoop = false;
 
         _portalHost.ClearContent(portal.PortalNumber);
         UpdatePortalMediaSelectionFlags();

@@ -64,6 +64,14 @@ public sealed class PortalHostService
         {
             if (_portals.Remove(portalNumber))
             {
+                try
+                {
+                    portalVm.Dispose();
+                }
+                catch
+                {
+                    // ignore cleanup failures
+                }
                 PortalClosed?.Invoke(portalNumber);
             }
         };
@@ -181,6 +189,54 @@ public sealed class PortalHostService
         controller.ViewModel.SetImage(bitmap, contentTitle ?? Path.GetFileName(filePath));
         controller.ViewModel.IsContentVisible = true;
         controller.ViewModel.IsSetup = false;
+    }
+
+    public void SetContentVideo(int portalNumber, string filePath, string? contentTitle = null, MediaScaleMode scaleMode = MediaScaleMode.FillHeight, MediaAlign align = MediaAlign.Center, bool autoPlay = true, bool loop = false)
+    {
+        if (!_portals.TryGetValue(portalNumber, out var controller))
+        {
+            return;
+        }
+
+        controller.ViewModel.ScaleMode = scaleMode;
+        controller.ViewModel.Align = align;
+        controller.ViewModel.SetVideo(filePath, contentTitle ?? Path.GetFileName(filePath), autoPlay, loop);
+        controller.ViewModel.IsContentVisible = true;
+        controller.ViewModel.IsSetup = false;
+    }
+
+    public void SetVideoOptions(int portalNumber, bool autoPlay, bool loop)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.SetVideoOptions(autoPlay, loop);
+        }
+    }
+
+    public bool ToggleVideoPlayPause(int portalNumber)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            return controller.ViewModel.ToggleVideoPlayPause();
+        }
+
+        return false;
+    }
+
+    public void RestartVideo(int portalNumber)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.RestartVideo();
+        }
+    }
+
+    public void SetVideoLoop(int portalNumber, bool loop)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.SetVideoLoop(loop);
+        }
     }
 
     public void SetDisplayOptions(int portalNumber, MediaScaleMode scaleMode, MediaAlign align)

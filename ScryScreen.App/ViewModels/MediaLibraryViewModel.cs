@@ -82,7 +82,8 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
             return;
         }
 
-        var supported = new[] { ".png", ".jpg", ".jpeg", ".bmp", ".gif" };
+        var supportedImages = new[] { ".png", ".jpg", ".jpeg", ".bmp", ".gif" };
+        var supportedVideos = new[] { ".mp4" };
 
         foreach (var item in Items)
         {
@@ -109,23 +110,34 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
 
             var localFiles = Directory
                 .EnumerateFiles(directoryPath, "*.*", SearchOption.TopDirectoryOnly)
-                .Where(f => supported.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+                .Where(f =>
+                {
+                    var ext = Path.GetExtension(f);
+                    return supportedImages.Contains(ext, StringComparer.OrdinalIgnoreCase) ||
+                           supportedVideos.Contains(ext, StringComparer.OrdinalIgnoreCase);
+                })
                 .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
 
             foreach (var file in localFiles)
             {
                 Bitmap? thumb = null;
+                var ext = Path.GetExtension(file);
+                var isVideo = supportedVideos.Contains(ext, StringComparer.OrdinalIgnoreCase);
+
                 try
                 {
-                    using var stream = File.OpenRead(file);
-                    thumb = new Bitmap(stream);
+                    if (!isVideo)
+                    {
+                        using var stream = File.OpenRead(file);
+                        thumb = new Bitmap(stream);
+                    }
                 }
                 catch
                 {
                     // ignore unreadable files
                 }
 
-                var vm = new MediaItemViewModel(file, thumb);
+                var vm = new MediaItemViewModel(file, thumb, isVideo: isVideo);
                 Items.Add(vm);
                 group.Items.Add(vm);
             }

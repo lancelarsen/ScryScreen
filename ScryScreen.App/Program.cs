@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using LibVLCSharp.Shared;
 using Projektanker.Icons.Avalonia;
 using Projektanker.Icons.Avalonia.MaterialDesign;
 
@@ -24,6 +25,9 @@ sealed class Program
 
             AppDomain.CurrentDomain.UnhandledException += (_, e) =>
                 Trace.WriteLine($"[UnhandledException] {e.ExceptionObject}");
+
+            // LibVLCSharp: loads native VLC runtime (Windows MVP)
+            LibVLCSharp.Shared.Core.Initialize();
 
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }

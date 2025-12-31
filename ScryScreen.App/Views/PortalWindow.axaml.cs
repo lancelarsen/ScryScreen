@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Threading;
 using ScryScreen.App.ViewModels;
 
 namespace ScryScreen.App.Views;
@@ -29,7 +30,18 @@ public partial class PortalWindow : Window
         // Keep image layout in sync with fullscreen transitions, DPI scaling, etc.
         SizeChanged += (_, _) => UpdateImageLayout();
         ImageHost.SizeChanged += (_, _) => UpdateImageLayout();
+        VideoHost.SizeChanged += (_, _) => UpdateVideoLayout();
         DataContextChanged += (_, _) => HookViewModel();
+
+        // Ensure the native video surface exists before autoplay.
+        ContentVideo.AttachedToVisualTree += (_, _) =>
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                UpdateVideoLayout();
+                (DataContext as PortalWindowViewModel)?.TryStartVideoIfNeeded();
+            }, DispatcherPriority.Background);
+        };
     }
 
     private void HookViewModel()
@@ -46,6 +58,7 @@ public partial class PortalWindow : Window
         }
 
         UpdateImageLayout();
+        UpdateVideoLayout();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -53,6 +66,17 @@ public partial class PortalWindow : Window
         if (e.PropertyName is nameof(PortalWindowViewModel.ContentImage) or nameof(PortalWindowViewModel.ScaleMode) or nameof(PortalWindowViewModel.Align) or nameof(PortalWindowViewModel.IsShowingImage))
         {
             UpdateImageLayout();
+        }
+
+        if (e.PropertyName is nameof(PortalWindowViewModel.ContentVideoPath) or nameof(PortalWindowViewModel.ScaleMode) or nameof(PortalWindowViewModel.Align) or nameof(PortalWindowViewModel.IsShowingVideo))
+        {
+            UpdateVideoLayout();
+
+            if (DataContext is PortalWindowViewModel vm && vm.IsShowingVideo)
+            {
+                // Let the layout/visual tree settle so VideoView can attach its rendering target.
+                Dispatcher.UIThread.Post(vm.TryStartVideoIfNeeded, DispatcherPriority.Background);
+            }
         }
     }
 
@@ -176,5 +200,79 @@ public partial class PortalWindow : Window
             Canvas.SetTop(ContentImage, top);
             _lastTop = top;
         }
+    }
+
+    private void UpdateVideoLayout()
+    {
+        if (ContentVideo is null || VideoHost is null)
+        {
+            return;
+        }
+
+        if (DataContext is not PortalWindowViewModel vm || !vm.IsShowingVideo)
+        {
+            if (!double.IsNaN(ContentVideo.Width)) ContentVideo.Width = double.NaN;
+            if (!double.IsNaN(ContentVideo.Height)) ContentVideo.Height = double.NaN;
+            Canvas.SetLeft(ContentVideo, 0);
+            Canvas.SetTop(ContentVideo, 0);
+            return;
+        }
+
+        var hostW = VideoHost.Bounds.Width;
+        var hostH = VideoHost.Bounds.Height;
+
+        if (hostW <= 0 || hostH <= 0)
+        {
+            return;
+        }
+
+        if (!vm.TryGetVideoPixelSize(out var pxW, out var pxH))
+        {
+            // Video size not available yet (often until playback starts).
+            // IMPORTANT: give VideoView a non-zero size so it creates its native surface.
+            ContentVideo.Width = hostW;
+            ContentVideo.Height = hostH;
+            Canvas.SetLeft(ContentVideo, 0);
+            Canvas.SetTop(ContentVideo, 0);
+            return;
+        }
+
+        // Match the image behavior:
+        // - Fill Height => scale to fill HEIGHT, crop horizontally (Left/Center/Right)
+        // - Fill Width  => scale to fill WIDTH, crop vertically (Top/Center/Bottom)
+        var scale = vm.ScaleMode == MediaScaleMode.FillHeight
+            ? hostH / pxH
+            : hostW / pxW;
+
+        if (scale <= 0 || double.IsNaN(scale) || double.IsInfinity(scale))
+            return;
+
+        var videoW = pxW * scale;
+        var videoH = pxH * scale;
+
+        var left = (hostW - videoW) * 0.5;
+        var top = (hostH - videoH) * 0.5;
+
+        var a = vm.Align switch
+        {
+            MediaAlign.Start => 0.0,
+            MediaAlign.Center => 0.5,
+            MediaAlign.End => 1.0,
+            _ => 0.5,
+        };
+
+        if (vm.ScaleMode == MediaScaleMode.FillHeight)
+        {
+            left = (hostW - videoW) * a;
+        }
+        else
+        {
+            top = (hostH - videoH) * a;
+        }
+
+        ContentVideo.Width = videoW;
+        ContentVideo.Height = videoH;
+        Canvas.SetLeft(ContentVideo, left);
+        Canvas.SetTop(ContentVideo, top);
     }
 }

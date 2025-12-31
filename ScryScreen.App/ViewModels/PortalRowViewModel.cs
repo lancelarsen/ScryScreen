@@ -48,6 +48,16 @@ public partial class PortalRowViewModel : ViewModelBase
     private string? assignedMediaFilePath;
 
     [ObservableProperty]
+    private bool isVideoPlaying;
+
+    [ObservableProperty]
+    private bool isVideoLoop;
+
+    public bool IsVideoAssigned =>
+        !string.IsNullOrWhiteSpace(AssignedMediaFilePath) &&
+        string.Equals(Path.GetExtension(AssignedMediaFilePath), ".mp4", StringComparison.OrdinalIgnoreCase);
+
+    [ObservableProperty]
     private bool isSelectedForCurrentMedia;
 
     [ObservableProperty]
@@ -128,6 +138,19 @@ public partial class PortalRowViewModel : ViewModelBase
             return;
         }
 
+        var ext = Path.GetExtension(filePath);
+        var isImage = ext.Equals(".png", StringComparison.OrdinalIgnoreCase) ||
+                      ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                      ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                      ext.Equals(".bmp", StringComparison.OrdinalIgnoreCase) ||
+                      ext.Equals(".gif", StringComparison.OrdinalIgnoreCase);
+
+        if (!isImage)
+        {
+            AssignedPreview = null;
+            return;
+        }
+
         try
         {
             using var stream = File.OpenRead(filePath);
@@ -137,6 +160,27 @@ public partial class PortalRowViewModel : ViewModelBase
         {
             AssignedPreview = null;
         }
+    }
+
+    partial void OnAssignedMediaFilePathChanged(string? value)
+    {
+        OnPropertyChanged(nameof(IsVideoAssigned));
+
+        if (!IsVideoAssigned)
+        {
+            IsVideoPlaying = false;
+            IsVideoLoop = false;
+        }
+    }
+
+    partial void OnIsVideoLoopChanged(bool value)
+    {
+        if (!IsVideoAssigned)
+        {
+            return;
+        }
+
+        _portalHost.SetVideoLoop(PortalNumber, value);
     }
 
     partial void OnSelectedScreenChanged(ScreenInfoViewModel? value)
@@ -264,5 +308,28 @@ public partial class PortalRowViewModel : ViewModelBase
     {
         // Close = remove this portal window + row.
         DeleteRequested?.Invoke(PortalNumber);
+    }
+
+    [RelayCommand]
+    private void ToggleVideoPlayPause()
+    {
+        if (!IsVideoAssigned)
+        {
+            return;
+        }
+
+        IsVideoPlaying = _portalHost.ToggleVideoPlayPause(PortalNumber);
+    }
+
+    [RelayCommand]
+    private void RestartVideo()
+    {
+        if (!IsVideoAssigned)
+        {
+            return;
+        }
+
+        _portalHost.RestartVideo(PortalNumber);
+        IsVideoPlaying = true;
     }
 }

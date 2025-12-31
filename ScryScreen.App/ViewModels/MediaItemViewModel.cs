@@ -10,10 +10,11 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private (int Width, int Height)? _pixelSize;
     private readonly long? _fileSizeBytes;
 
-    public MediaItemViewModel(string filePath, Bitmap? thumbnail)
+    public MediaItemViewModel(string filePath, Bitmap? thumbnail, bool isVideo = false)
     {
         FilePath = filePath;
         Thumbnail = thumbnail;
+        IsVideo = isVideo;
 
         try
         {
@@ -30,6 +31,10 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     public string FilePath { get; }
 
     public string DisplayName => System.IO.Path.GetFileName(FilePath);
+
+    public bool IsVideo { get; }
+
+    public bool IsImage => !IsVideo;
 
     public bool HasPixelSize => !string.IsNullOrWhiteSpace(PixelSizeText);
 

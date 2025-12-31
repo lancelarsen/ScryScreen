@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="using:ScryScreen.App.Controls"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ScryScreen.App.ViewModels"
@@ -27,6 +28,17 @@
           <Image x:Name="ContentImage"
                  Source="{Binding ContentImage}"
                  Stretch="Fill" />
+        </Canvas>
+      </Border>
+
+      <!-- Assigned video (after setup) -->
+      <Border x:Name="VideoHost"
+              IsVisible="{Binding IsShowingVideo}"
+              Background="Black"
+              ClipToBounds="True">
+        <Canvas x:Name="VideoCanvas">
+          <controls:VlcVideoHost x:Name="ContentVideo"
+                                 MediaPlayer="{Binding VideoPlayer}" />
         </Canvas>
       </Border>
 

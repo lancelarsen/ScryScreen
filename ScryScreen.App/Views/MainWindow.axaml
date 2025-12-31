@@ -112,7 +112,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:CompileBindings="False">
                                 <Border Classes="card" Width="320" Padding="8,6">
-                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
                                         <!-- Controls row -->
                                         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                             <!-- (1) Portal number badge -->
@@ -224,6 +224,38 @@
                                                     </Grid>
                                                 </Viewbox>
                                             </Border>
+                                        </Border>
+
+                                        <!-- Video controls (under preview) -->
+                                        <Border Grid.Row="3"
+                                                IsVisible="{Binding IsVideoAssigned}"
+                                                Background="#0A0F18"
+                                                BorderBrush="{DynamicResource ScryBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="6">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                                <Button Classes="circleSmall"
+                                                        ToolTip.Tip="Play/Pause"
+                                                        Command="{Binding ToggleVideoPlayPauseCommand}">
+                                                    <Grid>
+                                                        <i:Icon IsVisible="{Binding !IsVideoPlaying}" Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                        <i:Icon IsVisible="{Binding IsVideoPlaying}" Value="mdi-pause" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                    </Grid>
+                                                </Button>
+
+                                                <Button Classes="circleSmall"
+                                                        ToolTip.Tip="Restart"
+                                                        Command="{Binding RestartVideoCommand}">
+                                                    <i:Icon Value="mdi-restart" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                </Button>
+
+                                                <ToggleButton Classes="circleSmall"
+                                                              IsChecked="{Binding IsVideoLoop, Mode=TwoWay}"
+                                                              ToolTip.Tip="Loop">
+                                                    <i:Icon Value="mdi-repeat" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                </ToggleButton>
+                                            </StackPanel>
                                         </Border>
                                     </Grid>
                                 </Border>
@@ -347,9 +379,19 @@
                                                                                     <TextBlock Text="{Binding FileSizeText}" IsVisible="{Binding HasFileSize}" TextWrapping="NoWrap" />
                                                                                 </StackPanel>
                                                                             </ToolTip.Tip>
-                                                                            <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
-                                                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                                                                            </Border>
+                                                                                <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
+                                                                                    <Grid>
+                                                                                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                                                        <Border IsVisible="{Binding IsVideo}"
+                                                                                                Background="#88000000"
+                                                                                                CornerRadius="999"
+                                                                                                HorizontalAlignment="Center"
+                                                                                                VerticalAlignment="Center"
+                                                                                                Padding="8">
+                                                                                            <i:Icon Value="mdi-play" FontSize="20" Foreground="White" />
+                                                                                        </Border>
+                                                                                    </Grid>
+                                                                                </Border>
                                                                         </Button>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
@@ -382,7 +424,17 @@
                                                                 </StackPanel>
                                                             </ToolTip.Tip>
                                                             <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
-                                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                                <Grid>
+                                                                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                                    <Border IsVisible="{Binding IsVideo}"
+                                                                            Background="#88000000"
+                                                                            CornerRadius="999"
+                                                                            HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Center"
+                                                                            Padding="8">
+                                                                        <i:Icon Value="mdi-play" FontSize="20" Foreground="White" />
+                                                                    </Border>
+                                                                </Grid>
                                                             </Border>
                                                         </Button>
                                                     </DataTemplate>
@@ -558,6 +610,21 @@
                                           Command="{Binding SetAlignEndCommand}"
                                           ToolTip.Tip="Right">
                                 <svg:Svg Path="/Assets/Icons/align_right.svg" Width="18" Height="18" />
+                            </ToggleButton>
+                        </StackPanel>
+
+                        <!-- Video options -->
+                        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsSelectedMediaVideo}" Margin="0,6,0,0">
+                            <ToggleButton Classes="circleSmall"
+                                          IsChecked="{Binding IsVideoAutoPlay, Mode=TwoWay}"
+                                          ToolTip.Tip="Auto-Play">
+                                <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                            </ToggleButton>
+
+                            <ToggleButton Classes="circleSmall"
+                                          IsChecked="{Binding IsVideoLoop, Mode=TwoWay}"
+                                          ToolTip.Tip="Loop">
+                                <i:Icon Value="mdi-repeat" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
                             </ToggleButton>
                         </StackPanel>
                     </StackPanel>
