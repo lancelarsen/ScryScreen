@@ -305,6 +305,13 @@
                                                                                     Padding="0"
                                                                                     Command="{Binding DataContext.SelectMediaItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                                     CommandParameter="{Binding .}">
+                                                                                <ToolTip.Tip>
+                                                                                    <StackPanel Spacing="4">
+                                                                                        <TextBlock Text="{Binding DisplayName}" TextWrapping="NoWrap" />
+                                                                                        <TextBlock Text="{Binding PixelSizeText}" IsVisible="{Binding HasPixelSize}" TextWrapping="NoWrap" />
+                                                                                        <TextBlock Text="{Binding FileSizeText}" IsVisible="{Binding HasFileSize}" TextWrapping="NoWrap" />
+                                                                                    </StackPanel>
+                                                                                </ToolTip.Tip>
                                                                                 <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
                                                                                     <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                                                                                 </Border>
@@ -332,6 +339,13 @@
                                                                     Padding="0"
                                                                     Command="{Binding DataContext.SelectMediaItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     CommandParameter="{Binding .}">
+                                                                <ToolTip.Tip>
+                                                                    <StackPanel Spacing="4">
+                                                                        <TextBlock Text="{Binding DisplayName}" TextWrapping="NoWrap" />
+                                                                        <TextBlock Text="{Binding PixelSizeText}" IsVisible="{Binding HasPixelSize}" TextWrapping="NoWrap" />
+                                                                        <TextBlock Text="{Binding FileSizeText}" IsVisible="{Binding HasFileSize}" TextWrapping="NoWrap" />
+                                                                    </StackPanel>
+                                                                </ToolTip.Tip>
                                                                 <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
                                                                     <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                                                                 </Border>
