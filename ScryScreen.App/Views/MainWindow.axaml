@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:ScryScreen.App.ViewModels"
+    xmlns:controls="using:ScryScreen.App.Controls"
     xmlns:i="https://github.com/projektanker/icons.avalonia"
     xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -112,7 +113,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:CompileBindings="False">
                                 <Border Classes="card" Width="320" Padding="8,6">
-                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
                                         <!-- Controls row -->
                                         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                             <!-- (1) Portal number badge -->
@@ -179,7 +180,14 @@
                                                 BorderThickness="1"
                                                 CornerRadius="8"
                                                 Padding="6">
-                                            <Image Source="{Binding AssignedPreview}" Stretch="Uniform" Height="80" />
+                                            <Grid Height="80">
+                                                <Image Source="{Binding AssignedPreview}"
+                                                       IsVisible="{Binding !IsVideoAssigned}"
+                                                       Stretch="Uniform" />
+
+                                                <controls:VlcVideoHost IsVisible="{Binding IsVideoAssigned}"
+                                                                       MediaPlayer="{Binding PreviewVideoPlayer}" />
+                                            </Grid>
                                         </Border>
 
                                         <!-- Monitor + media preview (matches portal crop/align) -->
@@ -194,40 +202,76 @@
                                                     CornerRadius="8"
                                                     Padding="6"
                                                     ToolTip.Tip="{Binding MonitorPreviewToolTip}">
-                                                <Viewbox Width="120" Height="60" Stretch="Uniform">
-                                                    <Grid Width="{Binding SelectedScreen.WidthPx}"
-                                                          Height="{Binding SelectedScreen.HeightPx}">
-                                                        <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
-                                                        <Border Background="#05070B"
-                                                                CornerRadius="40"
-                                                                ClipToBounds="True">
-                                                            <Canvas>
-                                                                <!-- Media preview (cropped/letterboxed by clipping) -->
-                                                                <Border IsVisible="{Binding HasMediaPreview}"
-                                                                        Width="{Binding PreviewImageWidth}"
-                                                                        Height="{Binding PreviewImageHeight}"
-                                                                        Background="#16263B"
-                                                                        Canvas.Left="{Binding PreviewImageLeft}"
-                                                                        Canvas.Top="{Binding PreviewImageTop}">
-                                                                    <Image Source="{Binding AssignedPreview}" Stretch="Fill" />
-                                                                </Border>
-                                                            </Canvas>
-                                                        </Border>
+                                                <Grid Width="120" Height="60">
+                                                    <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
+                                                    <Border Background="#05070B"
+                                                            CornerRadius="10"
+                                                            ClipToBounds="True"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            Width="{Binding MonitorPreviewScreenWidth}"
+                                                            Height="{Binding MonitorPreviewScreenHeight}">
+                                                        <Canvas>
+                                                            <!-- Image preview (cropped/letterboxed by clipping) -->
+                                                            <Border IsVisible="{Binding HasMediaPreview}"
+                                                                    Width="{Binding PreviewImageWidth}"
+                                                                    Height="{Binding PreviewImageHeight}"
+                                                                    Background="#16263B"
+                                                                    Canvas.Left="{Binding PreviewImageLeft}"
+                                                                    Canvas.Top="{Binding PreviewImageTop}">
+                                                                <Image Source="{Binding AssignedPreview}" Stretch="Fill" />
+                                                            </Border>
 
-                                                        <!-- Drawn screen outline overlay (does not affect layout) -->
-                                                        <Rectangle Fill="Transparent"
-                                                                   Stroke="#3A557D"
-                                                                   StrokeThickness="10"
-                                                                   RadiusX="40"
-                                                                   RadiusY="40"
-                                                                   IsHitTestVisible="False" />
-                                                    </Grid>
-                                                </Viewbox>
+                                                            <!-- Video preview (live; synced to portal playback) -->
+                                                            <controls:VlcVideoHost IsVisible="{Binding IsVideoAssigned}"
+                                                                                   Width="{Binding PreviewImageWidth}"
+                                                                                   Height="{Binding PreviewImageHeight}"
+                                                                                   Canvas.Left="{Binding PreviewImageLeft}"
+                                                                                   Canvas.Top="{Binding PreviewImageTop}"
+                                                                                   MediaPlayer="{Binding PreviewVideoPlayer}" />
+                                                        </Canvas>
+                                                    </Border>
+
+                                                    <!-- Drawn screen outline overlay (does not affect layout) -->
+                                                    <Rectangle Fill="Transparent"
+                                                               Stroke="#3A557D"
+                                                               StrokeThickness="2"
+                                                               RadiusX="10"
+                                                               RadiusY="10"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"
+                                                               Width="{Binding MonitorPreviewScreenWidth}"
+                                                               Height="{Binding MonitorPreviewScreenHeight}"
+                                                               IsHitTestVisible="False" />
+                                                </Grid>
                                             </Border>
                                         </Border>
 
-                                        <!-- Video controls (under preview) -->
+                                        <!-- Video timeline (above controls) -->
                                         <Border Grid.Row="3"
+                                                IsVisible="{Binding IsVideoAssigned}"
+                                                Background="#0A0F18"
+                                                BorderBrush="{DynamicResource ScryBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="8,6">
+                                            <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+                                                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                    <TextBlock Text="{Binding VideoTimeText}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" />
+                                                    <Border Grid.Column="1" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding VideoDurationText}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" />
+                                                </Grid>
+
+                                                <Slider Grid.Row="1"
+                                                        Minimum="0"
+                                                        Maximum="1"
+                                                        Value="{Binding VideoPosition, Mode=TwoWay}"
+                                                        IsEnabled="{Binding HasVideoTimeline}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Video controls (under preview) -->
+                                        <Border Grid.Row="4"
                                                 IsVisible="{Binding IsVideoAssigned}"
                                                 Background="#0A0F18"
                                                 BorderBrush="{DynamicResource ScryBorder}"

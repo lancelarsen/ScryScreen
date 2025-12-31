@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScryScreen.App.Services;
@@ -43,7 +44,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public MediaLibraryViewModel Media { get; }
 
     [ObservableProperty]
-    private bool isVideoAutoPlay = true;
+    private bool isVideoAutoPlay = false;
 
     [ObservableProperty]
     private bool isVideoLoop = false;
@@ -314,10 +315,12 @@ public partial class MainWindowViewModel : ViewModelBase
         var selected = Media.SelectedItem;
         if (selected?.IsVideo == true)
         {
-            portal.AssignedPreview = selected.Thumbnail;
+            portal.AssignedPreview = null;
             portal.IsVideoLoop = IsVideoLoop;
             _portalHost.SetContentVideo(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align, autoPlay: IsVideoAutoPlay, loop: IsVideoLoop);
-            portal.IsVideoPlaying = IsVideoAutoPlay;
+            portal.IsVideoPlaying = false;
+
+            _ = UpdatePortalVideoPreviewAsync(portal, filePath);
         }
         else
         {
@@ -327,6 +330,29 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.IsVideoLoop = false;
         }
         portal.IsVisible = true;
+    }
+
+    private async Task UpdatePortalVideoPreviewAsync(PortalRowViewModel portal, string expectedFilePath)
+    {
+        // Give the portal window a moment to attach the HWND before capturing a snapshot.
+        await Task.Delay(200).ConfigureAwait(false);
+
+        var bmp = await _portalHost.CaptureVideoPreviewAsync(portal.PortalNumber).ConfigureAwait(false);
+        if (bmp is null)
+        {
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (!string.Equals(portal.AssignedMediaFilePath, expectedFilePath, StringComparison.OrdinalIgnoreCase) || !portal.IsVideoAssigned)
+            {
+                bmp.Dispose();
+                return;
+            }
+
+            portal.AssignedPreview = bmp;
+        });
     }
 
     private void ApplyVideoOptionsToAssignedPortals()
@@ -374,6 +400,9 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 portal.AssignedPreview = null;
                 _portalHost.SetContentVideo(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align, autoPlay: snapshot.IsVideoPlaying, loop: snapshot.IsVideoLoop);
+
+                portal.IsVideoPlaying = false;
+                _ = UpdatePortalVideoPreviewAsync(portal, snapshot.AssignedMediaFilePath);
             }
             else
             {
@@ -451,6 +480,14 @@ public partial class MainWindowViewModel : ViewModelBase
         _portalHistory.Remove(portalNumber);
 
         row.DeleteRequested -= OnDeletePortalRequested;
+        try
+        {
+            row.Dispose();
+        }
+        catch
+        {
+            // ignore
+        }
         Portals.Remove(row);
 
         UpdatePortalMediaSelectionFlags();

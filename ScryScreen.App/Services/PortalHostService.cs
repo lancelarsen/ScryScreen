@@ -239,6 +239,47 @@ public sealed class PortalHostService
         }
     }
 
+    public Task<Bitmap?> CaptureVideoPreviewAsync(int portalNumber, int maxWidth = 640, int maxHeight = 360)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            return controller.ViewModel.CaptureVideoPreviewAsync(maxWidth, maxHeight);
+        }
+
+        return Task.FromResult<Bitmap?>(null);
+    }
+
+    public (long TimeMs, long LengthMs, bool IsPlaying) GetVideoState(int portalNumber)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            return controller.ViewModel.GetVideoState();
+        }
+
+        return (0, 0, false);
+    }
+
+    public void SeekVideo(int portalNumber, long timeMs)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.SeekVideo(timeMs);
+        }
+    }
+
+    public (int Width, int Height) GetVideoPixelSize(int portalNumber)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            if (controller.ViewModel.TryGetVideoPixelSize(out var w, out var h))
+            {
+                return (w, h);
+            }
+        }
+
+        return (0, 0);
+    }
+
     public void SetDisplayOptions(int portalNumber, MediaScaleMode scaleMode, MediaAlign align)
     {
         if (_portals.TryGetValue(portalNumber, out var controller))

@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using LibVLCSharp.Shared;
@@ -83,6 +85,45 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     public string? ContentVideoPath => _contentVideoPath;
 
     public MediaPlayer VideoPlayer => _mediaPlayer;
+
+    public (long TimeMs, long LengthMs, bool IsPlaying) GetVideoState()
+    {
+        if (!HasVideo)
+        {
+            return (0, 0, false);
+        }
+
+        try
+        {
+            return (_mediaPlayer.Time, _mediaPlayer.Length, _mediaPlayer.IsPlaying);
+        }
+        catch
+        {
+            return (0, 0, false);
+        }
+    }
+
+    public void SeekVideo(long timeMs)
+    {
+        if (!HasVideo)
+        {
+            return;
+        }
+
+        _autoPlayRequested = false;
+
+        try
+        {
+            if (timeMs < 0) timeMs = 0;
+            var length = _mediaPlayer.Length;
+            if (length > 0 && timeMs > length) timeMs = length;
+            _mediaPlayer.Time = timeMs;
+        }
+        catch
+        {
+            // ignore
+        }
+    }
 
     public bool IsShowingImage => !IsSetup && HasImage;
 
@@ -178,25 +219,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     {
         _loopVideo = loop;
 
-        if (!HasVideo)
-        {
-            return;
-        }
-
-        try
-        {
-            if (autoPlay)
-            {
-                if (!_mediaPlayer.IsPlaying)
-                {
-                    _mediaPlayer.Play();
-                }
-            }
-        }
-        catch
-        {
-            // ignore
-        }
+        // Intentionally do not auto-start playback here.
+        // Auto-Play is used only at assignment time; videos should start paused by default.
     }
 
     public void SetVideoLoop(bool loop)
@@ -247,6 +271,97 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         catch
         {
             // ignore
+        }
+    }
+
+    public async Task<Bitmap?> CaptureVideoPreviewAsync(int maxWidth = 640, int maxHeight = 360)
+    {
+        if (!HasVideo)
+        {
+            return null;
+        }
+
+        // Snapshot works most reliably after at least one frame is decoded.
+        var tempPath = Path.Combine(Path.GetTempPath(), $"scry_portal_{PortalNumber}_video_preview_{Guid.NewGuid():N}.png");
+
+        var wasPlaying = false;
+        try
+        {
+            wasPlaying = _mediaPlayer.IsPlaying;
+
+            // Decode a frame from the start, then pause.
+            try
+            {
+                _mediaPlayer.Time = 0;
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _mediaPlayer.Play();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            await Task.Delay(150).ConfigureAwait(false);
+
+            try
+            {
+                _mediaPlayer.TakeSnapshot(0, tempPath, (uint)maxWidth, (uint)maxHeight);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _mediaPlayer.Pause();
+                _mediaPlayer.Time = 0;
+            }
+            catch
+            {
+                // ignore
+            }
+
+            if (!File.Exists(tempPath))
+            {
+                return null;
+            }
+
+            await using var stream = File.OpenRead(tempPath);
+            return new Bitmap(stream);
+        }
+        finally
+        {
+            try
+            {
+                if (!wasPlaying)
+                {
+                    _mediaPlayer.Pause();
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+            catch
+            {
+                // ignore
+            }
         }
     }
 
