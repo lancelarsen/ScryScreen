@@ -113,7 +113,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:CompileBindings="False">
                                 <Border Classes="card" Width="320" Padding="8,6">
-                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
                                         <!-- Controls row -->
                                         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                             <!-- (1) Portal number badge -->
@@ -247,7 +247,7 @@
                                             </Border>
                                         </Border>
 
-                                        <!-- Video timeline (above controls) -->
+                                        <!-- Video timeline + controls (single outlined area) -->
                                         <Border Grid.Row="3"
                                                 IsVisible="{Binding IsVideoAssigned}"
                                                 Background="#0A0F18"
@@ -255,50 +255,56 @@
                                                 BorderThickness="1"
                                                 CornerRadius="8"
                                                 Padding="8,6">
-                                            <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
-                                                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                                    <TextBlock Text="{Binding VideoTimeText}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" />
-                                                    <Border Grid.Column="1" />
-                                                    <TextBlock Grid.Column="2" Text="{Binding VideoDurationText}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" />
+                                            <StackPanel Spacing="6">
+                                                <!-- Time bar: short, with times on same line -->
+                                                <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding VideoTimeText}"
+                                                               Foreground="{DynamicResource ScryTextMuted}"
+                                                               FontSize="10"
+                                                               MinWidth="38"
+                                                               HorizontalAlignment="Right"
+                                                               VerticalAlignment="Center" />
+
+                                                    <Slider Grid.Column="1"
+                                                            Classes="portalTimeline"
+                                                            Width="160"
+                                                            Minimum="0"
+                                                            Maximum="1"
+                                                            Value="{Binding VideoPosition, Mode=TwoWay}"
+                                                            IsEnabled="{Binding HasVideoTimeline}" />
+
+                                                    <TextBlock Grid.Column="2"
+                                                               Text="{Binding VideoDurationText}"
+                                                               Foreground="{DynamicResource ScryTextMuted}"
+                                                               FontSize="10"
+                                                               MinWidth="38"
+                                                               HorizontalAlignment="Left"
+                                                               VerticalAlignment="Center" />
                                                 </Grid>
 
-                                                <Slider Grid.Row="1"
-                                                        Minimum="0"
-                                                        Maximum="1"
-                                                        Value="{Binding VideoPosition, Mode=TwoWay}"
-                                                        IsEnabled="{Binding HasVideoTimeline}" />
-                                            </Grid>
-                                        </Border>
+                                                <!-- Controls: directly under time bar -->
+                                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                                    <Button Classes="circleSmall"
+                                                            ToolTip.Tip="Play/Pause"
+                                                            Command="{Binding ToggleVideoPlayPauseCommand}">
+                                                        <Grid>
+                                                            <i:Icon IsVisible="{Binding !IsVideoPlaying}" Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            <i:Icon IsVisible="{Binding IsVideoPlaying}" Value="mdi-pause" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                        </Grid>
+                                                    </Button>
 
-                                        <!-- Video controls (under preview) -->
-                                        <Border Grid.Row="4"
-                                                IsVisible="{Binding IsVideoAssigned}"
-                                                Background="#0A0F18"
-                                                BorderBrush="{DynamicResource ScryBorder}"
-                                                BorderThickness="1"
-                                                CornerRadius="8"
-                                                Padding="6">
-                                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                                                <Button Classes="circleSmall"
-                                                        ToolTip.Tip="Play/Pause"
-                                                        Command="{Binding ToggleVideoPlayPauseCommand}">
-                                                    <Grid>
-                                                        <i:Icon IsVisible="{Binding !IsVideoPlaying}" Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                                                        <i:Icon IsVisible="{Binding IsVideoPlaying}" Value="mdi-pause" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                                                    </Grid>
-                                                </Button>
+                                                    <Button Classes="circleSmall"
+                                                            ToolTip.Tip="Restart"
+                                                            Command="{Binding RestartVideoCommand}">
+                                                        <i:Icon Value="mdi-restart" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                    </Button>
 
-                                                <Button Classes="circleSmall"
-                                                        ToolTip.Tip="Restart"
-                                                        Command="{Binding RestartVideoCommand}">
-                                                    <i:Icon Value="mdi-restart" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                                                </Button>
-
-                                                <ToggleButton Classes="circleSmall"
-                                                              IsChecked="{Binding IsVideoLoop, Mode=TwoWay}"
-                                                              ToolTip.Tip="Loop">
-                                                    <i:Icon Value="mdi-repeat" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                                                </ToggleButton>
+                                                    <ToggleButton Classes="circleSmall"
+                                                                  IsChecked="{Binding IsVideoLoop, Mode=TwoWay}"
+                                                                  ToolTip.Tip="Loop">
+                                                        <i:Icon Value="mdi-repeat" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                    </ToggleButton>
+                                                </StackPanel>
                                             </StackPanel>
                                         </Border>
                                     </Grid>

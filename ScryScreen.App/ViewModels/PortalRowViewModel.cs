@@ -36,7 +36,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         IsVisible = true;
         currentAssignment = "Idle";
 
-        _previewLibVlc = new LibVLC();
+        _previewLibVlc = new LibVLC("--no-video-title-show");
         _previewPlayer = new MediaPlayer(_previewLibVlc);
         _videoSyncTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background, (_, _) => SyncVideo());
     }
@@ -115,7 +115,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
     public bool HasMonitorPreview => SelectedScreen is not null;
 
-    public bool HasMediaPreview => AssignedPreview is not null;
+    public bool HasMediaPreview => AssignedPreview is not null && !IsVideoAssigned;
 
     public bool HasMonitorAndMediaPreview => HasMonitorPreview && HasMediaPreview;
 
@@ -203,6 +203,9 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     partial void OnAssignedMediaFilePathChanged(string? value)
     {
         OnPropertyChanged(nameof(IsVideoAssigned));
+        OnPropertyChanged(nameof(HasMediaPreview));
+        OnPropertyChanged(nameof(HasMonitorAndMediaPreview));
+        OnPropertyChanged(nameof(MonitorPreviewToolTip));
 
         if (IsVideoAssigned)
         {

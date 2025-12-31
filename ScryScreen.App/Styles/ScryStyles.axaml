@@ -348,4 +348,23 @@
   <Style Selector="ToggleSwitch">
     <Setter Property="MinHeight" Value="28" />
   </Style>
+
+  <!-- Compact timeline slider used in portal rows -->
+  <Style Selector="Slider.portalTimeline">
+    <Setter Property="Height" Value="10" />
+    <Setter Property="MinHeight" Value="10" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- Make the thumb a tiny accent bar instead of a big knob -->
+  <Style Selector="Slider.portalTimeline /template/ Thumb">
+    <Setter Property="Width" Value="10" />
+    <Setter Property="Height" Value="6" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{DynamicResource ScryAccent}"
+                CornerRadius="2" />
+      </ControlTemplate>
+    </Setter>
+  </Style>
 </Styles>

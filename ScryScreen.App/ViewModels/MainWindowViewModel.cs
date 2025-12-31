@@ -319,8 +319,6 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.IsVideoLoop = IsVideoLoop;
             _portalHost.SetContentVideo(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align, autoPlay: IsVideoAutoPlay, loop: IsVideoLoop);
             portal.IsVideoPlaying = false;
-
-            _ = UpdatePortalVideoPreviewAsync(portal, filePath);
         }
         else
         {
@@ -330,29 +328,6 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.IsVideoLoop = false;
         }
         portal.IsVisible = true;
-    }
-
-    private async Task UpdatePortalVideoPreviewAsync(PortalRowViewModel portal, string expectedFilePath)
-    {
-        // Give the portal window a moment to attach the HWND before capturing a snapshot.
-        await Task.Delay(200).ConfigureAwait(false);
-
-        var bmp = await _portalHost.CaptureVideoPreviewAsync(portal.PortalNumber).ConfigureAwait(false);
-        if (bmp is null)
-        {
-            return;
-        }
-
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            if (!string.Equals(portal.AssignedMediaFilePath, expectedFilePath, StringComparison.OrdinalIgnoreCase) || !portal.IsVideoAssigned)
-            {
-                bmp.Dispose();
-                return;
-            }
-
-            portal.AssignedPreview = bmp;
-        });
     }
 
     private void ApplyVideoOptionsToAssignedPortals()
@@ -402,7 +377,6 @@ public partial class MainWindowViewModel : ViewModelBase
                 _portalHost.SetContentVideo(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align, autoPlay: snapshot.IsVideoPlaying, loop: snapshot.IsVideoLoop);
 
                 portal.IsVideoPlaying = false;
-                _ = UpdatePortalVideoPreviewAsync(portal, snapshot.AssignedMediaFilePath);
             }
             else
             {

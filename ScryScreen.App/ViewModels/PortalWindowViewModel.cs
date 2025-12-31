@@ -28,7 +28,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         ScaleMode = MediaScaleMode.FillHeight;
         Align = MediaAlign.Center;
 
-        _libVlc = new LibVLC();
+        _libVlc = new LibVLC("--no-video-title-show");
         _mediaPlayer = new MediaPlayer(_libVlc);
         _mediaPlayer.EndReached += (_, _) =>
         {
