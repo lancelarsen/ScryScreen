@@ -3,14 +3,19 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
-using CommunityToolkit.Mvvm.Input;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using ScryScreen.App.Services;
 
 namespace ScryScreen.App.ViewModels;
 
 public sealed partial class MediaLibraryViewModel : ViewModelBase
 {
+    private int _importGeneration;
+
     public ObservableCollection<MediaItemViewModel> Items { get; } = new();
 
     public ObservableCollection<MediaFolderGroupViewModel> Groups { get; } = new();
@@ -82,6 +87,9 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
             return;
         }
 
+        _importGeneration++;
+        var importGeneration = _importGeneration;
+
         var supportedImages = new[] { ".png", ".jpg", ".jpeg", ".bmp", ".gif" };
         var supportedVideos = new[] { ".mp4" };
 
@@ -140,6 +148,11 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
                 var vm = new MediaItemViewModel(file, thumb, isVideo: isVideo);
                 Items.Add(vm);
                 group.Items.Add(vm);
+
+                if (isVideo)
+                {
+                    _ = PopulateVideoThumbnailAsync(vm, file, importGeneration);
+                }
             }
 
             // Only show groups that have images, OR the root group (so you at least see the folder name).
@@ -157,8 +170,8 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
         AddGroupForDirectory(folderPath);
 
         StatusText = Items.Count == 0
-            ? "No supported images found"
-            : $"{Items.Count} image(s)";
+            ? "No supported media found"
+            : $"{Items.Count} item(s)";
 
         OnPropertyChanged(nameof(ImagesCount));
         OnPropertyChanged(nameof(ImagesHeader));
@@ -167,5 +180,33 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasNoMedia));
 
         SelectedItem = Items.FirstOrDefault();
+    }
+
+    private async Task PopulateVideoThumbnailAsync(MediaItemViewModel item, string filePath, int importGeneration)
+    {
+        if (importGeneration != _importGeneration)
+        {
+            return;
+        }
+
+        var snap = await VideoSnapshotService.CaptureFirstFrameAsync(filePath, maxWidth: 512, maxHeight: 288).ConfigureAwait(false);
+        if (snap is null)
+        {
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (importGeneration != _importGeneration ||
+                !string.Equals(item.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+            {
+                snap.Bitmap.Dispose();
+                return;
+            }
+
+            item.Thumbnail?.Dispose();
+            item.Thumbnail = snap.Bitmap;
+            item.SetPixelSize(snap.VideoWidth, snap.VideoHeight);
+        });
     }
 }

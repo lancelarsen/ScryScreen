@@ -95,6 +95,19 @@ public sealed partial class MediaItemViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasPixelSize));
     }
 
+    public void SetPixelSize(int width, int height)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        _pixelSize = (width, height);
+        OnPropertyChanged(nameof(HoverToolTip));
+        OnPropertyChanged(nameof(PixelSizeText));
+        OnPropertyChanged(nameof(HasPixelSize));
+    }
+
     private static (int Width, int Height)? TryGetPixelSizeFromThumbnail(Bitmap? bitmap)
     {
         if (bitmap is null)
