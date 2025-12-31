@@ -254,116 +254,8 @@
             <TabControl Classes="tabsTight" Padding="0" Margin="0">
                 <TabItem Header="Media">
                     <Grid RowDefinitions="*" Margin="0,8,0,0">
-                        <Grid ColumnDefinitions="240,*" ColumnSpacing="12">
+                        <Grid ColumnDefinitions="*">
                             <Border Classes="card" Padding="14">
-                                <StackPanel Spacing="10">
-                                    <TextBlock Text="Preview" FontSize="14" FontWeight="SemiBold" />
-
-                                    <!-- Display options: scale + align -->
-                                    <StackPanel Spacing="8">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <ToggleButton Classes="circleSmall"
-                                                          IsChecked="{Binding IsFillHeight, Mode=OneWay}"
-                                                          IsHitTestVisible="{Binding IsFillHeight, Converter={StaticResource InverseBooleanConverter}}"
-                                                          Command="{Binding SetScaleFillHeightCommand}"
-                                                          ToolTip.Tip="Fill Height (crops left/right)">
-                                                <svg:Svg Path="/Assets/Icons/fit_height.svg" Width="18" Height="18" />
-                                            </ToggleButton>
-
-                                            <ToggleButton Classes="circleSmall"
-                                                          IsChecked="{Binding IsFillWidth, Mode=OneWay}"
-                                                          IsHitTestVisible="{Binding IsFillWidth, Converter={StaticResource InverseBooleanConverter}}"
-                                                          Command="{Binding SetScaleFillWidthCommand}"
-                                                          ToolTip.Tip="Fill Width (crops top/bottom)">
-                                                <svg:Svg Path="/Assets/Icons/fit_width.svg" Width="18" Height="18" />
-                                            </ToggleButton>
-                                        </StackPanel>
-
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <!-- For Fill Width (W): vertical align (Top/Center/Bottom) -->
-                                            <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillWidth}"
-                                                          IsChecked="{Binding IsAlignStart, Mode=OneWay}"
-                                                          IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
-                                                          Command="{Binding SetAlignStartCommand}"
-                                                          ToolTip.Tip="Top">
-                                                <svg:Svg Path="/Assets/Icons/align_top.svg" Width="18" Height="18" />
-                                            </ToggleButton>
-                                            <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillWidth}"
-                                                          IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
-                                                          IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
-                                                          Command="{Binding SetAlignCenterCommand}"
-                                                          ToolTip.Tip="Center">
-                                                <svg:Svg Path="/Assets/Icons/align_v_center.svg" Width="18" Height="18" />
-                                            </ToggleButton>
-                                            <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillWidth}"
-                                                          IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
-                                                          IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
-                                                          Command="{Binding SetAlignEndCommand}"
-                                                          ToolTip.Tip="Bottom">
-                                                <svg:Svg Path="/Assets/Icons/align_bottom.svg" Width="18" Height="18" />
-                                            </ToggleButton>
-
-                                            <!-- For Fill Height (H): horizontal align (Left/Center/Right) -->
-                                            <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillHeight}"
-                                                          IsChecked="{Binding IsAlignStart, Mode=OneWay}"
-                                                          IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
-                                                          Command="{Binding SetAlignStartCommand}"
-                                                          ToolTip.Tip="Left">
-                                                <svg:Svg Path="/Assets/Icons/align_left.svg" Width="18" Height="18" />
-                                            </ToggleButton>
-                                            <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillHeight}"
-                                                          IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
-                                                          IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
-                                                          Command="{Binding SetAlignCenterCommand}"
-                                                          ToolTip.Tip="Center">
-                                                <svg:Svg Path="/Assets/Icons/align_h_center.svg" Width="18" Height="18" />
-                                            </ToggleButton>
-                                            <ToggleButton Classes="circleSmall"
-                                                          IsVisible="{Binding IsFillHeight}"
-                                                          IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
-                                                          IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
-                                                          Command="{Binding SetAlignEndCommand}"
-                                                          ToolTip.Tip="Right">
-                                                <svg:Svg Path="/Assets/Icons/align_right.svg" Width="18" Height="18" />
-                                            </ToggleButton>
-                                        </StackPanel>
-                                    </StackPanel>
-                                    <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="8" Padding="10">
-                                        <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" Height="180" />
-                                    </Border>
-
-                                    <TextBlock Text="Click to assign to Portals"
-                                               Foreground="{DynamicResource ScryTextMuted}"
-                                               FontSize="12"
-                                               Margin="0,2,0,0" />
-
-                                    <ItemsControl ItemsSource="{Binding Portals}" Margin="0,4,0,0">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel ItemSpacing="8" LineSpacing="8" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
-                                                <ToggleButton Classes="circleSmall"
-                                                              Content="{Binding PortalNumber}"
-                                                              ToolTip.Tip="Toggle this image on this portal"
-                                                              IsChecked="{Binding IsSelectedForCurrentMedia}"
-                                                              Command="{Binding DataContext.ToggleSelectedMediaForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                              CommandParameter="{Binding .}" />
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </Border>
-
-                            <Border Grid.Column="1" Classes="card" Padding="14">
                                 <Grid RowDefinitions="Auto,*" RowSpacing="10">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
                                         <Button Grid.Column="0"
@@ -411,7 +303,7 @@
                                                                             <Button Background="Transparent"
                                                                                     BorderThickness="0"
                                                                                     Padding="0"
-                                                                                    Command="{Binding DataContext.Media.SelectItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                                    Command="{Binding DataContext.SelectMediaItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                                     CommandParameter="{Binding .}">
                                                                                 <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
                                                                                     <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
@@ -438,7 +330,7 @@
                                                             <Button Background="Transparent"
                                                                     BorderThickness="0"
                                                                     Padding="0"
-                                                                    Command="{Binding DataContext.Media.SelectItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    Command="{Binding DataContext.SelectMediaItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     CommandParameter="{Binding .}">
                                                                 <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
                                                                     <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
@@ -504,15 +396,124 @@
         <!-- Bottom: Inspector / Controls -->
         <Border Grid.Row="3"
                 IsVisible="{Binding IsControlsSectionVisible}"
-                Background="{DynamicResource ScryPanel}"
+                Background="{DynamicResource ScryBg0}"
                 BorderBrush="{DynamicResource ScryBorder}"
                 BorderThickness="0,1,0,0"
                 Padding="12,10">
-            <Border Classes="card">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Inspector / Controls" FontWeight="SemiBold" />
-                    <TextBlock Text="(Per-portal controls appear here next)" Foreground="{DynamicResource ScryTextMuted}" />
-                </StackPanel>
+            <Border Classes="card" Padding="10">
+                <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="12" RowDefinitions="Auto">
+                    <!-- Selected image (left) -->
+                    <Border Background="#0A0F18"
+                            BorderBrush="{DynamicResource ScryBorder}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="6"
+                            Width="170"
+                            Height="100">
+                        <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" />
+                    </Border>
+
+                    <!-- Assign to portals (middle) -->
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <TextBlock Text="Assign to Portals" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" Margin="0,0,0,6" />
+                        <ItemsControl ItemsSource="{Binding Portals}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="3" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
+                                    <ToggleButton Classes="circleSmall"
+                                                  Margin="0,0,8,8"
+                                                  Content="{Binding PortalNumber}"
+                                                  ToolTip.Tip="Toggle this image on this portal"
+                                                  IsChecked="{Binding IsSelectedForCurrentMedia}"
+                                                  Command="{Binding DataContext.ToggleSelectedMediaForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  CommandParameter="{Binding .}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Alignment (right) -->
+                    <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Top">
+                        <TextBlock Text="Alignment" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" Margin="0,0,0,6" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ToggleButton Classes="circleSmall"
+                                          IsChecked="{Binding IsFillHeight, Mode=OneWay}"
+                                          IsHitTestVisible="{Binding IsFillHeight, Converter={StaticResource InverseBooleanConverter}}"
+                                          Command="{Binding SetScaleFillHeightCommand}"
+                                          ToolTip.Tip="Fill Height (crops left/right)">
+                                <svg:Svg Path="/Assets/Icons/fit_height.svg" Width="18" Height="18" />
+                            </ToggleButton>
+
+                            <ToggleButton Classes="circleSmall"
+                                          IsChecked="{Binding IsFillWidth, Mode=OneWay}"
+                                          IsHitTestVisible="{Binding IsFillWidth, Converter={StaticResource InverseBooleanConverter}}"
+                                          Command="{Binding SetScaleFillWidthCommand}"
+                                          ToolTip.Tip="Fill Width (crops top/bottom)">
+                                <svg:Svg Path="/Assets/Icons/fit_width.svg" Width="18" Height="18" />
+                            </ToggleButton>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <!-- For Fill Width (W): vertical align (Top/Center/Bottom) -->
+                            <ToggleButton Classes="circleSmall"
+                                          IsVisible="{Binding IsFillWidth}"
+                                          IsChecked="{Binding IsAlignStart, Mode=OneWay}"
+                                          IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
+                                          Command="{Binding SetAlignStartCommand}"
+                                          ToolTip.Tip="Top">
+                                <svg:Svg Path="/Assets/Icons/align_top.svg" Width="18" Height="18" />
+                            </ToggleButton>
+                            <ToggleButton Classes="circleSmall"
+                                          IsVisible="{Binding IsFillWidth}"
+                                          IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
+                                          IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
+                                          Command="{Binding SetAlignCenterCommand}"
+                                          ToolTip.Tip="Center">
+                                <svg:Svg Path="/Assets/Icons/align_v_center.svg" Width="18" Height="18" />
+                            </ToggleButton>
+                            <ToggleButton Classes="circleSmall"
+                                          IsVisible="{Binding IsFillWidth}"
+                                          IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
+                                          IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
+                                          Command="{Binding SetAlignEndCommand}"
+                                          ToolTip.Tip="Bottom">
+                                <svg:Svg Path="/Assets/Icons/align_bottom.svg" Width="18" Height="18" />
+                            </ToggleButton>
+
+                            <!-- For Fill Height (H): horizontal align (Left/Center/Right) -->
+                            <ToggleButton Classes="circleSmall"
+                                          IsVisible="{Binding IsFillHeight}"
+                                          IsChecked="{Binding IsAlignStart, Mode=OneWay}"
+                                          IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
+                                          Command="{Binding SetAlignStartCommand}"
+                                          ToolTip.Tip="Left">
+                                <svg:Svg Path="/Assets/Icons/align_left.svg" Width="18" Height="18" />
+                            </ToggleButton>
+                            <ToggleButton Classes="circleSmall"
+                                          IsVisible="{Binding IsFillHeight}"
+                                          IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
+                                          IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
+                                          Command="{Binding SetAlignCenterCommand}"
+                                          ToolTip.Tip="Center">
+                                <svg:Svg Path="/Assets/Icons/align_h_center.svg" Width="18" Height="18" />
+                            </ToggleButton>
+                            <ToggleButton Classes="circleSmall"
+                                          IsVisible="{Binding IsFillHeight}"
+                                          IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
+                                          IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
+                                          Command="{Binding SetAlignEndCommand}"
+                                          ToolTip.Tip="Right">
+                                <svg:Svg Path="/Assets/Icons/align_right.svg" Width="18" Height="18" />
+                            </ToggleButton>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
             </Border>
         </Border>
     </Grid>

@@ -13,6 +13,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly PortalHostService _portalHost;
     private readonly ReadOnlyCollection<ScreenInfoViewModel> _screens;
+    private string? _lastSelectedMediaPath;
 
     private sealed record PortalContentSnapshot(bool IsVisible, string CurrentAssignment, string? AssignedMediaFilePath, MediaScaleMode ScaleMode, MediaAlign Align);
     private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentSnapshot>> _portalHistory = new();
@@ -140,13 +141,42 @@ public partial class MainWindowViewModel : ViewModelBase
         if (e.PropertyName == nameof(MediaLibraryViewModel.SelectedItem))
         {
             UpdatePortalMediaSelectionFlags();
+
+            var selectedPath = Media.SelectedItem?.FilePath;
+            if (_lastSelectedMediaPath is null && selectedPath is not null && !IsControlsSectionVisible)
+            {
+                IsControlsSectionVisible = true;
+            }
+
+            _lastSelectedMediaPath = selectedPath;
+        }
+    }
+
+    [RelayCommand]
+    private void SelectMediaItem(MediaItemViewModel? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        var current = Media.SelectedItem;
+        var isAlreadySelected = ReferenceEquals(current, item) ||
+                                (current is not null &&
+                                 string.Equals(current.FilePath, item.FilePath, StringComparison.OrdinalIgnoreCase));
+
+        Media.SelectedItem = item;
+
+        if (!isAlreadySelected && !IsControlsSectionVisible)
+        {
+            IsControlsSectionVisible = true;
         }
     }
 
     [RelayCommand]
     private void AddPortal()
     {
-        var portalNumber = Portals.Count + 1;
+        var portalNumber = GetNextAvailablePortalNumber();
         var defaultScreen = Screens.FirstOrDefault();
 
         _portalHost.CreatePortal(portalNumber, defaultScreen);
@@ -165,6 +195,19 @@ public partial class MainWindowViewModel : ViewModelBase
         _portalHost.SetDisplayOptions(portalNumber, portalRow.ScaleMode, portalRow.Align);
 
         UpdatePortalMediaSelectionFlags();
+    }
+
+    private int GetNextAvailablePortalNumber()
+    {
+        // Reuse the lowest available number so add/remove doesn't collide.
+        var used = new System.Collections.Generic.HashSet<int>(Portals.Select(p => p.PortalNumber));
+        var candidate = 1;
+        while (used.Contains(candidate))
+        {
+            candidate++;
+        }
+
+        return candidate;
     }
 
     public void ImportMediaFolder(string folderPath)
@@ -318,6 +361,8 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             return;
         }
+
+        _portalHistory.Remove(portalNumber);
 
         row.DeleteRequested -= OnDeletePortalRequested;
         Portals.Remove(row);
