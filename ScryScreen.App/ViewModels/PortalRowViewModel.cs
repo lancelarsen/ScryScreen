@@ -238,8 +238,15 @@ public partial class PortalRowViewModel : ViewModelBase
             _ => 0.5,
         };
 
-        PreviewImageLeft = ScaleMode == MediaScaleMode.FillHeight ? leftoverX * ax : leftoverX * 0.5;
-        PreviewImageTop = ScaleMode == MediaScaleMode.FillWidth ? leftoverY * ax : leftoverY * 0.5;
+        var left = ScaleMode == MediaScaleMode.FillHeight ? leftoverX * ax : leftoverX * 0.5;
+        var top = ScaleMode == MediaScaleMode.FillWidth ? leftoverY * ax : leftoverY * 0.5;
+
+        // Snap to pixel-ish boundaries for the preview to avoid hairline gaps caused by sub-pixel rendering.
+        // Oversize slightly (ceil) and shift slightly (floor) is safe because the host clips.
+        PreviewImageWidth = Math.Ceiling(PreviewImageWidth);
+        PreviewImageHeight = Math.Ceiling(PreviewImageHeight);
+        PreviewImageLeft = Math.Floor(left);
+        PreviewImageTop = Math.Floor(top);
     }
 
     partial void OnIsVisibleChanged(bool value)

@@ -195,14 +195,10 @@
                                                     Padding="6"
                                                     ToolTip.Tip="{Binding MonitorPreviewToolTip}">
                                                 <Viewbox Width="120" Height="60" Stretch="Uniform">
-                                                    <Canvas Width="{Binding SelectedScreen.WidthPx}"
-                                                            Height="{Binding SelectedScreen.HeightPx}">
-                                                        <!-- Screen outline -->
-                                                        <Border Width="{Binding SelectedScreen.WidthPx}"
-                                                                Height="{Binding SelectedScreen.HeightPx}"
-                                                                Background="#05070B"
-                                                                BorderBrush="#3A557D"
-                                                                BorderThickness="10"
+                                                    <Grid Width="{Binding SelectedScreen.WidthPx}"
+                                                          Height="{Binding SelectedScreen.HeightPx}">
+                                                        <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
+                                                        <Border Background="#05070B"
                                                                 CornerRadius="40"
                                                                 ClipToBounds="True">
                                                             <Canvas>
@@ -217,7 +213,15 @@
                                                                 </Border>
                                                             </Canvas>
                                                         </Border>
-                                                    </Canvas>
+
+                                                        <!-- Drawn screen outline overlay (does not affect layout) -->
+                                                        <Rectangle Fill="Transparent"
+                                                                   Stroke="#3A557D"
+                                                                   StrokeThickness="10"
+                                                                   RadiusX="40"
+                                                                   RadiusY="40"
+                                                                   IsHitTestVisible="False" />
+                                                    </Grid>
                                                 </Viewbox>
                                             </Border>
                                         </Border>
