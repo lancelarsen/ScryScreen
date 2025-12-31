@@ -75,8 +75,7 @@ public partial class PortalRowViewModel : ViewModelBase
     {
         get
         {
-            var mode = ScaleMode == MediaScaleMode.FillHeight ? "Fill height" : "Fill width";
-            var axisLabel = ScaleMode == MediaScaleMode.FillHeight ? "H" : "W";
+            var mode = ScaleMode == MediaScaleMode.FillHeight ? "Fill Height" : "Fill Width";
 
             var alignText = Align switch
             {
@@ -86,7 +85,7 @@ public partial class PortalRowViewModel : ViewModelBase
                 _ => Align.ToString(),
             };
 
-            return $"{mode} ({axisLabel}) • {alignText}";
+            return $"{mode} • {alignText}";
         }
     }
 

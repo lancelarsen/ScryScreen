@@ -78,7 +78,7 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <ToggleButton Classes="circle"
                                   IsChecked="{Binding IsAlwaysOnTop}"
-                                  ToolTip.Tip="Always on top">
+                                  ToolTip.Tip="Always on Top">
                         <Grid>
                             <i:Icon IsVisible="{Binding IsAlwaysOnTop}" Value="mdi-pin" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
                             <i:Icon IsVisible="{Binding !IsAlwaysOnTop}" Value="mdi-pin-outline" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
@@ -134,7 +134,7 @@
                                             <ToggleButton Grid.Column="1"
                                                           Classes="circleSmall noAccent"
                                                           IsChecked="{Binding IsVisible}"
-                                                          ToolTip.Tip="Toggle portal visibility">
+                                                          ToolTip.Tip="Toggle Portal Visibility">
                                                 <Grid>
                                                     <i:Icon IsVisible="{Binding IsVisible}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
                                                     <i:Icon IsVisible="{Binding !IsVisible}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
@@ -146,7 +146,7 @@
                                                     Classes="circleSmall"
                                                     HorizontalAlignment="Right"
                                                     i:Attached.Icon="mdi-eraser"
-                                                    ToolTip.Tip="Clear portal content"
+                                                    ToolTip.Tip="Clear Portal Content"
                                                     Command="{Binding DataContext.ClearPortalContentCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding .}" />
 
@@ -159,7 +159,7 @@
                                                       FontSize="12"
                                                       HorizontalAlignment="Stretch"
                                                       ItemsSource="{Binding AvailableScreens}"
-                                                      DisplayMemberBinding="{Binding DisplayLabel}"
+                                                      DisplayMemberBinding="{Binding MonitorName}"
                                                       SelectedItem="{Binding SelectedScreen}" />
 
                                             <!-- Close -->
@@ -167,7 +167,7 @@
                                                     Classes="circleSmall"
                                                     HorizontalAlignment="Right"
                                                     i:Attached.Icon="mdi-close"
-                                                    ToolTip.Tip="Close portal"
+                                                    ToolTip.Tip="Close Portal"
                                                     Command="{Binding ClosePortalCommand}" />
                                         </Grid>
 
@@ -268,14 +268,14 @@
                                         <!-- View mode: grouped vs flat -->
                                         <ToggleButton Grid.Column="2"
                                                       Classes="circleSmall"
-                                                      ToolTip.Tip="Grouped by folder"
+                                                      ToolTip.Tip="Grouped by Folder"
                                                       IsChecked="{Binding Media.IsGroupedView, Mode=TwoWay}">
                                             <i:Icon Value="mdi-folder-multiple-image" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
                                         </ToggleButton>
 
                                         <ToggleButton Grid.Column="3"
                                                       Classes="circleSmall"
-                                                      ToolTip.Tip="Flat view"
+                                                      ToolTip.Tip="Flat View"
                                                       IsChecked="{Binding Media.IsFlatView, Mode=TwoWay}">
                                             <i:Icon Value="mdi-view-grid" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
                                         </ToggleButton>
@@ -353,7 +353,7 @@
                                                 VerticalAlignment="Center"
                                                 MaxWidth="560">
                                             <StackPanel Spacing="8">
-                                                <TextBlock Text="No media imported" FontWeight="SemiBold" />
+                                                <TextBlock Text="No Media Imported" FontWeight="SemiBold" />
                                                 <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" RowDefinitions="Auto">
                                                     <TextBlock Grid.Column="0"
                                                                Text="Click"
@@ -428,7 +428,7 @@
                                     <ToggleButton Classes="circleSmall"
                                                   Margin="0,0,8,8"
                                                   Content="{Binding PortalNumber}"
-                                                  ToolTip.Tip="Toggle this image on this portal"
+                                                  ToolTip.Tip="Show Image on this Portal"
                                                   IsChecked="{Binding IsSelectedForCurrentMedia}"
                                                   Command="{Binding DataContext.ToggleSelectedMediaForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                   CommandParameter="{Binding .}" />
@@ -444,17 +444,15 @@
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <ToggleButton Classes="circleSmall"
                                           IsChecked="{Binding IsFillHeight, Mode=OneWay}"
-                                          IsHitTestVisible="{Binding IsFillHeight, Converter={StaticResource InverseBooleanConverter}}"
                                           Command="{Binding SetScaleFillHeightCommand}"
-                                          ToolTip.Tip="Fill Height (crops left/right)">
+                                          ToolTip.Tip="Fill Height (Crops Left/Right)">
                                 <svg:Svg Path="/Assets/Icons/fit_height.svg" Width="18" Height="18" />
                             </ToggleButton>
 
                             <ToggleButton Classes="circleSmall"
                                           IsChecked="{Binding IsFillWidth, Mode=OneWay}"
-                                          IsHitTestVisible="{Binding IsFillWidth, Converter={StaticResource InverseBooleanConverter}}"
                                           Command="{Binding SetScaleFillWidthCommand}"
-                                          ToolTip.Tip="Fill Width (crops top/bottom)">
+                                          ToolTip.Tip="Fill Width (Crops Top/Bottom)">
                                 <svg:Svg Path="/Assets/Icons/fit_width.svg" Width="18" Height="18" />
                             </ToggleButton>
                         </StackPanel>
@@ -464,7 +462,6 @@
                             <ToggleButton Classes="circleSmall"
                                           IsVisible="{Binding IsFillWidth}"
                                           IsChecked="{Binding IsAlignStart, Mode=OneWay}"
-                                          IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
                                           Command="{Binding SetAlignStartCommand}"
                                           ToolTip.Tip="Top">
                                 <svg:Svg Path="/Assets/Icons/align_top.svg" Width="18" Height="18" />
@@ -472,7 +469,6 @@
                             <ToggleButton Classes="circleSmall"
                                           IsVisible="{Binding IsFillWidth}"
                                           IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
-                                          IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
                                           Command="{Binding SetAlignCenterCommand}"
                                           ToolTip.Tip="Center">
                                 <svg:Svg Path="/Assets/Icons/align_v_center.svg" Width="18" Height="18" />
@@ -480,7 +476,6 @@
                             <ToggleButton Classes="circleSmall"
                                           IsVisible="{Binding IsFillWidth}"
                                           IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
-                                          IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
                                           Command="{Binding SetAlignEndCommand}"
                                           ToolTip.Tip="Bottom">
                                 <svg:Svg Path="/Assets/Icons/align_bottom.svg" Width="18" Height="18" />
@@ -490,7 +485,6 @@
                             <ToggleButton Classes="circleSmall"
                                           IsVisible="{Binding IsFillHeight}"
                                           IsChecked="{Binding IsAlignStart, Mode=OneWay}"
-                                          IsHitTestVisible="{Binding IsAlignStart, Converter={StaticResource InverseBooleanConverter}}"
                                           Command="{Binding SetAlignStartCommand}"
                                           ToolTip.Tip="Left">
                                 <svg:Svg Path="/Assets/Icons/align_left.svg" Width="18" Height="18" />
@@ -498,7 +492,6 @@
                             <ToggleButton Classes="circleSmall"
                                           IsVisible="{Binding IsFillHeight}"
                                           IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
-                                          IsHitTestVisible="{Binding IsAlignCenter, Converter={StaticResource InverseBooleanConverter}}"
                                           Command="{Binding SetAlignCenterCommand}"
                                           ToolTip.Tip="Center">
                                 <svg:Svg Path="/Assets/Icons/align_h_center.svg" Width="18" Height="18" />
@@ -506,7 +499,6 @@
                             <ToggleButton Classes="circleSmall"
                                           IsVisible="{Binding IsFillHeight}"
                                           IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
-                                          IsHitTestVisible="{Binding IsAlignEnd, Converter={StaticResource InverseBooleanConverter}}"
                                           Command="{Binding SetAlignEndCommand}"
                                           ToolTip.Tip="Right">
                                 <svg:Svg Path="/Assets/Icons/align_right.svg" Width="18" Height="18" />

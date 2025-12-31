@@ -37,6 +37,14 @@ public sealed class ScreenInfoViewModel
         }
     }
 
+    public string MonitorName
+    {
+        get
+        {
+            return DisplayName;
+        }
+    }
+
     public PixelRect Bounds => _screen.Bounds;
 
     public double Scaling => _screen.Scaling;

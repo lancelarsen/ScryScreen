@@ -134,7 +134,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool isControlsSectionVisible = false;
 
     [ObservableProperty]
-    private bool isAlwaysOnTop = true;
+    private bool isAlwaysOnTop = false;
 
     private void OnMediaPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
