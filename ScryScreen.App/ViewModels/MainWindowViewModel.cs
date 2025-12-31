@@ -16,7 +16,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ReadOnlyCollection<ScreenInfoViewModel> _screens;
     private string? _lastSelectedMediaPath;
 
-    private sealed record PortalContentSnapshot(bool IsVisible, string CurrentAssignment, string? AssignedMediaFilePath, bool IsVideo, bool IsVideoPlaying, bool IsVideoLoop, MediaScaleMode ScaleMode, MediaAlign Align);
+    private sealed record PortalContentSnapshot(bool IsVisible, string CurrentAssignment, string? AssignedMediaFilePath, bool IsVideo, bool IsVideoLoop, MediaScaleMode ScaleMode, MediaAlign Align);
     private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentSnapshot>> _portalHistory = new();
 
     public MainWindowViewModel(PortalHostService portalHost)
@@ -44,14 +44,9 @@ public partial class MainWindowViewModel : ViewModelBase
     public MediaLibraryViewModel Media { get; }
 
     [ObservableProperty]
-    private bool isVideoAutoPlay = false;
-
-    [ObservableProperty]
     private bool isVideoLoop = false;
 
     public bool IsSelectedMediaVideo => Media.SelectedItem?.IsVideo == true;
-
-    partial void OnIsVideoAutoPlayChanged(bool value) => ApplyVideoOptionsToAssignedPortals();
 
     partial void OnIsVideoLoopChanged(bool value) => ApplyVideoOptionsToAssignedPortals();
 
@@ -299,7 +294,6 @@ public partial class MainWindowViewModel : ViewModelBase
             CurrentAssignment: portal.CurrentAssignment,
             AssignedMediaFilePath: portal.AssignedMediaFilePath,
             IsVideo: portal.IsVideoAssigned,
-            IsVideoPlaying: portal.IsVideoPlaying,
             IsVideoLoop: portal.IsVideoLoop,
             ScaleMode: portal.ScaleMode,
             Align: portal.Align));
@@ -317,7 +311,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             portal.AssignedPreview = null;
             portal.IsVideoLoop = IsVideoLoop;
-            _portalHost.SetContentVideo(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align, autoPlay: IsVideoAutoPlay, loop: IsVideoLoop);
+            _portalHost.SetContentVideo(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align, loop: IsVideoLoop);
             portal.IsVideoPlaying = false;
 
             // Start preview/paused state at ~1s to avoid blank first-frame.
@@ -369,7 +363,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             if (string.Equals(portal.AssignedMediaFilePath, selectedPath, StringComparison.OrdinalIgnoreCase))
             {
-                _portalHost.SetVideoOptions(portal.PortalNumber, autoPlay: IsVideoAutoPlay, loop: IsVideoLoop);
+                _portalHost.SetVideoLoop(portal.PortalNumber, IsVideoLoop);
             }
         }
     }
@@ -392,7 +386,6 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.CurrentAssignment = snapshot.CurrentAssignment;
         portal.AssignedMediaFilePath = snapshot.AssignedMediaFilePath;
         portal.IsVideoLoop = snapshot.IsVideoLoop;
-        portal.IsVideoPlaying = snapshot.IsVideoPlaying;
         portal.ScaleMode = snapshot.ScaleMode;
         portal.Align = snapshot.Align;
 
@@ -401,7 +394,7 @@ public partial class MainWindowViewModel : ViewModelBase
             if (snapshot.IsVideo)
             {
                 portal.AssignedPreview = null;
-                _portalHost.SetContentVideo(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align, autoPlay: snapshot.IsVideoPlaying, loop: snapshot.IsVideoLoop);
+                _portalHost.SetContentVideo(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align, loop: snapshot.IsVideoLoop);
 
                 portal.IsVideoPlaying = false;
                 _portalHost.SeekVideo(portal.PortalNumber, 1000);

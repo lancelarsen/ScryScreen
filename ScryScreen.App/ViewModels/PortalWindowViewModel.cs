@@ -15,7 +15,6 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     private Media? _currentVideoMedia;
     private string? _contentVideoPath;
     private bool _loopVideo;
-    private bool _autoPlayRequested;
     private long? _pendingSeekTimeMs;
     private bool _pendingPrimeFrame;
     private bool _isPriming;
@@ -113,7 +112,6 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        _autoPlayRequested = false;
         _pendingSeekTimeMs = timeMs;
         _pendingPrimeFrame = true;
 
@@ -181,13 +179,13 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         ContentImage = bitmap;
     }
 
-    public void SetVideo(string filePath, string title, bool autoPlay, bool loop)
+    public void SetVideo(string filePath, string title, bool loop)
     {
         ContentTitle = title;
         ContentImage = null;
         _contentVideoPath = filePath;
         _loopVideo = loop;
-        _autoPlayRequested = autoPlay;
+        // Videos always start paused by default.
         _pendingSeekTimeMs = null;
         _pendingPrimeFrame = false;
 
@@ -201,7 +199,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         {
             // If media cannot be loaded, fall back to text.
             _contentVideoPath = null;
-            _autoPlayRequested = false;
+            _pendingSeekTimeMs = null;
+            _pendingPrimeFrame = false;
         }
 
         OnPropertyChanged(nameof(ContentVideoPath));
@@ -324,52 +323,6 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public void TryStartVideoIfNeeded()
-    {
-        if (!_autoPlayRequested || !HasVideo)
-        {
-            return;
-        }
-
-        try
-        {
-            if (!_mediaPlayer.IsPlaying)
-            {
-                if (_pendingSeekTimeMs.HasValue)
-                {
-                    try
-                    {
-                        _mediaPlayer.Time = _pendingSeekTimeMs.Value;
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-                }
-
-                _mediaPlayer.Play();
-            }
-        }
-        catch
-        {
-            // ignore
-        }
-        finally
-        {
-            _autoPlayRequested = false;
-            _pendingPrimeFrame = false;
-            _pendingSeekTimeMs = null;
-        }
-    }
-
-    public void SetVideoOptions(bool autoPlay, bool loop)
-    {
-        _loopVideo = loop;
-
-        // Intentionally do not auto-start playback here.
-        // Auto-Play is used only at assignment time; videos should start paused by default.
-    }
-
     public void SetVideoLoop(bool loop)
     {
         _loopVideo = loop;
@@ -382,7 +335,6 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             return false;
         }
 
-        _autoPlayRequested = false;
 
         try
         {
@@ -425,12 +377,29 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        _autoPlayRequested = false;
+
+        // Restart = go to the beginning and remain paused.
+        // Prime a frame so the first frame displays reliably.
+        _pendingSeekTimeMs = 0;
+        _pendingPrimeFrame = true;
 
         try
         {
+            if (_mediaPlayer.IsPlaying)
+            {
+                _mediaPlayer.Pause();
+            }
+
             _mediaPlayer.Time = 0;
-            _mediaPlayer.Play();
+        }
+        catch
+        {
+            // ignore
+        }
+
+        try
+        {
+            _ = PrimePausedFrameIfNeededAsync();
         }
         catch
         {
@@ -541,7 +510,6 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     {
         _contentVideoPath = null;
         _loopVideo = false;
-        _autoPlayRequested = false;
         _pendingSeekTimeMs = null;
         _pendingPrimeFrame = false;
         _isPriming = false;

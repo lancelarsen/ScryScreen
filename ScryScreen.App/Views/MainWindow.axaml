@@ -666,12 +666,6 @@
                         <!-- Video options -->
                         <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsSelectedMediaVideo}" Margin="0,6,0,0">
                             <ToggleButton Classes="circleSmall"
-                                          IsChecked="{Binding IsVideoAutoPlay, Mode=TwoWay}"
-                                          ToolTip.Tip="Auto-Play">
-                                <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                            </ToggleButton>
-
-                            <ToggleButton Classes="circleSmall"
                                           IsChecked="{Binding IsVideoLoop, Mode=TwoWay}"
                                           ToolTip.Tip="Loop">
                                 <i:Icon Value="mdi-repeat" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />

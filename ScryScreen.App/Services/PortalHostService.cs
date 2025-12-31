@@ -191,7 +191,7 @@ public sealed class PortalHostService
         controller.ViewModel.IsSetup = false;
     }
 
-    public void SetContentVideo(int portalNumber, string filePath, string? contentTitle = null, MediaScaleMode scaleMode = MediaScaleMode.FillHeight, MediaAlign align = MediaAlign.Center, bool autoPlay = true, bool loop = false)
+    public void SetContentVideo(int portalNumber, string filePath, string? contentTitle = null, MediaScaleMode scaleMode = MediaScaleMode.FillHeight, MediaAlign align = MediaAlign.Center, bool loop = false)
     {
         if (!_portals.TryGetValue(portalNumber, out var controller))
         {
@@ -200,17 +200,9 @@ public sealed class PortalHostService
 
         controller.ViewModel.ScaleMode = scaleMode;
         controller.ViewModel.Align = align;
-        controller.ViewModel.SetVideo(filePath, contentTitle ?? Path.GetFileName(filePath), autoPlay, loop);
+        controller.ViewModel.SetVideo(filePath, contentTitle ?? Path.GetFileName(filePath), loop);
         controller.ViewModel.IsContentVisible = true;
         controller.ViewModel.IsSetup = false;
-    }
-
-    public void SetVideoOptions(int portalNumber, bool autoPlay, bool loop)
-    {
-        if (_portals.TryGetValue(portalNumber, out var controller))
-        {
-            controller.ViewModel.SetVideoOptions(autoPlay, loop);
-        }
     }
 
     public bool ToggleVideoPlayPause(int portalNumber)

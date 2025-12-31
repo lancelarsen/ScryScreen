@@ -33,7 +33,7 @@ public partial class PortalWindow : Window
         VideoHost.SizeChanged += (_, _) => UpdateVideoLayout();
         DataContextChanged += (_, _) => HookViewModel();
 
-        // Ensure the native video surface exists before autoplay.
+        // Ensure the native video surface exists before priming paused frames.
         ContentVideo.AttachedToVisualTree += (_, _) =>
         {
             Dispatcher.UIThread.Post(() =>
@@ -42,7 +42,6 @@ public partial class PortalWindow : Window
                 if (DataContext is PortalWindowViewModel vm)
                 {
                     vm.PrimePausedFrameIfNeeded();
-                    vm.TryStartVideoIfNeeded();
                 }
             }, DispatcherPriority.Background);
         };
@@ -82,7 +81,6 @@ public partial class PortalWindow : Window
                 Dispatcher.UIThread.Post(() =>
                 {
                     vm.PrimePausedFrameIfNeeded();
-                    vm.TryStartVideoIfNeeded();
                 }, DispatcherPriority.Background);
             }
         }

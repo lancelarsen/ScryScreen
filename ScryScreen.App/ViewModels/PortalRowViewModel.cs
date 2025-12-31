@@ -610,7 +610,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         }
 
         _portalHost.RestartVideo(PortalNumber);
-        IsVideoPlaying = true;
+        IsVideoPlaying = false;
     }
 
     public void Dispose()
