@@ -251,160 +251,202 @@
 
         <!-- Middle: Content Browser -->
         <Border Grid.Row="2" IsVisible="{Binding IsLibrarySectionVisible}" Background="{DynamicResource ScryBg0}" Padding="12,10">
-            <TabControl Classes="tabsTight" Padding="0" Margin="0">
-                <TabItem Header="Media">
-                    <Grid RowDefinitions="*" Margin="0,8,0,0">
-                        <Grid ColumnDefinitions="*">
-                            <Border Classes="card" Padding="14">
-                                <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                                        <Button Grid.Column="0"
-                                                Classes="circleSmall"
-                                                Click="OnImportMediaFolder"
-                                                i:Attached.Icon="mdi-folder-plus"
-                                                ToolTip.Tip="Add Folder" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Media.ImagesHeader}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
-
-                                        <!-- View mode: grouped vs flat -->
-                                        <ToggleButton Grid.Column="2"
-                                                      Classes="circleSmall"
-                                                      ToolTip.Tip="Grouped by Folder"
-                                                      IsChecked="{Binding Media.IsGroupedView, Mode=TwoWay}">
-                                            <i:Icon Value="mdi-folder-multiple-image" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                                        </ToggleButton>
-
-                                        <ToggleButton Grid.Column="3"
-                                                      Classes="circleSmall"
-                                                      ToolTip.Tip="Flat View"
-                                                      IsChecked="{Binding Media.IsFlatView, Mode=TwoWay}">
-                                            <i:Icon Value="mdi-view-grid" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                                        </ToggleButton>
-                                    </Grid>
-
-                                    <Grid Grid.Row="1">
-                                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                                            <Grid>
-                                                <!-- Grouped view (by directory) -->
-                                                <ItemsControl ItemsSource="{Binding Media.Groups}" IsVisible="{Binding Media.IsGroupedView}">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="vm:MediaFolderGroupViewModel">
-                                                            <StackPanel Spacing="8" Margin="0,0,0,12">
-                                                                <TextBlock Text="{Binding DisplayHeader}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
-
-                                                                <ItemsControl ItemsSource="{Binding Items}">
-                                                                    <ItemsControl.ItemsPanel>
-                                                                        <ItemsPanelTemplate>
-                                                                            <WrapPanel ItemSpacing="10" LineSpacing="10" />
-                                                                        </ItemsPanelTemplate>
-                                                                    </ItemsControl.ItemsPanel>
-
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
-                                                                            <Button Background="Transparent"
-                                                                                    BorderThickness="0"
-                                                                                    Padding="0"
-                                                                                    Command="{Binding DataContext.SelectMediaItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                                    CommandParameter="{Binding .}">
-                                                                                <ToolTip.Tip>
-                                                                                    <StackPanel Spacing="4">
-                                                                                        <TextBlock Text="{Binding DisplayName}" TextWrapping="NoWrap" />
-                                                                                        <TextBlock Text="{Binding PixelSizeText}" IsVisible="{Binding HasPixelSize}" TextWrapping="NoWrap" />
-                                                                                        <TextBlock Text="{Binding FileSizeText}" IsVisible="{Binding HasFileSize}" TextWrapping="NoWrap" />
-                                                                                    </StackPanel>
-                                                                                </ToolTip.Tip>
-                                                                                <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
-                                                                                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                                                                                </Border>
-                                                                            </Button>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                            </StackPanel>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-
-                                                <!-- Flat view (no directory separation) -->
-                                                <ItemsControl ItemsSource="{Binding Media.Items}" IsVisible="{Binding Media.IsFlatView}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <WrapPanel ItemSpacing="10" LineSpacing="10" />
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
-                                                            <Button Background="Transparent"
-                                                                    BorderThickness="0"
-                                                                    Padding="0"
-                                                                    Command="{Binding DataContext.SelectMediaItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                    CommandParameter="{Binding .}">
-                                                                <ToolTip.Tip>
-                                                                    <StackPanel Spacing="4">
-                                                                        <TextBlock Text="{Binding DisplayName}" TextWrapping="NoWrap" />
-                                                                        <TextBlock Text="{Binding PixelSizeText}" IsVisible="{Binding HasPixelSize}" TextWrapping="NoWrap" />
-                                                                        <TextBlock Text="{Binding FileSizeText}" IsVisible="{Binding HasFileSize}" TextWrapping="NoWrap" />
-                                                                    </StackPanel>
-                                                                </ToolTip.Tip>
-                                                                <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
-                                                                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                                                                </Border>
-                                                            </Button>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
+            <Grid RowDefinitions="*" Margin="0">
+                <Grid ColumnDefinitions="*">
+                    <Border Classes="card" Padding="14">
+                        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center" MinHeight="36">
+                                <!-- Tabs: Apps / Media -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Classes="tabLink" Command="{Binding ShowAppsTabCommand}">
+                                        <Grid RowDefinitions="Auto,Auto">
+                                            <Grid Grid.Row="0">
+                                                <TextBlock Text="Apps" Foreground="{DynamicResource ScryText}" IsVisible="{Binding IsAppsTabSelected}" TextWrapping="NoWrap" />
+                                                <TextBlock Text="Apps" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsAppsTabSelected}" TextWrapping="NoWrap" />
                                             </Grid>
-                                        </ScrollViewer>
+                                            <Grid Grid.Row="1" Margin="0,4,0,0">
+                                                <Border Height="2" Background="Transparent" />
+                                                <Border Height="2" Background="{DynamicResource ScryAccent}" IsVisible="{Binding IsAppsTabSelected}" />
+                                            </Grid>
+                                        </Grid>
+                                    </Button>
 
-                                        <!-- Empty state helper text -->
-                                        <Border IsVisible="{Binding Media.HasNoMedia}"
-                                                Background="#0A0F18"
-                                                BorderBrush="{DynamicResource ScryBorder}"
-                                                BorderThickness="1"
-                                                CornerRadius="10"
-                                                Padding="16"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                MaxWidth="560">
-                                            <StackPanel Spacing="8">
-                                                <TextBlock Text="No Media Imported" FontWeight="SemiBold" />
-                                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" RowDefinitions="Auto">
-                                                    <TextBlock Grid.Column="0"
-                                                               Text="Click"
-                                                               Foreground="{DynamicResource ScryTextMuted}"
-                                                               VerticalAlignment="Center" />
+                                    <Button Classes="tabLink" Command="{Binding ShowMediaTabCommand}" Margin="0">
+                                        <Grid RowDefinitions="Auto,Auto">
+                                            <Grid Grid.Row="0">
+                                                <TextBlock Text="{Binding Media.MediaTabHeader}" Foreground="{DynamicResource ScryText}" IsVisible="{Binding IsMediaTabSelected}" TextWrapping="NoWrap" />
+                                                <TextBlock Text="{Binding Media.MediaTabHeader}" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsMediaTabSelected}" TextWrapping="NoWrap" />
+                                            </Grid>
+                                            <Grid Grid.Row="1" Margin="0,4,0,0">
+                                                <Border Height="2" Background="Transparent" />
+                                                <Border Height="2" Background="{DynamicResource ScryAccent}" IsVisible="{Binding IsMediaTabSelected}" />
+                                            </Grid>
+                                        </Grid>
+                                    </Button>
+                                </StackPanel>
 
-                                                        <Button Grid.Column="1"
-                                                            Classes="circleSmall"
-                                                            Click="OnImportMediaFolder"
-                                                            i:Attached.Icon="mdi-folder-plus"
-                                                            VerticalAlignment="Center"
-                                                            ToolTip.Tip="Add Folder" />
+                                <!-- spacer -->
+                                <Border Grid.Column="1" />
 
-                                                    <TextBlock Grid.Column="2"
-                                                               Text="to add a directory with your images and videos."
-                                                               Foreground="{DynamicResource ScryTextMuted}"
-                                                               VerticalAlignment="Center"
-                                                               TextWrapping="Wrap" />
-                                                </Grid>
-                                            </StackPanel>
-                                        </Border>
-                                    </Grid>
+                                <!-- Add folder (Media only) - placed before view toggles -->
+                                <Button Grid.Column="2"
+                                        Classes="circleSmall"
+                                        Click="OnImportMediaFolder"
+                                        IsVisible="{Binding IsMediaTabSelected}"
+                                        i:Attached.Icon="mdi-folder-plus"
+                                        ToolTip.Tip="Add Folder" />
+
+                                <!-- View mode: grouped vs flat (Media only) -->
+                                <ToggleButton Grid.Column="3"
+                                              IsVisible="{Binding IsMediaTabSelected}"
+                                              Classes="circleSmall"
+                                              ToolTip.Tip="View by Folder"
+                                              IsChecked="{Binding Media.IsGroupedView, Mode=TwoWay}">
+                                    <i:Icon Value="mdi-folder-multiple-image" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                </ToggleButton>
+
+                                <ToggleButton Grid.Column="4"
+                                              IsVisible="{Binding IsMediaTabSelected}"
+                                              Classes="circleSmall"
+                                              ToolTip.Tip="View Tiles"
+                                              IsChecked="{Binding Media.IsFlatView, Mode=TwoWay}">
+                                    <i:Icon Value="mdi-view-grid" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                </ToggleButton>
+                            </Grid>
+
+                            <Grid Grid.Row="1">
+                                <!-- Media content -->
+                                <Grid IsVisible="{Binding IsMediaTabSelected}">
+                                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                        <Grid>
+                                            <!-- Grouped view (by directory) -->
+                                            <ItemsControl ItemsSource="{Binding Media.Groups}" IsVisible="{Binding Media.IsGroupedView}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:MediaFolderGroupViewModel">
+                                                        <StackPanel Spacing="8" Margin="0,0,0,12">
+                                                            <TextBlock Text="{Binding DisplayHeader}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
+
+                                                            <ItemsControl ItemsSource="{Binding Items}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <WrapPanel ItemSpacing="10" LineSpacing="10" />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
+                                                                        <Button Background="Transparent"
+                                                                                BorderThickness="0"
+                                                                                Padding="0"
+                                                                                Command="{Binding DataContext.SelectMediaItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                                CommandParameter="{Binding .}">
+                                                                            <ToolTip.Tip>
+                                                                                <StackPanel Spacing="4">
+                                                                                    <TextBlock Text="{Binding DisplayName}" TextWrapping="NoWrap" />
+                                                                                    <TextBlock Text="{Binding PixelSizeText}" IsVisible="{Binding HasPixelSize}" TextWrapping="NoWrap" />
+                                                                                    <TextBlock Text="{Binding FileSizeText}" IsVisible="{Binding HasFileSize}" TextWrapping="NoWrap" />
+                                                                                </StackPanel>
+                                                                            </ToolTip.Tip>
+                                                                            <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
+                                                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                                            </Border>
+                                                                        </Button>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- Flat view (no directory separation) -->
+                                            <ItemsControl ItemsSource="{Binding Media.Items}" IsVisible="{Binding Media.IsFlatView}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel ItemSpacing="10" LineSpacing="10" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
+                                                        <Button Background="Transparent"
+                                                                BorderThickness="0"
+                                                                Padding="0"
+                                                                Command="{Binding DataContext.SelectMediaItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding .}">
+                                                            <ToolTip.Tip>
+                                                                <StackPanel Spacing="4">
+                                                                    <TextBlock Text="{Binding DisplayName}" TextWrapping="NoWrap" />
+                                                                    <TextBlock Text="{Binding PixelSizeText}" IsVisible="{Binding HasPixelSize}" TextWrapping="NoWrap" />
+                                                                    <TextBlock Text="{Binding FileSizeText}" IsVisible="{Binding HasFileSize}" TextWrapping="NoWrap" />
+                                                                </StackPanel>
+                                                            </ToolTip.Tip>
+                                                            <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="8" Width="140" Height="140">
+                                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                            </Border>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+                                    </ScrollViewer>
+
+                                    <!-- Empty state helper text -->
+                                    <Border IsVisible="{Binding Media.HasNoMedia}"
+                                            Background="#0A0F18"
+                                            BorderBrush="{DynamicResource ScryBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="16"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            MaxWidth="560">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="No Media Imported" FontWeight="SemiBold" />
+                                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" RowDefinitions="Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="Click"
+                                                           Foreground="{DynamicResource ScryTextMuted}"
+                                                           VerticalAlignment="Center" />
+
+                                                <Button Grid.Column="1"
+                                                        Classes="circleSmall"
+                                                        Click="OnImportMediaFolder"
+                                                        i:Attached.Icon="mdi-folder-plus"
+                                                        VerticalAlignment="Center"
+                                                        ToolTip.Tip="Add Folder" />
+
+                                                <TextBlock Grid.Column="2"
+                                                           Text="to add a directory with your images and videos."
+                                                           Foreground="{DynamicResource ScryTextMuted}"
+                                                           VerticalAlignment="Center"
+                                                           TextWrapping="Wrap" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
                                 </Grid>
-                            </Border>
+
+                                <!-- Apps content -->
+                                <Border IsVisible="{Binding IsAppsTabSelected}"
+                                        Background="#0A0F18"
+                                        BorderBrush="{DynamicResource ScryBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        Padding="16"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        MaxWidth="560">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="ScryPortalApps" FontWeight="SemiBold" />
+                                        <TextBlock Text="Launch apps like Initiative Tracker and assign them to portals." Foreground="{DynamicResource ScryTextMuted}" TextWrapping="Wrap" />
+                                        <TextBlock Text="(App framework coming after Media MVP)" Foreground="{DynamicResource ScryTextMuted}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
                         </Grid>
-                    </Grid>
-                </TabItem>
-                <TabItem Header="Apps">
-                    <Border Classes="card" Margin="0,12,0,0">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="ScryPortalApps" FontSize="16" FontWeight="SemiBold" />
-                            <TextBlock Text="Launch apps like Initiative Tracker and assign them to portals." Foreground="{DynamicResource ScryTextMuted}" />
-                            <TextBlock Text="(App framework coming after Media MVP)" Foreground="{DynamicResource ScryTextMuted}" />
-                        </StackPanel>
                     </Border>
-                </TabItem>
-            </TabControl>
+                </Grid>
+            </Grid>
         </Border>
 
         <!-- Bottom: Inspector / Controls -->

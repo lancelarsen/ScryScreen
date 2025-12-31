@@ -30,6 +30,10 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
         ? $"Images ({Items.Count})"
         : "Images";
 
+    public string MediaTabHeader => Items.Count > 0
+        ? $"Media ({Items.Count})"
+        : "Media";
+
     [RelayCommand]
     private void SelectItem(MediaItemViewModel? item)
     {
@@ -48,7 +52,7 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
     private string statusText = "No media imported";
 
     [ObservableProperty]
-    private bool isGroupedView = true;
+    private bool isGroupedView = false;
 
     public bool IsFlatView
     {
@@ -65,6 +69,7 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(ImagesCount));
         OnPropertyChanged(nameof(ImagesHeader));
+        OnPropertyChanged(nameof(MediaTabHeader));
         OnPropertyChanged(nameof(HasAnyMedia));
         OnPropertyChanged(nameof(HasNoMedia));
     }
@@ -145,6 +150,7 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(ImagesCount));
         OnPropertyChanged(nameof(ImagesHeader));
+        OnPropertyChanged(nameof(MediaTabHeader));
         OnPropertyChanged(nameof(HasAnyMedia));
         OnPropertyChanged(nameof(HasNoMedia));
 

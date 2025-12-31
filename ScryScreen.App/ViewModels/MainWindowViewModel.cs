@@ -42,6 +42,31 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MediaLibraryViewModel Media { get; }
 
+    public enum LibraryTab
+    {
+        Media,
+        Apps,
+    }
+
+    [ObservableProperty]
+    private LibraryTab selectedLibraryTab = LibraryTab.Media;
+
+    public bool IsMediaTabSelected => SelectedLibraryTab == LibraryTab.Media;
+
+    public bool IsAppsTabSelected => SelectedLibraryTab == LibraryTab.Apps;
+
+    partial void OnSelectedLibraryTabChanged(LibraryTab value)
+    {
+        OnPropertyChanged(nameof(IsMediaTabSelected));
+        OnPropertyChanged(nameof(IsAppsTabSelected));
+    }
+
+    [RelayCommand]
+    private void ShowMediaTab() => SelectedLibraryTab = LibraryTab.Media;
+
+    [RelayCommand]
+    private void ShowAppsTab() => SelectedLibraryTab = LibraryTab.Apps;
+
     [ObservableProperty]
     private MediaScaleMode selectedScaleMode;
 

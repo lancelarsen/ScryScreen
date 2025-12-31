@@ -304,6 +304,27 @@
     <Setter Property="Padding" Value="0" />
   </Style>
 
+  <!-- Tabs (inline): used for the Media/Apps strip inside the Media card header -->
+  <Style Selector="Button.tabLink">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,0,18,0" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.tabLink:pointerover">
+    <Setter Property="Opacity" Value="0.95" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.tabLink:pressed">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
   <Style Selector="TabControl.tabsTight /template/ Border">
     <Setter Property="Padding" Value="0" />
   </Style>
