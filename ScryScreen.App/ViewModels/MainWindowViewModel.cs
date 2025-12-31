@@ -319,6 +319,11 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.IsVideoLoop = IsVideoLoop;
             _portalHost.SetContentVideo(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align, autoPlay: IsVideoAutoPlay, loop: IsVideoLoop);
             portal.IsVideoPlaying = false;
+
+            // Start preview/paused state at ~1s to avoid blank first-frame.
+            _portalHost.SeekVideo(portal.PortalNumber, 1000);
+
+            _ = UpdatePortalVideoSnapshotAsync(portal, filePath);
         }
         else
         {
@@ -328,6 +333,28 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.IsVideoLoop = false;
         }
         portal.IsVisible = true;
+    }
+
+    private static async Task UpdatePortalVideoSnapshotAsync(PortalRowViewModel portal, string expectedFilePath)
+    {
+        // Snapshot is done with a dedicated hidden LibVLC instance (no portal playback side-effects).
+        var snap = await VideoSnapshotService.CaptureFirstFrameAsync(expectedFilePath, maxWidth: 512, maxHeight: 288, seekTimeMs: 1000).ConfigureAwait(false);
+        if (snap is null)
+        {
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (!string.Equals(portal.AssignedMediaFilePath, expectedFilePath, StringComparison.OrdinalIgnoreCase) || !portal.IsVideoAssigned)
+            {
+                snap.Bitmap.Dispose();
+                return;
+            }
+
+            portal.AssignedPreview?.Dispose();
+            portal.AssignedPreview = snap.Bitmap;
+        });
     }
 
     private void ApplyVideoOptionsToAssignedPortals()
@@ -377,6 +404,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 _portalHost.SetContentVideo(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align, autoPlay: snapshot.IsVideoPlaying, loop: snapshot.IsVideoLoop);
 
                 portal.IsVideoPlaying = false;
+                _portalHost.SeekVideo(portal.PortalNumber, 1000);
+                _ = UpdatePortalVideoSnapshotAsync(portal, snapshot.AssignedMediaFilePath);
             }
             else
             {

@@ -16,6 +16,9 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     private string? _contentVideoPath;
     private bool _loopVideo;
     private bool _autoPlayRequested;
+    private long? _pendingSeekTimeMs;
+    private bool _pendingPrimeFrame;
+    private bool _isPriming;
 
     public PortalWindowViewModel(int portalNumber)
     {
@@ -111,6 +114,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         }
 
         _autoPlayRequested = false;
+        _pendingSeekTimeMs = timeMs;
+        _pendingPrimeFrame = true;
 
         try
         {
@@ -118,6 +123,21 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             var length = _mediaPlayer.Length;
             if (length > 0 && timeMs > length) timeMs = length;
             _mediaPlayer.Time = timeMs;
+        }
+        catch
+        {
+            // ignore
+        }
+
+        // If the native rendering target is already attached, prime one frame so
+        // LibVLC actually applies the seek while paused (otherwise Time can remain 0
+        // until the first decode happens).
+        try
+        {
+            if (OperatingSystem.IsWindows() && _mediaPlayer.Hwnd != IntPtr.Zero)
+            {
+                _ = PrimePausedFrameIfNeededAsync();
+            }
         }
         catch
         {
@@ -168,6 +188,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         _contentVideoPath = filePath;
         _loopVideo = loop;
         _autoPlayRequested = autoPlay;
+        _pendingSeekTimeMs = null;
+        _pendingPrimeFrame = false;
 
         try
         {
@@ -191,6 +213,117 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         // If the VideoView isn't attached/visible yet, LibVLC will fall back to spawning its own window.
     }
 
+    public void PrimePausedFrameIfNeeded()
+    {
+        _ = PrimePausedFrameIfNeededAsync();
+    }
+
+    private async Task PrimePausedFrameIfNeededAsync()
+    {
+        if (_isPriming)
+        {
+            return;
+        }
+
+        if (!HasVideo || _mediaPlayer.IsPlaying)
+        {
+            return;
+        }
+
+        if (!_pendingPrimeFrame || !_pendingSeekTimeMs.HasValue)
+        {
+            return;
+        }
+
+        // Only safe to decode a frame once we have a native render target.
+        if (OperatingSystem.IsWindows() && _mediaPlayer.Hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        _isPriming = true;
+        var target = _pendingSeekTimeMs.Value;
+
+        var originalMute = false;
+        var originalVolume = 0;
+        try
+        {
+            originalMute = _mediaPlayer.Mute;
+            originalVolume = _mediaPlayer.Volume;
+        }
+        catch
+        {
+            // ignore
+        }
+
+        try
+        {
+            try
+            {
+                _mediaPlayer.Mute = true;
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                if (target < 0) target = 0;
+                _mediaPlayer.Time = target;
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _mediaPlayer.Play();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            await Task.Delay(120).ConfigureAwait(false);
+
+            try
+            {
+                _mediaPlayer.Pause();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _mediaPlayer.Time = target;
+            }
+            catch
+            {
+                // ignore
+            }
+
+            _pendingPrimeFrame = false;
+        }
+        finally
+        {
+            try
+            {
+                _mediaPlayer.Mute = originalMute;
+                _mediaPlayer.Volume = originalVolume;
+            }
+            catch
+            {
+                // ignore
+            }
+
+            _isPriming = false;
+        }
+    }
+
     public void TryStartVideoIfNeeded()
     {
         if (!_autoPlayRequested || !HasVideo)
@@ -202,6 +335,18 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         {
             if (!_mediaPlayer.IsPlaying)
             {
+                if (_pendingSeekTimeMs.HasValue)
+                {
+                    try
+                    {
+                        _mediaPlayer.Time = _pendingSeekTimeMs.Value;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+
                 _mediaPlayer.Play();
             }
         }
@@ -212,6 +357,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         finally
         {
             _autoPlayRequested = false;
+            _pendingPrimeFrame = false;
+            _pendingSeekTimeMs = null;
         }
     }
 
@@ -243,6 +390,23 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             {
                 _mediaPlayer.Pause();
                 return false;
+            }
+
+            if (_pendingSeekTimeMs.HasValue)
+            {
+                try
+                {
+                    _mediaPlayer.Time = _pendingSeekTimeMs.Value;
+                }
+                catch
+                {
+                    // ignore
+                }
+                finally
+                {
+                    _pendingSeekTimeMs = null;
+                    _pendingPrimeFrame = false;
+                }
             }
 
             _mediaPlayer.Play();
@@ -378,6 +542,9 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         _contentVideoPath = null;
         _loopVideo = false;
         _autoPlayRequested = false;
+        _pendingSeekTimeMs = null;
+        _pendingPrimeFrame = false;
+        _isPriming = false;
         try
         {
             _mediaPlayer.Stop();

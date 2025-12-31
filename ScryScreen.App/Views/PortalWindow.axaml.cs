@@ -39,7 +39,11 @@ public partial class PortalWindow : Window
             Dispatcher.UIThread.Post(() =>
             {
                 UpdateVideoLayout();
-                (DataContext as PortalWindowViewModel)?.TryStartVideoIfNeeded();
+                if (DataContext is PortalWindowViewModel vm)
+                {
+                    vm.PrimePausedFrameIfNeeded();
+                    vm.TryStartVideoIfNeeded();
+                }
             }, DispatcherPriority.Background);
         };
     }
@@ -75,7 +79,11 @@ public partial class PortalWindow : Window
             if (DataContext is PortalWindowViewModel vm && vm.IsShowingVideo)
             {
                 // Let the layout/visual tree settle so VideoView can attach its rendering target.
-                Dispatcher.UIThread.Post(vm.TryStartVideoIfNeeded, DispatcherPriority.Background);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    vm.PrimePausedFrameIfNeeded();
+                    vm.TryStartVideoIfNeeded();
+                }, DispatcherPriority.Background);
             }
         }
     }

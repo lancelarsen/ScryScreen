@@ -18,7 +18,9 @@ public static class VideoSnapshotService
         string filePath,
         int maxWidth = 512,
         int maxHeight = 288,
+        int seekTimeMs = 1000,
         int warmupMs = 200,
+        int postSeekWarmupMs = 120,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
@@ -75,6 +77,28 @@ public static class VideoSnapshotService
                 {
                     // cancellation
                     return null;
+                }
+
+                // Seek away from 0s (many videos have a black/blank/transition frame at t=0).
+                try
+                {
+                    if (seekTimeMs > 0)
+                    {
+                        // Clamp if VLC knows the length.
+                        var len = player.Length;
+                        var target = (long)seekTimeMs;
+                        if (len > 0 && target > len)
+                        {
+                            target = Math.Max(0, len - 50);
+                        }
+
+                        player.Time = target;
+                        await Task.Delay(postSeekWarmupMs, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                catch
+                {
+                    // ignore
                 }
 
                 int videoW = 0;

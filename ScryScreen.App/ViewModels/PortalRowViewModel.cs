@@ -115,7 +115,11 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
     public bool HasMonitorPreview => SelectedScreen is not null;
 
-    public bool HasMediaPreview => AssignedPreview is not null && !IsVideoAssigned;
+    public bool HasMediaPreview => AssignedPreview is not null;
+
+    public bool ShowMonitorSnapshot => AssignedPreview is not null && (!IsVideoAssigned || !IsVideoPlaying);
+
+    public bool ShowMonitorLiveVideo => IsVideoAssigned && IsVideoPlaying;
 
     public bool HasMonitorAndMediaPreview => HasMonitorPreview && HasMediaPreview;
 
@@ -164,6 +168,8 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowTopAssignedPreview));
         OnPropertyChanged(nameof(HasMediaPreview));
         OnPropertyChanged(nameof(HasMonitorAndMediaPreview));
+        OnPropertyChanged(nameof(ShowMonitorSnapshot));
+        OnPropertyChanged(nameof(ShowMonitorLiveVideo));
         OnPropertyChanged(nameof(MonitorPreviewToolTip));
         UpdateMonitorPreviewGeometry();
     }
@@ -205,6 +211,8 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsVideoAssigned));
         OnPropertyChanged(nameof(HasMediaPreview));
         OnPropertyChanged(nameof(HasMonitorAndMediaPreview));
+        OnPropertyChanged(nameof(ShowMonitorSnapshot));
+        OnPropertyChanged(nameof(ShowMonitorLiveVideo));
         OnPropertyChanged(nameof(MonitorPreviewToolTip));
 
         if (IsVideoAssigned)
@@ -240,6 +248,12 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(VideoDurationText));
         OnPropertyChanged(nameof(VideoTimeText));
         UpdateMonitorPreviewGeometry();
+    }
+
+    partial void OnIsVideoPlayingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowMonitorSnapshot));
+        OnPropertyChanged(nameof(ShowMonitorLiveVideo));
     }
 
     partial void OnVideoTimeMsChanged(long value)

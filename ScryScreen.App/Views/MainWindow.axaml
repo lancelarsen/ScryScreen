@@ -181,12 +181,12 @@
                                                 CornerRadius="8"
                                                 Padding="6">
                                             <Grid Height="80">
-                                                <Image Source="{Binding AssignedPreview}"
-                                                       IsVisible="{Binding !IsVideoAssigned}"
-                                                       Stretch="Uniform" />
+                                                  <Image Source="{Binding AssignedPreview}"
+                                                      IsVisible="{Binding HasMediaPreview}"
+                                                      Stretch="Uniform" />
 
-                                                <controls:VlcVideoHost IsVisible="{Binding IsVideoAssigned}"
-                                                                       MediaPlayer="{Binding PreviewVideoPlayer}" />
+                                                  <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
+                                                             MediaPlayer="{Binding PreviewVideoPlayer}" />
                                             </Grid>
                                         </Border>
 
@@ -213,7 +213,7 @@
                                                             Height="{Binding MonitorPreviewScreenHeight}">
                                                         <Canvas>
                                                             <!-- Image preview (cropped/letterboxed by clipping) -->
-                                                            <Border IsVisible="{Binding HasMediaPreview}"
+                                                            <Border IsVisible="{Binding ShowMonitorSnapshot}"
                                                                     Width="{Binding PreviewImageWidth}"
                                                                     Height="{Binding PreviewImageHeight}"
                                                                     Background="#16263B"
@@ -223,7 +223,7 @@
                                                             </Border>
 
                                                             <!-- Video preview (live; synced to portal playback) -->
-                                                            <controls:VlcVideoHost IsVisible="{Binding IsVideoAssigned}"
+                                                            <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
                                                                                    Width="{Binding PreviewImageWidth}"
                                                                                    Height="{Binding PreviewImageHeight}"
                                                                                    Canvas.Left="{Binding PreviewImageLeft}"
