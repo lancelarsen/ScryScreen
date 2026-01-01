@@ -20,6 +20,11 @@ sealed class Program
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+            if (File.Exists(logPath))
+            {
+                File.Delete(logPath);
+            }
+
             Trace.Listeners.Add(new TextWriterTraceListener(logPath));
             Trace.AutoFlush = true;
 
