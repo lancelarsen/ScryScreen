@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using ScryScreen.App.ViewModels;
 using ScryScreen.App.Views;
+using ScryScreen.Core.InitiativeTracker;
 
 namespace ScryScreen.App.Services;
 
@@ -164,6 +165,15 @@ public sealed class PortalHostService
         if (_portals.TryGetValue(portalNumber, out var controller))
         {
             controller.ViewModel.SetText(contentTitle);
+            controller.ViewModel.IsContentVisible = true;
+        }
+    }
+
+    public void SetContentInitiative(int portalNumber, InitiativeTrackerState state)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.SetInitiative(state);
             controller.ViewModel.IsContentVisible = true;
         }
     }

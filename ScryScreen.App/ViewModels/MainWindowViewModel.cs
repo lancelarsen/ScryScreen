@@ -386,7 +386,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void UpdateInitiativeOnSelectedPortals()
     {
-        var text = InitiativeTracker.PortalText;
+        var state = InitiativeTracker.SnapshotState();
         foreach (var portal in Portals)
         {
             if (!portal.IsSelectedForInitiative)
@@ -394,7 +394,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 continue;
             }
 
-            _portalHost.SetContentText(portal.PortalNumber, text);
+            _portalHost.SetContentInitiative(portal.PortalNumber, state);
             portal.CurrentAssignment = "Initiative";
             portal.AssignedMediaFilePath = null;
             portal.AssignedPreview = null;
@@ -407,7 +407,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         portal.IsSelectedForCurrentMedia = false;
 
-        _portalHost.SetContentText(portal.PortalNumber, InitiativeTracker.PortalText);
+        _portalHost.SetContentInitiative(portal.PortalNumber, InitiativeTracker.SnapshotState());
         _portalHost.SetVisibility(portal.PortalNumber, true);
         portal.IsVisible = true;
         portal.CurrentAssignment = "Initiative";

@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ScryScreen.App.ViewModels"
+             mc:Ignorable="d"
+             x:Class="ScryScreen.App.Views.InitiativeTrackerPortalView"
+             x:DataType="vm:InitiativePortalViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.entry">
+      <Setter Property="FontSize" Value="60" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="TextWrapping" Value="NoWrap" />
+      <Setter Property="TextAlignment" Value="Left" />
+    </Style>
+
+    <Style Selector="TextBlock.init">
+      <Setter Property="FontSize" Value="64" />
+      <Setter Property="FontWeight" Value="Black" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="TextWrapping" Value="NoWrap" />
+      <Setter Property="TextAlignment" Value="Right" />
+    </Style>
+
+    <Style Selector="TextBlock.mod">
+      <Setter Property="FontSize" Value="44" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="TextWrapping" Value="NoWrap" />
+      <Setter Property="TextAlignment" Value="Left" />
+    </Style>
+
+    <Style Selector="TextBlock.round">
+      <Setter Property="FontSize" Value="48" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="TextAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid Background="Black">
+    <Grid RowDefinitions="*,Auto" Margin="32">
+      <!-- Row 0 takes remaining space; center the whole table vertically in it. -->
+      <Border VerticalAlignment="Center" HorizontalAlignment="Center" Width="1400" MaxWidth="1600">
+        <ItemsControl ItemsSource="{Binding Entries}" HorizontalAlignment="Stretch">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:InitiativePortalEntryViewModel">
+              <Grid Margin="0,0,0,14"
+                    ColumnDefinitions="44,260,*"
+                    ColumnSpacing="22"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Stretch">
+
+                <!-- Gem marker (always reserves space; only visible for active) -->
+                <Border Width="40"
+                        Height="40"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
+                  <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
+                         Width="36"
+                         Height="36"
+                         IsVisible="{Binding IsActive}" />
+                </Border>
+
+                <!-- Initiative + mod (fixed-width column so names align) -->
+                <Grid Grid.Column="1"
+                      ColumnDefinitions="Auto,Auto"
+                      ColumnSpacing="14"
+                    HorizontalAlignment="Right"
+                      VerticalAlignment="Center">
+                  <TextBlock Classes="init"
+                             Text="{Binding InitiativeDisplay}"
+                       HorizontalAlignment="Right"
+                             VerticalAlignment="Center" />
+
+                  <TextBlock Grid.Column="1"
+                             Classes="mod"
+                             Text="{Binding ModDisplay}"
+                             IsVisible="{Binding HasMod}"
+                             VerticalAlignment="Center" />
+                </Grid>
+
+                <!-- Name (column-aligned) -->
+                <TextBlock Grid.Column="2"
+                           Classes="entry"
+                           Text="{Binding Name}"
+                           TextTrimming="CharacterEllipsis"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+
+      <StackPanel Grid.Row="1"
+                  Orientation="Vertical"
+                  Spacing="6"
+                  HorizontalAlignment="Center"
+                  Margin="0,20,0,0">
+        <TextBlock IsVisible="{Binding HasAdditionalEntries}"
+                   Text="{Binding AdditionalEntriesCount, StringFormat=…{0} more}"
+                   FontSize="32"
+                   FontWeight="SemiBold"
+                   Foreground="#FFFFFF"
+                   TextAlignment="Center"
+                   HorizontalAlignment="Center" />
+
+        <TextBlock Classes="round"
+                   Text="{Binding Round, StringFormat=Round {0}}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

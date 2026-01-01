@@ -6,6 +6,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using LibVLCSharp.Shared;
 using ScryScreen.App.Services;
+using ScryScreen.Core.InitiativeTracker;
 
 namespace ScryScreen.App.ViewModels;
 
@@ -24,6 +25,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     private bool _loopVideo;
     private long? _pendingSeekTimeMs;
     private bool _pendingPrimeFrame;
+    private InitiativePortalViewModel? _initiative;
 
     public PortalWindowViewModel(int portalNumber)
     {
@@ -139,6 +141,26 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public bool HasVideo => !string.IsNullOrWhiteSpace(_contentVideoPath);
 
+    public bool HasInitiative => _initiative is not null;
+
+    public InitiativePortalViewModel? Initiative
+    {
+        get => _initiative;
+        private set
+        {
+            if (ReferenceEquals(_initiative, value))
+            {
+                return;
+            }
+
+            _initiative = value;
+            OnPropertyChanged(nameof(Initiative));
+            OnPropertyChanged(nameof(HasInitiative));
+            OnPropertyChanged(nameof(IsShowingInitiative));
+            OnPropertyChanged(nameof(IsShowingText));
+        }
+    }
+
     public string? ContentVideoPath => _contentVideoPath;
 
     public MediaPlayer VideoPlayer => _mediaPlayer;
@@ -202,7 +224,9 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsShowingVideo => !IsSetup && HasVideo;
 
-    public bool IsShowingText => !IsSetup && !HasImage && !HasVideo;
+    public bool IsShowingInitiative => !IsSetup && HasInitiative;
+
+    public bool IsShowingText => !IsSetup && !HasInitiative && !HasImage && !HasVideo;
 
     public bool IsShowingIdleLogo =>
         IsShowingText && string.Equals(ContentTitle, "Idle", StringComparison.OrdinalIgnoreCase);
@@ -243,6 +267,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     public void SetImage(Bitmap bitmap, string title)
     {
         ContentTitle = title;
+        Initiative = null;
         ClearVideoInternal();
         ContentImage = bitmap;
     }
@@ -250,6 +275,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     public void SetVideo(string filePath, string title, bool loop)
     {
         ContentTitle = title;
+        Initiative = null;
         ContentImage = null;
         _contentVideoPath = filePath;
         _loopVideo = loop;
@@ -331,8 +357,29 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     public void SetText(string text)
     {
         ContentTitle = text;
+        Initiative = null;
         ContentImage = null;
         ClearVideoInternal();
+        IsSetup = false;
+    }
+
+    public void SetInitiative(InitiativeTrackerState state)
+    {
+        if (state is null) throw new ArgumentNullException(nameof(state));
+
+        ContentTitle = "Initiative";
+        ContentImage = null;
+        ClearVideoInternal();
+
+        if (Initiative is null)
+        {
+            Initiative = new InitiativePortalViewModel(state);
+        }
+        else
+        {
+            Initiative.Update(state);
+        }
+
         IsSetup = false;
     }
 
@@ -553,6 +600,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     public void ClearContent(string title = "Idle")
     {
         ContentTitle = title;
+        Initiative = null;
         ContentImage = null;
         ClearVideoInternal();
         IsSetup = true;
