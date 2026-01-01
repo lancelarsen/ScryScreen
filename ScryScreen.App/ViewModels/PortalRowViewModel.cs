@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,6 +18,8 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     private readonly LibVLC _previewLibVlc;
     private readonly MediaPlayer _previewPlayer;
     private Media? _previewMedia;
+    private bool _wasPortalPlaying;
+    private int _isPreviewPriming;
     private readonly DispatcherTimer _videoSyncTimer;
 
     private long _videoLengthMs;
@@ -117,9 +121,9 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
     public bool HasMediaPreview => AssignedPreview is not null;
 
-    public bool ShowMonitorSnapshot => AssignedPreview is not null && (!IsVideoAssigned || !IsVideoPlaying);
+    public bool ShowMonitorSnapshot => AssignedPreview is not null && !IsVideoAssigned;
 
-    public bool ShowMonitorLiveVideo => IsVideoAssigned && IsVideoPlaying;
+    public bool ShowMonitorLiveVideo => IsVideoAssigned;
 
     public bool HasMonitorAndMediaPreview => HasMonitorPreview && HasMediaPreview;
 
@@ -492,6 +496,9 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
             _videoLengthMs = lengthMs;
         }
 
+        var transitionedToPaused = _wasPortalPlaying && !isPlaying;
+        _wasPortalPlaying = isPlaying;
+
         var (pxW, pxH) = _portalHost.GetVideoPixelSize(PortalNumber);
         if (pxW > 0 && pxH > 0 && (_videoPixelW != pxW || _videoPixelH != pxH))
         {
@@ -546,6 +553,8 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
             // ignore
         }
 
+        var didSeekPreview = false;
+
         // Correct drift occasionally.
         try
         {
@@ -553,12 +562,128 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
             if (Math.Abs(previewTime - timeMs) > 250)
             {
                 _previewPlayer.Time = timeMs;
+                didSeekPreview = true;
             }
         }
         catch
         {
             // ignore
         }
+
+        // When pausing, LibVLC may not present the newly-seeked paused frame until a decode occurs.
+        // Prime a single frame at the current paused time so the preview freezes where we paused.
+        if (!isPlaying && (transitionedToPaused || didSeekPreview))
+        {
+            TryPrimePreviewPausedFrame(timeMs);
+        }
+    }
+
+    private void TryPrimePreviewPausedFrame(long targetMs)
+    {
+        if (Interlocked.Exchange(ref _isPreviewPriming, 1) == 1)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                if (OperatingSystem.IsWindows() && _previewPlayer.Hwnd == IntPtr.Zero)
+                {
+                    return;
+                }
+
+                // Don't prime while already playing.
+                if (_previewPlayer.IsPlaying)
+                {
+                    return;
+                }
+
+                var originalMute = false;
+                var originalVolume = 0;
+                try
+                {
+                    originalMute = _previewPlayer.Mute;
+                    originalVolume = _previewPlayer.Volume;
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                try
+                {
+                    try
+                    {
+                        _previewPlayer.Mute = true;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    try
+                    {
+                        if (targetMs < 0) targetMs = 0;
+                        _previewPlayer.Time = targetMs;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    try
+                    {
+                        _previewPlayer.Play();
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    await Task.Delay(90).ConfigureAwait(false);
+
+                    try
+                    {
+                        _previewPlayer.Pause();
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    try
+                    {
+                        _previewPlayer.Time = targetMs;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+                finally
+                {
+                    try
+                    {
+                        _previewPlayer.Mute = originalMute;
+                        _previewPlayer.Volume = originalVolume;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _isPreviewPriming, 0);
+            }
+        });
     }
 
     private static string FormatTime(long ms)

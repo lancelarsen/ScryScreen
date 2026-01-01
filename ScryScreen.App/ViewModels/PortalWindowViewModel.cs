@@ -560,6 +560,31 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             {
                 _mediaPlayer.Pause();
                 _loopArmed = false;
+
+                // Ensure we freeze on the current frame (some codecs/vout paths don't update
+                // the displayed frame at pause time unless a decode occurs).
+                try
+                {
+                    _pendingSeekTimeMs = _mediaPlayer.Time;
+                    _pendingPrimeFrame = true;
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                try
+                {
+                    if (OperatingSystem.IsWindows() && _mediaPlayer.Hwnd != IntPtr.Zero)
+                    {
+                        _ = PrimePausedFrameIfNeededAsync();
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+
                 UpdateLoopTimer();
                 return false;
             }
