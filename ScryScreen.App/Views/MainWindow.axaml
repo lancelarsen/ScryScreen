@@ -762,7 +762,7 @@
                 <!-- Apps controls (Initiative Tracker) -->
                 <Border Classes="card" Padding="10" IsVisible="{Binding IsAppsTabSelected}">
                     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
                             <TextBlock Text="Assign to Portals" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
 
                             <ItemsControl Grid.Column="1" ItemsSource="{Binding Portals}" HorizontalAlignment="Left">
@@ -783,6 +783,38 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <Grid Grid.Column="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                                <TextBlock Grid.Column="0" Text="Turn" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <Button Classes="circleSmall" Command="{Binding InitiativeTracker.PreviousTurnCommand}" ToolTip.Tip="Previous Turn">
+                                        <i:Icon Value="mdi-chevron-left" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    </Button>
+                                    <Button Classes="circleSmall" Command="{Binding InitiativeTracker.NextTurnCommand}" ToolTip.Tip="Next Turn">
+                                        <i:Icon Value="mdi-chevron-right" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    </Button>
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="2" Text="Round" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+
+                                <TextBlock Grid.Column="3"
+                                           Text="{Binding InitiativeTracker.Round}"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ScryAccent}" />
+
+                                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <Button Classes="circleSmall" Command="{Binding InitiativeTracker.IncrementRoundCommand}" ToolTip.Tip="Increment Round">
+                                        <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    </Button>
+                                    <Button Classes="circleSmall" Command="{Binding InitiativeTracker.DecrementRoundCommand}" ToolTip.Tip="Decrement Round">
+                                        <i:Icon Value="mdi-minus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    </Button>
+                                    <Button Classes="circleSmall" Command="{Binding InitiativeTracker.ResetRoundCommand}" ToolTip.Tip="Reset Round">
+                                        <i:Icon Value="mdi-restore" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
                         </Grid>
 
                         <Border Grid.Row="1" Height="1" Background="{DynamicResource ScryBorder}" Opacity="0.6" />

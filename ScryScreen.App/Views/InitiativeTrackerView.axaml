@@ -10,13 +10,18 @@
              x:DataType="vm:InitiativeTrackerViewModel">
 
   <UserControl.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+
     <!-- Make text entry feel consistent and centered in this table -->
     <Style Selector="TextBox">
+      <Setter Property="FontSize" Value="12" />
       <Setter Property="Background" Value="#0A0F18" />
       <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="Padding" Value="10,4" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
 
@@ -37,54 +42,12 @@
     </Style>
   </UserControl.Styles>
 
-  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-    <!-- Line 1: Add + Turn + Round controls -->
-    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-      <Button Grid.Column="0" Classes="circleSmall" Command="{Binding AddEntryCommand}" ToolTip.Tip="Add">
-        <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-      </Button>
-
-      <TextBlock Grid.Column="1" Text="Turn" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-
-      <Button Grid.Column="2" Classes="circleSmall" Command="{Binding PreviousTurnCommand}" ToolTip.Tip="Previous Turn">
-        <i:Icon Value="mdi-chevron-left" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-      </Button>
-      <Button Grid.Column="3" Classes="circleSmall" Command="{Binding NextTurnCommand}" ToolTip.Tip="Next Turn">
-        <i:Icon Value="mdi-chevron-right" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-      </Button>
-
-      <TextBlock Grid.Column="4" Text="Round" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-
-      <TextBox Grid.Column="5"
-           Width="80"
-           IsReadOnly="True"
-           Text="{Binding Round}" />
-
-      <Button Grid.Column="6" Classes="circleSmall" Command="{Binding IncrementRoundCommand}" ToolTip.Tip="Increment Round">
-        <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-      </Button>
-      <Button Grid.Column="7" Classes="circleSmall" Command="{Binding DecrementRoundCommand}" ToolTip.Tip="Decrement Round">
-        <i:Icon Value="mdi-minus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-      </Button>
-
-      <Button Grid.Column="8"
-              Classes="circleSmall"
-              Command="{Binding ResetRoundCommand}"
-              ToolTip.Tip="Reset Round">
-        <i:Icon Value="mdi-restore" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-      </Button>
-    </Grid>
-
-    <!-- Line 2: Separator between controls and list -->
-    <Border Grid.Row="1" Height="1" Background="{DynamicResource ScryBorder}" Opacity="0.6" />
-
-    <!-- Line 3: Entries + Empty state -->
-    <Grid Grid.Row="2">
+  <Grid>
       <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <ItemsControl ItemsSource="{Binding Entries}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:InitiativeEntryViewModel" x:CompileBindings="False">
-                    <Grid ColumnDefinitions="24,Auto,Auto,3*,7*,Auto,Auto" ColumnSpacing="10" Margin="0,0,0,8" VerticalAlignment="Center">
+                    <Grid ColumnDefinitions="24,Auto,Auto,3*,7*,36,36,36" ColumnSpacing="4" Margin="0,0,0,4" VerticalAlignment="Center">
               <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
                 Width="20"
                 Height="20"
@@ -98,7 +61,7 @@
                        TextAlignment="Center"
                        HorizontalContentAlignment="Center"
                        Watermark="Init"
-                       beh:NumericTextBoxBehavior.IsEnabled="True"
+                       beh:NumericTextBoxBehavior.IsNumericOnly="True"
                        beh:SelectAllOnFocusBehavior.IsEnabled="True"
                        Text="{Binding Initiative, Mode=TwoWay}" />
 
@@ -108,7 +71,7 @@
                        TextAlignment="Center"
                        HorizontalContentAlignment="Center"
                        Watermark="Mod"
-                       beh:NumericTextBoxBehavior.IsEnabled="True"
+                       beh:NumericTextBoxBehavior.IsNumericOnly="True"
                        beh:SelectAllOnFocusBehavior.IsEnabled="True"
                        Text="{Binding Mod, Mode=TwoWay}" />
 
@@ -129,6 +92,14 @@
                       Command="{Binding DataContext.RemoveEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                       CommandParameter="{Binding .}">
                 <i:Icon Value="mdi-delete" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
+              </Button>
+
+              <Button Grid.Column="7"
+                      Classes="circleSmall"
+                      IsVisible="{Binding IsLast}"
+                      ToolTip.Tip="Add Row"
+                      Command="{Binding DataContext.AddEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
               </Button>
             </Grid>
             </DataTemplate>
@@ -169,5 +140,4 @@
         </Grid>
       </Border>
     </Grid>
-  </Grid>
 </UserControl>

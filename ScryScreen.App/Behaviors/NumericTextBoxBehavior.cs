@@ -5,26 +5,28 @@ using Avalonia.Input;
 
 namespace ScryScreen.App.Behaviors;
 
-public static class NumericTextBoxBehavior
+public sealed class NumericTextBoxBehavior
 {
-    public static readonly AttachedProperty<bool> IsEnabledProperty =
-        AvaloniaProperty.RegisterAttached<TextBox, Control, bool>("IsEnabled");
+    private NumericTextBoxBehavior() { }
+
+    public static readonly AttachedProperty<bool> IsNumericOnlyProperty =
+        AvaloniaProperty.RegisterAttached<NumericTextBoxBehavior, TextBox, bool>("IsNumericOnly");
 
     private static readonly AttachedProperty<string> LastGoodTextProperty =
-        AvaloniaProperty.RegisterAttached<TextBox, Control, string>("LastGoodText", defaultValue: string.Empty);
+        AvaloniaProperty.RegisterAttached<NumericTextBoxBehavior, TextBox, string>("LastGoodText", defaultValue: string.Empty);
 
     private static readonly Regex IntegerRegex = new("^-?\\d*$", RegexOptions.Compiled);
 
     static NumericTextBoxBehavior()
     {
-        IsEnabledProperty.Changed.AddClassHandler<TextBox>(OnIsEnabledChanged);
+        IsNumericOnlyProperty.Changed.AddClassHandler<TextBox>(OnIsNumericOnlyChanged);
     }
 
-    public static bool GetIsEnabled(AvaloniaObject obj) => obj.GetValue(IsEnabledProperty);
+    public static bool GetIsNumericOnly(AvaloniaObject obj) => obj.GetValue(IsNumericOnlyProperty);
 
-    public static void SetIsEnabled(AvaloniaObject obj, bool value) => obj.SetValue(IsEnabledProperty, value);
+    public static void SetIsNumericOnly(AvaloniaObject obj, bool value) => obj.SetValue(IsNumericOnlyProperty, value);
 
-    private static void OnIsEnabledChanged(TextBox textBox, AvaloniaPropertyChangedEventArgs args)
+    private static void OnIsNumericOnlyChanged(TextBox textBox, AvaloniaPropertyChangedEventArgs args)
     {
         if (args.NewValue is bool enabled)
         {

@@ -95,6 +95,12 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             return;
         }
 
+        if (e.PropertyName is nameof(InitiativeEntryViewModel.IsLast))
+        {
+            // UI-only; driven by collection ordering.
+            return;
+        }
+
         // Any change affects portal output.
         var needsResort = e.PropertyName is nameof(InitiativeEntryViewModel.Initiative)
             or nameof(InitiativeEntryViewModel.Mod);
@@ -315,6 +321,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     private void ReorderCollectionToMatchState()
     {
+        UpdateLastEntryFlags();
+
         if (_state.Entries.Length <= 1 || Entries.Count <= 1)
         {
             return;
@@ -351,6 +359,15 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         }
 
         UpdateActiveFlags();
+        UpdateLastEntryFlags();
+    }
+
+    private void UpdateLastEntryFlags()
+    {
+        for (var i = 0; i < Entries.Count; i++)
+        {
+            Entries[i].IsLast = i == Entries.Count - 1;
+        }
     }
 
     private void UpdateActiveFlags()
