@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,6 +14,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 {
     private InitiativeTrackerState _state = InitiativeTrackerState.Empty;
 
+    private bool _isReordering;
+
     public event Action? StateChanged;
 
     public InitiativeTrackerViewModel()
@@ -23,13 +26,16 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     public ObservableCollection<InitiativeEntryViewModel> Entries { get; } = new();
 
     [ObservableProperty]
-    private InitiativeEntryViewModel? selectedEntry;
-
-    [ObservableProperty]
     private string newName = string.Empty;
 
     [ObservableProperty]
     private int newInitiative;
+
+    [ObservableProperty]
+    private int newMod;
+
+    [ObservableProperty]
+    private string? newNotes;
 
     [ObservableProperty]
     private bool newIsHidden;
@@ -61,13 +67,27 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             }
         }
 
-        RebuildStateFromEntries(sort: false);
+        RebuildStateFromEntries(sort: true);
     }
 
     private void OnEntryPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (_isReordering)
+        {
+            // Collection is being re-ordered to match sorted state; avoid loops.
+            RebuildStateFromEntries(sort: false);
+            return;
+        }
+
         // Any change affects portal output.
-        RebuildStateFromEntries(sort: false);
+        var needsResort = e.PropertyName is nameof(InitiativeEntryViewModel.Initiative)
+            or nameof(InitiativeEntryViewModel.Mod);
+
+        RebuildStateFromEntries(sort: needsResort);
+        if (needsResort)
+        {
+            ReorderCollectionToMatchState();
+        }
     }
 
     [RelayCommand]
@@ -78,37 +98,40 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         {
             Name = NewName,
             Initiative = NewInitiative,
+            Mod = NewMod,
             IsHidden = NewIsHidden,
+            Notes = NewNotes,
         };
 
         Entries.Add(vm);
-        SelectedEntry = vm;
 
         NewName = string.Empty;
         NewInitiative = 0;
+        NewMod = 0;
+        NewNotes = null;
         NewIsHidden = false;
 
-        Sort();
+        RebuildStateFromEntries(sort: true);
+        ReorderCollectionToMatchState();
     }
 
     [RelayCommand]
-    private void RemoveSelected()
+    private void RemoveEntry(InitiativeEntryViewModel? entry)
     {
-        if (SelectedEntry is null)
+        if (entry is null)
         {
             return;
         }
 
-        var toRemove = SelectedEntry;
-        SelectedEntry = null;
-        Entries.Remove(toRemove);
+        Entries.Remove(entry);
+        RebuildStateFromEntries(sort: true);
+        ReorderCollectionToMatchState();
     }
 
     [RelayCommand]
     private void ClearAll()
     {
         Entries.Clear();
-        SelectedEntry = null;
         _state = InitiativeTrackerState.Empty;
         Round = _state.Round;
         RaisePortalTextChanged();
@@ -118,18 +141,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     private void Sort()
     {
         RebuildStateFromEntries(sort: true);
-
-        // Reorder the collection to match sorted state.
-        var sortedIds = _state.Entries.Select(e => e.Id).ToArray();
-        var current = Entries.ToList();
-        Entries.Clear();
-        foreach (var id in sortedIds)
-        {
-            var vm = current.First(x => x.Id == id);
-            Entries.Add(vm);
-        }
-
-        RaisePortalTextChanged();
+        ReorderCollectionToMatchState();
     }
 
     [RelayCommand]
@@ -149,18 +161,6 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void SetActiveToSelected()
-    {
-        if (SelectedEntry is null)
-        {
-            return;
-        }
-
-        _state = InitiativeTrackerEngine.SetActive(_state, SelectedEntry.Id);
-        RaisePortalTextChanged();
-    }
-
-    [RelayCommand]
     private void ResetRound()
     {
         _state = InitiativeTrackerEngine.SetRound(_state, 1);
@@ -168,9 +168,25 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         RaisePortalTextChanged();
     }
 
+    [RelayCommand]
+    private void IncrementRound()
+    {
+        _state = InitiativeTrackerEngine.SetRound(_state, _state.Round + 1);
+        Round = _state.Round;
+        RaisePortalTextChanged();
+    }
+
+    [RelayCommand]
+    private void DecrementRound()
+    {
+        _state = InitiativeTrackerEngine.SetRound(_state, _state.Round - 1);
+        Round = _state.Round;
+        RaisePortalTextChanged();
+    }
+
     partial void OnRoundChanged(int value)
     {
-        // Round is editable; keep engine normalized.
+        // Round can be changed via commands; normalize if it changes for any other reason.
         _state = InitiativeTrackerEngine.SetRound(_state, value);
         RaisePortalTextChanged();
     }
@@ -181,6 +197,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
                 Id: vm.Id,
                 Name: vm.Name,
                 Initiative: vm.Initiative,
+                Mod: vm.Mod,
                 IsHidden: vm.IsHidden,
                 Notes: vm.Notes))
             .ToArray();
@@ -199,6 +216,44 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         _state = next;
         Round = _state.Round;
         RaisePortalTextChanged();
+    }
+
+    private void ReorderCollectionToMatchState()
+    {
+        if (_state.Entries.Length <= 1 || Entries.Count <= 1)
+        {
+            return;
+        }
+
+        var currentById = Entries.ToDictionary(x => x.Id);
+        var ordered = new List<InitiativeEntryViewModel>(_state.Entries.Length);
+        foreach (var entry in _state.Entries)
+        {
+            if (currentById.TryGetValue(entry.Id, out var vm))
+            {
+                ordered.Add(vm);
+            }
+        }
+
+        if (ordered.Count != Entries.Count)
+        {
+            // Defensive: if collection/state got out of sync, don't try to reorder.
+            return;
+        }
+
+        _isReordering = true;
+        try
+        {
+            Entries.Clear();
+            foreach (var vm in ordered)
+            {
+                Entries.Add(vm);
+            }
+        }
+        finally
+        {
+            _isReordering = false;
+        }
     }
 
     private void RaisePortalTextChanged()

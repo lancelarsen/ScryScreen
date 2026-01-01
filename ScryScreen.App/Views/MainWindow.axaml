@@ -540,24 +540,28 @@
                                             BorderThickness="1"
                                             CornerRadius="10"
                                             Padding="12">
-                                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                            <ToggleButton Classes="circleSmall"
-                                                          IsChecked="{Binding IsInitiativeBroadcastEnabled, Mode=TwoWay}"
-                                                          ToolTip.Tip="Broadcast tracker to all portals">
-                                                <i:Icon Value="mdi-broadcast" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                                            </ToggleButton>
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
+                                            <TextBlock Text="Initiative Tracker" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
 
-                                            <Button Content="Send Now"
-                                                    Command="{Binding BroadcastInitiativeToAllPortalsCommand}" />
+                                            <ItemsControl Grid.Column="1" ItemsSource="{Binding Portals}" HorizontalAlignment="Left">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
 
-                                            <Button Content="Clear From Portals"
-                                                    Command="{Binding ClearInitiativeFromAllPortalsCommand}" />
-
-                                            <TextBlock Text="Broadcast pushes the tracker text to all portals on every change."
-                                                       Foreground="{DynamicResource ScryTextMuted}"
-                                                       VerticalAlignment="Center"
-                                                       TextWrapping="Wrap" />
-                                        </StackPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
+                                                        <ToggleButton Classes="circleSmall"
+                                                                      Content="{Binding PortalNumber}"
+                                                                      ToolTip.Tip="Show Initiative Tracker on this Portal"
+                                                                      IsChecked="{Binding IsSelectedForInitiative, Mode=TwoWay}"
+                                                                      Command="{Binding DataContext.ToggleInitiativeForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                      CommandParameter="{Binding .}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
                                     </Border>
 
                                     <Border Grid.Row="1" Classes="card" Padding="14">

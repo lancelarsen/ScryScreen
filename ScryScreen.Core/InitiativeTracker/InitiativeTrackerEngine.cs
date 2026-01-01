@@ -122,10 +122,11 @@ public static class InitiativeTrackerEngine
 
         var activeId = state.ActiveId;
 
-        // Stable sort: initiative desc, then name, then Id.
+        // Stable sort: initiative desc, then mod desc, then name, then Id.
         var sorted = state.Entries
             .Select((e, idx) => (Entry: Normalize(e), OriginalIndex: idx))
             .OrderByDescending(x => x.Entry.Initiative)
+            .ThenByDescending(x => x.Entry.Mod)
             .ThenBy(x => x.Entry.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(x => x.Entry.Id)
             .ThenBy(x => x.OriginalIndex)

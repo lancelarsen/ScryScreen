@@ -20,8 +20,6 @@ public partial class MainWindow : Window
         Closing += OnClosing;
 
         Opened += (_, _) => DockToTopFullWidth();
-        PositionChanged += (_, _) => DockToTopFullWidth();
-        PropertyChanged += (_, _) => DockToTopFullWidth();
         DataContextChanged += (_, _) => HookViewModel();
         HookViewModel();
     }
@@ -77,8 +75,9 @@ public partial class MainWindow : Window
         var workingArea = currentScreen.WorkingArea;
 
         var scaling = currentScreen.Scaling <= 0 ? 1.0 : currentScreen.Scaling;
-        var targetWidth = workingArea.Width / scaling;
-        var targetMaxHeight = workingArea.Height / scaling;
+        // Round to whole DIP units to avoid tiny DPI conversion oscillations.
+        var targetWidth = Math.Round(workingArea.Width / scaling);
+        var targetMaxHeight = Math.Round(workingArea.Height / scaling);
 
         _pinning = true;
         try
@@ -92,7 +91,6 @@ public partial class MainWindow : Window
 
             if (!double.IsNaN(targetWidth) && targetWidth > 0)
             {
-                // Allow a small epsilon to avoid churn from fractional DIP conversions.
                 if (double.IsNaN(Width) || Math.Abs(Width - targetWidth) > 0.5)
                 {
                     Width = targetWidth;

@@ -98,6 +98,9 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     private bool isSelectedForCurrentMedia;
 
     [ObservableProperty]
+    private bool isSelectedForInitiative;
+
+    [ObservableProperty]
     private Bitmap? assignedPreview;
 
     [ObservableProperty]

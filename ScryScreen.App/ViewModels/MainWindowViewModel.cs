@@ -50,45 +50,23 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public InitiativeTrackerViewModel InitiativeTracker => _initiativeTracker;
 
-    [ObservableProperty]
-    private bool isInitiativeBroadcastEnabled;
-
-    partial void OnIsInitiativeBroadcastEnabledChanged(bool value)
-    {
-        if (value)
-        {
-            BroadcastInitiativeToAllPortals();
-        }
-    }
-
     [RelayCommand]
-    private void BroadcastInitiativeToAllPortals()
+    private void ToggleInitiativeForPortal(PortalRowViewModel? portal)
     {
-        var text = InitiativeTracker.PortalText;
-        foreach (var portal in Portals)
+        if (portal is null)
         {
-            _portalHost.SetContentText(portal.PortalNumber, text);
-            _portalHost.SetVisibility(portal.PortalNumber, true);
-            portal.IsVisible = true;
-            portal.CurrentAssignment = "Initiative";
-            portal.AssignedMediaFilePath = null;
-            portal.AssignedPreview = null;
-            portal.IsVideoPlaying = false;
-            portal.IsVideoLoop = false;
+            return;
         }
-    }
 
-    [RelayCommand]
-    private void ClearInitiativeFromAllPortals()
-    {
-        foreach (var portal in Portals)
+        // NOTE: IsSelectedForInitiative is TwoWay-bound; it already reflects the click.
+        if (portal.IsSelectedForInitiative)
         {
-            _portalHost.ClearContent(portal.PortalNumber, contentTitle: "Idle");
-            portal.CurrentAssignment = "Idle";
-            portal.AssignedMediaFilePath = null;
-            portal.AssignedPreview = null;
-            portal.IsVideoPlaying = false;
-            portal.IsVideoLoop = false;
+            PushSnapshot(portal);
+            ApplyInitiativeToPortal(portal);
+        }
+        else
+        {
+            RestorePreviousContent(portal);
         }
     }
 
@@ -351,6 +329,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void ApplyMediaToPortal(PortalRowViewModel portal, string displayName, string filePath)
     {
+        portal.IsSelectedForInitiative = false;
+
         portal.CurrentAssignment = displayName;
         portal.AssignedMediaFilePath = filePath;
         portal.ScaleMode = SelectedScaleMode;
@@ -381,10 +361,40 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnInitiativeStateChanged()
     {
-        if (IsInitiativeBroadcastEnabled)
+        UpdateInitiativeOnSelectedPortals();
+    }
+
+    private void UpdateInitiativeOnSelectedPortals()
+    {
+        var text = InitiativeTracker.PortalText;
+        foreach (var portal in Portals)
         {
-            BroadcastInitiativeToAllPortals();
+            if (!portal.IsSelectedForInitiative)
+            {
+                continue;
+            }
+
+            _portalHost.SetContentText(portal.PortalNumber, text);
+            portal.CurrentAssignment = "Initiative";
+            portal.AssignedMediaFilePath = null;
+            portal.AssignedPreview = null;
+            portal.IsVideoPlaying = false;
+            portal.IsVideoLoop = false;
         }
+    }
+
+    private void ApplyInitiativeToPortal(PortalRowViewModel portal)
+    {
+        portal.IsSelectedForCurrentMedia = false;
+
+        _portalHost.SetContentText(portal.PortalNumber, InitiativeTracker.PortalText);
+        _portalHost.SetVisibility(portal.PortalNumber, true);
+        portal.IsVisible = true;
+        portal.CurrentAssignment = "Initiative";
+        portal.AssignedMediaFilePath = null;
+        portal.AssignedPreview = null;
+        portal.IsVideoPlaying = false;
+        portal.IsVideoLoop = false;
     }
 
     private static async Task UpdatePortalVideoSnapshotAsync(PortalRowViewModel portal, string expectedFilePath)
@@ -500,6 +510,7 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.CurrentAssignment = "Idle";
         portal.AssignedPreview = null;
         portal.IsSelectedForCurrentMedia = false;
+        portal.IsSelectedForInitiative = false;
         portal.IsVideoPlaying = false;
         portal.IsVideoLoop = false;
 

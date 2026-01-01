@@ -56,7 +56,9 @@ public static class InitiativeTrackerFormatter
             if (options.ShowInitiativeValues)
             {
                 sb.Append(e.Initiative);
-                sb.Append("  ");
+                sb.Append(" (");
+                sb.Append(e.Mod);
+                sb.Append(")  ");
             }
 
             sb.Append(e.Name);

@@ -3,72 +3,146 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ScryScreen.App.ViewModels"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
              mc:Ignorable="d"
              x:Class="ScryScreen.App.Views.InitiativeTrackerView"
              x:DataType="vm:InitiativeTrackerViewModel">
 
-  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
-    <TextBlock Text="Initiative Tracker" FontSize="16" FontWeight="SemiBold" />
+  <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+    <!-- Line 1: Turn + Round controls -->
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+      <TextBlock Text="Turn" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
-    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-      <!-- Entries list -->
-      <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="10">
-        <Grid RowDefinitions="Auto,*" RowSpacing="8">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Sort" Command="{Binding SortCommand}" />
-            <Button Content="Prev" Command="{Binding PreviousTurnCommand}" />
-            <Button Content="Next" Command="{Binding NextTurnCommand}" />
-            <Button Content="Set Active" Command="{Binding SetActiveToSelectedCommand}" />
-            <Button Content="Reset Round" Command="{Binding ResetRoundCommand}" />
-          </StackPanel>
+      <Button Grid.Column="1" Classes="circleSmall" Command="{Binding NextTurnCommand}" ToolTip.Tip="Next Turn">
+        <i:Icon Value="mdi-skip-next" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+      </Button>
+      <Button Grid.Column="2" Classes="circleSmall" Command="{Binding PreviousTurnCommand}" ToolTip.Tip="Previous Turn">
+        <i:Icon Value="mdi-skip-previous" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+      </Button>
 
-          <Grid Grid.Row="1" ColumnDefinitions="*" RowDefinitions="Auto,*" RowSpacing="8">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <TextBlock Text="Round" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-              <NumericUpDown Width="80" Minimum="1" Value="{Binding Round, Mode=TwoWay}" />
-            </StackPanel>
+      <TextBlock Grid.Column="3" Text="Round" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
-            <ListBox Grid.Row="1" ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry, Mode=TwoWay}">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:InitiativeEntryViewModel">
-                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                    <TextBlock Text="{Binding Initiative}" Width="36" HorizontalAlignment="Right" />
-                    <StackPanel Grid.Column="1" Spacing="2">
-                      <TextBox Text="{Binding Name, Mode=TwoWay}" Watermark="Name" />
-                      <TextBox Text="{Binding Notes, Mode=TwoWay}" Watermark="Notes (optional)" FontSize="11" />
-                    </StackPanel>
-                    <ToggleSwitch Grid.Column="2" IsChecked="{Binding IsHidden, Mode=TwoWay}" Content="Hidden" />
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </Grid>
-        </Grid>
-      </Border>
+      <Grid Grid.Column="4" ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
+        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Column="1"
+                       Width="80"
+                       Minimum="1"
+                       IsEnabled="False"
+                       Value="{Binding Round}" />
+        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+      </Grid>
 
-      <!-- Right rail: add/remove + portal text preview -->
-      <StackPanel Grid.Column="1" Spacing="10" Width="260">
-        <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="10">
-          <StackPanel Spacing="8">
-            <TextBlock Text="Add" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
-            <TextBox Text="{Binding NewName, Mode=TwoWay}" Watermark="Name" />
-            <NumericUpDown Value="{Binding NewInitiative, Mode=TwoWay}" Watermark="Initiative" />
-            <ToggleSwitch IsChecked="{Binding NewIsHidden, Mode=TwoWay}" Content="Hidden" />
-            <Button Content="Add Entry" Command="{Binding AddEntryCommand}" />
-            <Button Content="Remove Selected" Command="{Binding RemoveSelectedCommand}" />
-            <Button Content="Clear All" Command="{Binding ClearAllCommand}" />
-          </StackPanel>
-        </Border>
+      <Button Grid.Column="5" Classes="circleSmall" Command="{Binding IncrementRoundCommand}" ToolTip.Tip="Increment Round">
+        <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+      </Button>
+      <Button Grid.Column="6" Classes="circleSmall" Command="{Binding DecrementRoundCommand}" ToolTip.Tip="Decrement Round">
+        <i:Icon Value="mdi-minus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+      </Button>
 
-        <Border Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="10">
-          <StackPanel Spacing="6">
-            <TextBlock Text="Portal Preview" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
-            <TextBox Text="{Binding PortalText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="180" />
-          </StackPanel>
-        </Border>
-      </StackPanel>
+      <Button Grid.Column="7"
+              Classes="circleSmall"
+              Command="{Binding ResetRoundCommand}"
+              ToolTip.Tip="Reset Round">
+        <i:Icon Value="mdi-restore" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+      </Button>
     </Grid>
 
-    <TextBlock Grid.Row="2" Text="Tip: enable broadcast in Apps tab to push the tracker to all portals." Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
+    <!-- Line 2: Headers -->
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,*,Auto,Auto" ColumnSpacing="10">
+      <TextBlock Text="Init" Foreground="{DynamicResource ScryTextMuted}" />
+      <TextBlock Grid.Column="1" Text="Mod" Foreground="{DynamicResource ScryTextMuted}" />
+      <TextBlock Grid.Column="2" Text="Name" Foreground="{DynamicResource ScryTextMuted}" />
+      <TextBlock Grid.Column="3" Text="GM Notes" Foreground="{DynamicResource ScryTextMuted}" />
+      <Border Grid.Column="4" />
+      <Border Grid.Column="5" />
+    </Grid>
+
+    <!-- Line 3: New row (add) -->
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+      <Grid ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
+        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Column="1" Width="70" Value="{Binding NewInitiative, Mode=TwoWay}" />
+        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+      </Grid>
+
+      <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
+        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Column="1" Width="70" Value="{Binding NewMod, Mode=TwoWay}" />
+        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+      </Grid>
+
+      <Grid Grid.Column="2" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+        <TextBox Grid.Column="1" Text="{Binding NewName, Mode=TwoWay}" />
+        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+      </Grid>
+
+      <Grid Grid.Column="3" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+        <TextBox Grid.Column="1" Text="{Binding NewNotes, Mode=TwoWay}" />
+        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+      </Grid>
+
+      <ToggleButton Grid.Column="4" Classes="circleSmall noAccent" IsChecked="{Binding NewIsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
+        <Grid>
+          <i:Icon IsVisible="{Binding !NewIsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+          <i:Icon IsVisible="{Binding NewIsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+        </Grid>
+      </ToggleButton>
+
+      <Button Grid.Column="5" Classes="circleSmall" Command="{Binding AddEntryCommand}" ToolTip.Tip="Add">
+        <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+      </Button>
+    </Grid>
+
+    <!-- Line 4: Entries -->
+    <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Entries}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:InitiativeEntryViewModel" x:CompileBindings="False">
+            <Grid ColumnDefinitions="Auto,Auto,*,*,Auto,Auto" ColumnSpacing="10" Margin="0,0,0,8" VerticalAlignment="Center">
+              <Grid ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
+                <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                <NumericUpDown Grid.Column="1" Width="70" Value="{Binding Initiative, Mode=TwoWay}" />
+                <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+              </Grid>
+
+              <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
+                <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                <NumericUpDown Grid.Column="1" Width="70" Value="{Binding Mod, Mode=TwoWay}" />
+                <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+              </Grid>
+
+              <Grid Grid.Column="2" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Text="{Binding Name, Mode=TwoWay}" />
+                <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+              </Grid>
+
+              <Grid Grid.Column="3" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Text="{Binding Notes, Mode=TwoWay}" />
+                <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+              </Grid>
+
+              <ToggleButton Grid.Column="4" Classes="circleSmall noAccent" IsChecked="{Binding IsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
+                <Grid>
+                  <i:Icon IsVisible="{Binding !IsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                  <i:Icon IsVisible="{Binding IsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                </Grid>
+              </ToggleButton>
+
+              <Button Grid.Column="5"
+                      Classes="circleSmall"
+                      ToolTip.Tip="Delete"
+                      Command="{Binding DataContext.RemoveEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      CommandParameter="{Binding .}">
+                <i:Icon Value="mdi-delete" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+              </Button>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
   </Grid>
 </UserControl>

@@ -19,6 +19,9 @@ public sealed partial class InitiativeEntryViewModel : ViewModelBase
     private int initiative;
 
     [ObservableProperty]
+    private int mod;
+
+    [ObservableProperty]
     private bool isHidden;
 
     [ObservableProperty]
