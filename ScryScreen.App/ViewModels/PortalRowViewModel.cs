@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LibVLCSharp.Shared;
 using ScryScreen.App.Services;
+using ScryScreen.Core.Utilities;
 
 namespace ScryScreen.App.ViewModels;
 
@@ -19,7 +20,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     private readonly MediaPlayer _previewPlayer;
     private Media? _previewMedia;
     private bool _wasPortalPlaying;
-    private int _isPreviewPriming;
+    private readonly VideoPausedFramePrimer _pausedFramePrimer;
     private readonly DispatcherTimer _videoSyncTimer;
 
     private long _videoLengthMs;
@@ -42,6 +43,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
         _previewLibVlc = new LibVLC("--no-video-title-show");
         _previewPlayer = new MediaPlayer(_previewLibVlc);
+        _pausedFramePrimer = new VideoPausedFramePrimer(new TaskVideoDelay());
         _videoSyncTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background, (_, _) => SyncVideo());
     }
 
@@ -83,9 +85,9 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
     public bool HasVideoTimeline => IsVideoAssigned && _videoLengthMs > 0;
 
-    public string VideoTimeText => FormatTime(VideoTimeMs);
+    public string VideoTimeText => TimeFormatter.FormatMs(VideoTimeMs);
 
-    public string VideoDurationText => FormatTime(_videoLengthMs);
+    public string VideoDurationText => TimeFormatter.FormatMs(_videoLengthMs);
 
     [ObservableProperty]
     private long videoTimeMs;
@@ -580,121 +582,27 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
     private void TryPrimePreviewPausedFrame(long targetMs)
     {
-        if (Interlocked.Exchange(ref _isPreviewPriming, 1) == 1)
+        if (_pausedFramePrimer.IsPriming)
         {
             return;
         }
 
+        var adapter = new LibVlcMediaPlayerPlaybackAdapter(_previewPlayer);
         _ = Task.Run(async () =>
         {
             try
             {
-                if (OperatingSystem.IsWindows() && _previewPlayer.Hwnd == IntPtr.Zero)
-                {
-                    return;
-                }
-
-                // Don't prime while already playing.
-                if (_previewPlayer.IsPlaying)
-                {
-                    return;
-                }
-
-                var originalMute = false;
-                var originalVolume = 0;
-                try
-                {
-                    originalMute = _previewPlayer.Mute;
-                    originalVolume = _previewPlayer.Volume;
-                }
-                catch
-                {
-                    // ignore
-                }
-
-                try
-                {
-                    try
-                    {
-                        _previewPlayer.Mute = true;
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-
-                    try
-                    {
-                        if (targetMs < 0) targetMs = 0;
-                        _previewPlayer.Time = targetMs;
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-
-                    try
-                    {
-                        _previewPlayer.Play();
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-
-                    await Task.Delay(90).ConfigureAwait(false);
-
-                    try
-                    {
-                        _previewPlayer.Pause();
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-
-                    try
-                    {
-                        _previewPlayer.Time = targetMs;
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-                }
-                finally
-                {
-                    try
-                    {
-                        _previewPlayer.Mute = originalMute;
-                        _previewPlayer.Volume = originalVolume;
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-                }
+                await _pausedFramePrimer.PrimePausedFrameAsync(
+                    adapter,
+                    targetMs,
+                    isNativeTargetReady: () => !OperatingSystem.IsWindows() || _previewPlayer.Hwnd != IntPtr.Zero,
+                    decodeDelayMs: 90).ConfigureAwait(false);
             }
             catch
             {
                 // ignore
             }
-            finally
-            {
-                Interlocked.Exchange(ref _isPreviewPriming, 0);
-            }
         });
-    }
-
-    private static string FormatTime(long ms)
-    {
-        if (ms < 0) ms = 0;
-        var ts = TimeSpan.FromMilliseconds(ms);
-        if (ts.TotalHours >= 1)
-        {
-            return ts.ToString("h\\:mm\\:ss");
-        }
-        return ts.ToString("m\\:ss");
     }
 
     partial void OnIsVisibleChanged(bool value)

@@ -1,3 +1,5 @@
 https://fonts.google.com/icons?icon.query=eye
 
+dotnet test
+
 dotnet run --project .\ScryScreen.App\ScryScreen.App.csproj -c Debug

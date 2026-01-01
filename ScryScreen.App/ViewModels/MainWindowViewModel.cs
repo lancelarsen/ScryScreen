@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScryScreen.App.Services;
+using ScryScreen.Core.Utilities;
 
 namespace ScryScreen.App.ViewModels;
 
@@ -238,14 +239,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private int GetNextAvailablePortalNumber()
     {
         // Reuse the lowest available number so add/remove doesn't collide.
-        var used = new System.Collections.Generic.HashSet<int>(Portals.Select(p => p.PortalNumber));
-        var candidate = 1;
-        while (used.Contains(candidate))
-        {
-            candidate++;
-        }
-
-        return candidate;
+        return PortalNumberAllocator.GetNextAvailable(Portals.Select(p => p.PortalNumber));
     }
 
     public void ImportMediaFolder(string folderPath)
