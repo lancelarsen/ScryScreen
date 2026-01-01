@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:ScryScreen.App.ViewModels"
     xmlns:controls="using:ScryScreen.App.Controls"
+    xmlns:views="using:ScryScreen.App.Views"
     xmlns:i="https://github.com/projektanker/icons.avalonia"
     xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -533,21 +534,36 @@
                                 </Grid>
 
                                 <!-- Apps content -->
-                                <Border IsVisible="{Binding IsAppsTabSelected}"
-                                        Background="#0A0F18"
-                                        BorderBrush="{DynamicResource ScryBorder}"
-                                        BorderThickness="1"
-                                        CornerRadius="10"
-                                        Padding="16"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        MaxWidth="560">
-                                    <StackPanel Spacing="8">
-                                        <TextBlock Text="ScryPortalApps" FontWeight="SemiBold" />
-                                        <TextBlock Text="Launch apps like Initiative Tracker and assign them to portals." Foreground="{DynamicResource ScryTextMuted}" TextWrapping="Wrap" />
-                                        <TextBlock Text="(App framework coming after Media MVP)" Foreground="{DynamicResource ScryTextMuted}" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
+                                <Grid IsVisible="{Binding IsAppsTabSelected}" RowDefinitions="Auto,*" RowSpacing="10">
+                                    <Border Background="#0A0F18"
+                                            BorderBrush="{DynamicResource ScryBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="12">
+                                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                            <ToggleButton Classes="circleSmall"
+                                                          IsChecked="{Binding IsInitiativeBroadcastEnabled, Mode=TwoWay}"
+                                                          ToolTip.Tip="Broadcast tracker to all portals">
+                                                <i:Icon Value="mdi-broadcast" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                            </ToggleButton>
+
+                                            <Button Content="Send Now"
+                                                    Command="{Binding BroadcastInitiativeToAllPortalsCommand}" />
+
+                                            <Button Content="Clear From Portals"
+                                                    Command="{Binding ClearInitiativeFromAllPortalsCommand}" />
+
+                                            <TextBlock Text="Broadcast pushes the tracker text to all portals on every change."
+                                                       Foreground="{DynamicResource ScryTextMuted}"
+                                                       VerticalAlignment="Center"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Grid.Row="1" Classes="card" Padding="14">
+                                        <views:InitiativeTrackerView DataContext="{Binding InitiativeTracker}" />
+                                    </Border>
+                                </Grid>
                             </Grid>
                         </Grid>
                     </Border>

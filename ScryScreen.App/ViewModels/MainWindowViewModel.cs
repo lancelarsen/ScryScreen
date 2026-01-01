@@ -17,6 +17,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ReadOnlyCollection<ScreenInfoViewModel> _screens;
     private string? _lastSelectedMediaPath;
 
+    private readonly InitiativeTrackerViewModel _initiativeTracker;
+
     private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentRestorationPlanner.Snapshot>> _portalHistory = new();
 
     public MainWindowViewModel(PortalHostService portalHost)
@@ -25,6 +27,9 @@ public partial class MainWindowViewModel : ViewModelBase
         _screens = new ReadOnlyCollection<ScreenInfoViewModel>(_portalHost.GetScreens().ToList());
         Portals = new ObservableCollection<PortalRowViewModel>();
         Media = new MediaLibraryViewModel();
+
+        _initiativeTracker = new InitiativeTrackerViewModel();
+        _initiativeTracker.StateChanged += OnInitiativeStateChanged;
 
         SelectedScaleMode = MediaScaleMode.FillHeight;
         SelectedAlign = MediaAlign.Center;
@@ -42,6 +47,50 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<PortalRowViewModel> Portals { get; }
 
     public MediaLibraryViewModel Media { get; }
+
+    public InitiativeTrackerViewModel InitiativeTracker => _initiativeTracker;
+
+    [ObservableProperty]
+    private bool isInitiativeBroadcastEnabled;
+
+    partial void OnIsInitiativeBroadcastEnabledChanged(bool value)
+    {
+        if (value)
+        {
+            BroadcastInitiativeToAllPortals();
+        }
+    }
+
+    [RelayCommand]
+    private void BroadcastInitiativeToAllPortals()
+    {
+        var text = InitiativeTracker.PortalText;
+        foreach (var portal in Portals)
+        {
+            _portalHost.SetContentText(portal.PortalNumber, text);
+            _portalHost.SetVisibility(portal.PortalNumber, true);
+            portal.IsVisible = true;
+            portal.CurrentAssignment = "Initiative";
+            portal.AssignedMediaFilePath = null;
+            portal.AssignedPreview = null;
+            portal.IsVideoPlaying = false;
+            portal.IsVideoLoop = false;
+        }
+    }
+
+    [RelayCommand]
+    private void ClearInitiativeFromAllPortals()
+    {
+        foreach (var portal in Portals)
+        {
+            _portalHost.ClearContent(portal.PortalNumber, contentTitle: "Idle");
+            portal.CurrentAssignment = "Idle";
+            portal.AssignedMediaFilePath = null;
+            portal.AssignedPreview = null;
+            portal.IsVideoPlaying = false;
+            portal.IsVideoLoop = false;
+        }
+    }
 
     [ObservableProperty]
     private bool isVideoLoop = false;
@@ -328,6 +377,14 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.IsVideoLoop = false;
         }
         portal.IsVisible = true;
+    }
+
+    private void OnInitiativeStateChanged()
+    {
+        if (IsInitiativeBroadcastEnabled)
+        {
+            BroadcastInitiativeToAllPortals();
+        }
     }
 
     private static async Task UpdatePortalVideoSnapshotAsync(PortalRowViewModel portal, string expectedFilePath)
