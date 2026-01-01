@@ -58,8 +58,12 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        // NOTE: IsSelectedForInitiative is TwoWay-bound; it already reflects the click.
-        if (portal.IsSelectedForInitiative)
+        // Don't rely on TwoWay binding timing (ToggleButton may execute the command
+        // before the VM property updates). Treat this command as the single source of truth.
+        var shouldSelect = !portal.IsSelectedForInitiative;
+        portal.IsSelectedForInitiative = shouldSelect;
+
+        if (shouldSelect)
         {
             PushSnapshot(portal);
             ApplyInitiativeToPortal(portal);

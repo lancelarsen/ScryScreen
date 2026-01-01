@@ -150,9 +150,8 @@ public sealed class PortalHostService
     {
         if (_portals.TryGetValue(portalNumber, out var controller))
         {
-            controller.ViewModel.ContentTitle = contentTitle;
+            controller.ViewModel.SetText(contentTitle);
             controller.ViewModel.IsContentVisible = true;
-            controller.ViewModel.IsSetup = false;
         }
     }
 

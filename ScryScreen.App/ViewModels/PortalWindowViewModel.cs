@@ -311,6 +311,14 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    public void SetText(string text)
+    {
+        ContentTitle = text;
+        ContentImage = null;
+        ClearVideoInternal();
+        IsSetup = false;
+    }
+
     public void SetVideoLoop(bool loop)
     {
         _loopVideo = loop;

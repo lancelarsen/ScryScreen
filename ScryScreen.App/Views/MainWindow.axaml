@@ -759,7 +759,7 @@
                                         <ToggleButton Classes="circleSmall"
                                                       Content="{Binding PortalNumber}"
                                                       ToolTip.Tip="Show Initiative Tracker on this Portal"
-                                                      IsChecked="{Binding IsSelectedForInitiative, Mode=TwoWay}"
+                                                      IsChecked="{Binding IsSelectedForInitiative, Mode=OneWay}"
                                                       Command="{Binding DataContext.ToggleInitiativeForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                       CommandParameter="{Binding .}" />
                                     </DataTemplate>
