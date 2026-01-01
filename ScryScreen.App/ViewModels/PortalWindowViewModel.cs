@@ -18,6 +18,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     private readonly VideoLoopController _loopController;
     private readonly VideoPausedFramePrimer _pausedFramePrimer;
     private readonly VideoLoopRestarter<Media> _loopRestarter;
+    private readonly IVideoLoopRestartTarget<Media> _loopRestartTarget;
     private Media? _currentVideoMedia;
     private string? _contentVideoPath;
     private bool _loopVideo;
@@ -40,17 +41,19 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
         _pausedFramePrimer = new VideoPausedFramePrimer(new TaskVideoDelay());
 
+        _loopRestartTarget = new LibVlcLoopRestartTarget(
+            _mediaPlayer,
+            isNativeTargetReady: () => !OperatingSystem.IsWindows() || _mediaPlayer.Hwnd != IntPtr.Zero);
+
         _loopRestarter = new VideoLoopRestarter<Media>(
-            target: new LibVlcLoopRestartTarget(
-                _mediaPlayer,
-                isNativeTargetReady: () => !OperatingSystem.IsWindows() || _mediaPlayer.Hwnd != IntPtr.Zero),
+            target: _loopRestartTarget,
             mediaFactory: new LibVlcMediaFactory(_libVlc),
             sleeper: new ThreadVideoSleeper());
 
         _loopController = new VideoLoopController(
             restart: TryRestartLoopPlayback,
             utcNowTicks: () => DateTime.UtcNow.Ticks,
-            isNativeTargetReady: () => !OperatingSystem.IsWindows() || _mediaPlayer.Hwnd != IntPtr.Zero);
+            isNativeTargetReady: () => _loopRestartTarget.IsNativeTargetReady);
 
         // EndReached is raised on a LibVLC thread; do not do heavy/re-entrant operations here.
         // Just signal the loop timer to restart safely.
@@ -182,7 +185,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         // until the first decode happens).
         try
         {
-            if (OperatingSystem.IsWindows() && _mediaPlayer.Hwnd != IntPtr.Zero)
+            if (_loopRestartTarget.IsNativeTargetReady)
             {
                 _ = PrimePausedFrameIfNeededAsync();
             }
@@ -294,7 +297,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             primed = await _pausedFramePrimer.PrimePausedFrameAsync(
                 adapter,
                 target,
-                isNativeTargetReady: () => !OperatingSystem.IsWindows() || _mediaPlayer.Hwnd != IntPtr.Zero,
+                isNativeTargetReady: () => _loopRestartTarget.IsNativeTargetReady,
                 decodeDelayMs: 120).ConfigureAwait(false);
         }
         catch
@@ -348,7 +351,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
                 try
                 {
-                    if (OperatingSystem.IsWindows() && _mediaPlayer.Hwnd != IntPtr.Zero)
+                    if (_loopRestartTarget.IsNativeTargetReady)
                     {
                         _ = PrimePausedFrameIfNeededAsync();
                     }
