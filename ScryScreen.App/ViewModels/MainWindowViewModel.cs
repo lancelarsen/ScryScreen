@@ -211,7 +211,11 @@ public partial class MainWindowViewModel : ViewModelBase
     private void AddPortal()
     {
         var portalNumber = GetNextAvailablePortalNumber();
-        var defaultScreen = Screens.FirstOrDefault();
+        // Startup UX: if multiple monitors exist, put the first portal on a non-primary monitor.
+        // Subsequent portals keep the existing default ordering.
+        var defaultScreen = (Portals.Count == 0)
+            ? Screens.FirstOrDefault(s => !s.IsPrimary) ?? Screens.FirstOrDefault()
+            : Screens.FirstOrDefault();
 
         _portalHost.CreatePortal(portalNumber, defaultScreen);
 

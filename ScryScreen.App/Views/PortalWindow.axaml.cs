@@ -23,6 +23,17 @@ public partial class PortalWindow : Window
     private double _lastLeft = double.NaN;
     private double _lastTop = double.NaN;
 
+    private double _lastVideoHostW = double.NaN;
+    private double _lastVideoHostH = double.NaN;
+    private int _lastVideoPxW;
+    private int _lastVideoPxH;
+    private bool _lastIsShowingVideo;
+    private bool _lastVideoSizeUnknown;
+    private double _lastVideoW = double.NaN;
+    private double _lastVideoH = double.NaN;
+    private double _lastVideoLeft = double.NaN;
+    private double _lastVideoTop = double.NaN;
+
     public PortalWindow()
     {
         InitializeComponent();
@@ -221,6 +232,17 @@ public partial class PortalWindow : Window
             if (!double.IsNaN(ContentVideo.Height)) ContentVideo.Height = double.NaN;
             Canvas.SetLeft(ContentVideo, 0);
             Canvas.SetTop(ContentVideo, 0);
+
+            _lastIsShowingVideo = false;
+            _lastVideoSizeUnknown = false;
+            _lastVideoHostW = double.NaN;
+            _lastVideoHostH = double.NaN;
+            _lastVideoPxW = 0;
+            _lastVideoPxH = 0;
+            _lastVideoW = double.NaN;
+            _lastVideoH = double.NaN;
+            _lastVideoLeft = double.NaN;
+            _lastVideoTop = double.NaN;
             return;
         }
 
@@ -236,12 +258,75 @@ public partial class PortalWindow : Window
         {
             // Video size not available yet (often until playback starts).
             // IMPORTANT: give VideoView a non-zero size so it creates its native surface.
-            ContentVideo.Width = hostW;
-            ContentVideo.Height = hostH;
-            Canvas.SetLeft(ContentVideo, 0);
-            Canvas.SetTop(ContentVideo, 0);
+
+            // Avoid infinite layout loops by only setting when changed.
+            if (_lastIsShowingVideo &&
+                _lastVideoSizeUnknown &&
+                _lastScaleMode == vm.ScaleMode &&
+                _lastAlign == vm.Align &&
+                Math.Abs(_lastVideoHostW - hostW) < 0.01 &&
+                Math.Abs(_lastVideoHostH - hostH) < 0.01)
+            {
+                return;
+            }
+
+            _lastIsShowingVideo = true;
+            _lastVideoSizeUnknown = true;
+            _lastScaleMode = vm.ScaleMode;
+            _lastAlign = vm.Align;
+            _lastVideoHostW = hostW;
+            _lastVideoHostH = hostH;
+            _lastVideoPxW = 0;
+            _lastVideoPxH = 0;
+
+            if (double.IsNaN(_lastVideoW) || Math.Abs(_lastVideoW - hostW) > 0.01)
+            {
+                ContentVideo.Width = hostW;
+                _lastVideoW = hostW;
+            }
+
+            if (double.IsNaN(_lastVideoH) || Math.Abs(_lastVideoH - hostH) > 0.01)
+            {
+                ContentVideo.Height = hostH;
+                _lastVideoH = hostH;
+            }
+
+            if (double.IsNaN(_lastVideoLeft) || Math.Abs(_lastVideoLeft) > 0.01)
+            {
+                Canvas.SetLeft(ContentVideo, 0);
+                _lastVideoLeft = 0;
+            }
+
+            if (double.IsNaN(_lastVideoTop) || Math.Abs(_lastVideoTop) > 0.01)
+            {
+                Canvas.SetTop(ContentVideo, 0);
+                _lastVideoTop = 0;
+            }
             return;
         }
+
+        // If nothing relevant changed since the last call, do nothing.
+        // This is critical to avoid Avalonia's "Infinite layout loop" detection.
+        if (_lastIsShowingVideo &&
+            !_lastVideoSizeUnknown &&
+            _lastScaleMode == vm.ScaleMode &&
+            _lastAlign == vm.Align &&
+            _lastVideoPxW == pxW &&
+            _lastVideoPxH == pxH &&
+            Math.Abs(_lastVideoHostW - hostW) < 0.01 &&
+            Math.Abs(_lastVideoHostH - hostH) < 0.01)
+        {
+            return;
+        }
+
+        _lastIsShowingVideo = true;
+        _lastVideoSizeUnknown = false;
+        _lastScaleMode = vm.ScaleMode;
+        _lastAlign = vm.Align;
+        _lastVideoHostW = hostW;
+        _lastVideoHostH = hostH;
+        _lastVideoPxW = pxW;
+        _lastVideoPxH = pxH;
 
         // Match the image behavior:
         // - Fill Height => scale to fill HEIGHT, crop horizontally (Left/Center/Right)
@@ -276,9 +361,28 @@ public partial class PortalWindow : Window
             top = (hostH - videoH) * a;
         }
 
-        ContentVideo.Width = videoW;
-        ContentVideo.Height = videoH;
-        Canvas.SetLeft(ContentVideo, left);
-        Canvas.SetTop(ContentVideo, top);
+        if (double.IsNaN(_lastVideoW) || Math.Abs(_lastVideoW - videoW) > 0.01)
+        {
+            ContentVideo.Width = videoW;
+            _lastVideoW = videoW;
+        }
+
+        if (double.IsNaN(_lastVideoH) || Math.Abs(_lastVideoH - videoH) > 0.01)
+        {
+            ContentVideo.Height = videoH;
+            _lastVideoH = videoH;
+        }
+
+        if (double.IsNaN(_lastVideoLeft) || Math.Abs(_lastVideoLeft - left) > 0.01)
+        {
+            Canvas.SetLeft(ContentVideo, left);
+            _lastVideoLeft = left;
+        }
+
+        if (double.IsNaN(_lastVideoTop) || Math.Abs(_lastVideoTop - top) > 0.01)
+        {
+            Canvas.SetTop(ContentVideo, top);
+            _lastVideoTop = top;
+        }
     }
 }

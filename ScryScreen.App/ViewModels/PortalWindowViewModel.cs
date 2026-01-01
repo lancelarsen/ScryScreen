@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -12,6 +13,13 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     private Bitmap? _contentImage;
     private readonly LibVLC _libVlc;
     private readonly MediaPlayer _mediaPlayer;
+    private readonly Timer _loopTimer;
+    private int _loopRestartRequested;
+    private int _isLoopRestarting;
+    private int _suppressEndReached;
+    private long _loopNextRestartTicks;
+    private int _loopRestartAttempts;
+    private bool _loopArmed;
     private Media? _currentVideoMedia;
     private string? _contentVideoPath;
     private bool _loopVideo;
@@ -32,21 +40,216 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
         _libVlc = new LibVLC("--no-video-title-show");
         _mediaPlayer = new MediaPlayer(_libVlc);
+        // EndReached is raised on a LibVLC thread; do not do heavy/re-entrant operations here.
+        // Just signal the loop timer to restart safely.
         _mediaPlayer.EndReached += (_, _) =>
         {
-            if (_loopVideo)
+            if (!_loopVideo)
             {
-                try
+                return;
+            }
+
+            // If the user isn't actively playing (or we're currently restarting), do not auto-loop.
+            if (!_loopArmed || Interlocked.CompareExchange(ref _suppressEndReached, 0, 0) == 1)
+            {
+                return;
+            }
+
+            // Arm a restart; the timer will perform the actual Stop/Play off the LibVLC callback thread.
+            Interlocked.Exchange(ref _loopRestartRequested, 1);
+            Interlocked.Exchange(ref _loopNextRestartTicks, DateTime.UtcNow.Ticks);
+        };
+
+        // Timer-based loop restart to avoid calling Stop/Play inside EndReached.
+        // The timer does nothing unless a restart is requested.
+        _loopTimer = new Timer(_ => LoopTick(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    }
+
+    private static long UtcNowTicks() => DateTime.UtcNow.Ticks;
+
+    private void UpdateLoopTimer()
+    {
+        try
+        {
+            // Run whenever looping is enabled and a video is loaded.
+            // We intentionally do not gate this on IsPlaying: LibVLC can transition to stopped-at-end,
+            // and we still need the timer alive to perform the restart.
+            var shouldRun = _loopVideo && HasVideo;
+            _loopTimer.Change(
+                shouldRun ? TimeSpan.FromMilliseconds(100) : Timeout.InfiniteTimeSpan,
+                shouldRun ? TimeSpan.FromMilliseconds(100) : Timeout.InfiniteTimeSpan);
+        }
+        catch
+        {
+            // ignore
+        }
+    }
+
+    private void LoopTick()
+    {
+        if (!_loopVideo || !HasVideo)
+        {
+            return;
+        }
+
+        // Only do work when a restart has been requested.
+        if (Interlocked.CompareExchange(ref _loopRestartRequested, 0, 0) == 0)
+        {
+            return;
+        }
+
+        // Respect backoff.
+        var nextTicks = Interlocked.Read(ref _loopNextRestartTicks);
+        if (UtcNowTicks() < nextTicks)
+        {
+            return;
+        }
+
+        // Ensure only one restart attempt runs at a time.
+        if (Interlocked.Exchange(ref _isLoopRestarting, 1) == 1)
+        {
+            return;
+        }
+
+        try
+        {
+            // If we don't have a native target yet, don't trigger VLC's fallback window.
+            if (OperatingSystem.IsWindows() && _mediaPlayer.Hwnd == IntPtr.Zero)
+            {
+                Interlocked.Exchange(ref _loopNextRestartTicks, DateTime.UtcNow.AddMilliseconds(250).Ticks);
+                return;
+            }
+
+            if (!_loopArmed)
+            {
+                // User isn't actively playing; do not loop.
+                Interlocked.Exchange(ref _loopRestartRequested, 0);
+                _loopRestartAttempts = 0;
+                return;
+            }
+
+            var restarted = TryRestartLoopPlayback();
+            if (restarted)
+            {
+                Interlocked.Exchange(ref _loopRestartRequested, 0);
+                _loopRestartAttempts = 0;
+                Interlocked.Exchange(ref _loopNextRestartTicks, UtcNowTicks());
+            }
+            else
+            {
+                _loopRestartAttempts++;
+                var delayMs = Math.Min(1500, 200 + (int)(Math.Pow(2, Math.Min(3, _loopRestartAttempts)) * 75));
+                Interlocked.Exchange(ref _loopNextRestartTicks, DateTime.UtcNow.AddMilliseconds(delayMs).Ticks);
+            }
+        }
+        catch
+        {
+            // ignore
+            _loopRestartAttempts++;
+            Interlocked.Exchange(ref _loopNextRestartTicks, DateTime.UtcNow.AddMilliseconds(500).Ticks);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isLoopRestarting, 0);
+        }
+    }
+
+    private bool TryRestartLoopPlayback()
+    {
+        // Designed to be called from the loop timer callback.
+        // Avoid re-entrancy and suppress EndReached while we manipulate the player.
+        Interlocked.Exchange(ref _suppressEndReached, 1);
+        try
+        {
+            // Step 1: Stop to reset "ended" state reliably.
+            try
+            {
+                _mediaPlayer.Stop();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            Thread.Sleep(25);
+
+            // Step 2: Force start position.
+            try
+            {
+                _mediaPlayer.Time = 0;
+            }
+            catch
+            {
+                // ignore
+            }
+
+            Thread.Sleep(25);
+
+            // Step 3: Try to play using current media.
+            try
+            {
+                if (_mediaPlayer.Play())
                 {
-                    _mediaPlayer.Stop();
-                    _mediaPlayer.Play();
-                }
-                catch
-                {
-                    // ignore playback errors
+                    return true;
                 }
             }
-        };
+            catch
+            {
+                // ignore
+            }
+
+            // Step 4: Re-assign the media and retry.
+            try
+            {
+                if (_currentVideoMedia is not null)
+                {
+                    _mediaPlayer.Media = _currentVideoMedia;
+                    if (_mediaPlayer.Play())
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            // Step 5: As a last resort, recreate the Media instance.
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(_contentVideoPath))
+                {
+                    var oldMedia = _currentVideoMedia;
+                    _currentVideoMedia = new Media(_libVlc, new Uri(_contentVideoPath));
+                    _mediaPlayer.Media = _currentVideoMedia;
+
+                    try
+                    {
+                        oldMedia?.Dispose();
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    if (_mediaPlayer.Play())
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return false;
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _suppressEndReached, 0);
+        }
     }
 
     public int PortalNumber { get; }
@@ -185,6 +388,10 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         ContentImage = null;
         _contentVideoPath = filePath;
         _loopVideo = loop;
+        _loopArmed = false;
+        _loopRestartAttempts = 0;
+        Interlocked.Exchange(ref _loopRestartRequested, 0);
+        Interlocked.Exchange(ref _loopNextRestartTicks, UtcNowTicks());
         // Videos always start paused by default.
         _pendingSeekTimeMs = null;
         _pendingPrimeFrame = false;
@@ -207,6 +414,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasVideo));
         OnPropertyChanged(nameof(IsShowingVideo));
         OnPropertyChanged(nameof(IsShowingText));
+
+        UpdateLoopTimer();
 
         // NOTE: Don't call Play() here.
         // If the VideoView isn't attached/visible yet, LibVLC will fall back to spawning its own window.
@@ -326,6 +535,15 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     public void SetVideoLoop(bool loop)
     {
         _loopVideo = loop;
+
+        if (!loop)
+        {
+            Interlocked.Exchange(ref _loopRestartRequested, 0);
+            _loopRestartAttempts = 0;
+            Interlocked.Exchange(ref _loopNextRestartTicks, UtcNowTicks());
+        }
+
+        UpdateLoopTimer();
     }
 
     public bool ToggleVideoPlayPause()
@@ -341,6 +559,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             if (_mediaPlayer.IsPlaying)
             {
                 _mediaPlayer.Pause();
+                _loopArmed = false;
+                UpdateLoopTimer();
                 return false;
             }
 
@@ -362,6 +582,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             }
 
             _mediaPlayer.Play();
+            _loopArmed = true;
+            UpdateLoopTimer();
             return true;
         }
         catch
@@ -382,6 +604,9 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         // Prime a frame so the first frame displays reliably.
         _pendingSeekTimeMs = 0;
         _pendingPrimeFrame = true;
+        _loopArmed = false;
+        Interlocked.Exchange(ref _loopRestartRequested, 0);
+        _loopRestartAttempts = 0;
 
         try
         {
@@ -396,6 +621,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         {
             // ignore
         }
+
+        UpdateLoopTimer();
 
         try
         {
@@ -510,9 +737,15 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     {
         _contentVideoPath = null;
         _loopVideo = false;
+        _loopArmed = false;
         _pendingSeekTimeMs = null;
         _pendingPrimeFrame = false;
         _isPriming = false;
+        Interlocked.Exchange(ref _loopRestartRequested, 0);
+        _loopRestartAttempts = 0;
+        Interlocked.Exchange(ref _loopNextRestartTicks, UtcNowTicks());
+
+        UpdateLoopTimer();
         try
         {
             _mediaPlayer.Stop();
@@ -570,6 +803,16 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        try
+        {
+            _loopTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _loopTimer.Dispose();
+        }
+        catch
+        {
+            // ignore
+        }
+
         try
         {
             _mediaPlayer.Stop();
