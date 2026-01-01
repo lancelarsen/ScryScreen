@@ -550,6 +550,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnPortalClosed(int portalNumber)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnPortalClosed(portalNumber));
+            return;
+        }
+
         var row = Portals.FirstOrDefault(p => p.PortalNumber == portalNumber);
         if (row is null)
         {

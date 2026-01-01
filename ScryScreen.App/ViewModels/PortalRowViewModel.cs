@@ -600,23 +600,5 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     {
         _videoSyncTimer.Stop();
         ClearPreviewMedia();
-
-        try
-        {
-            _previewPlayer.Dispose();
-        }
-        catch
-        {
-            // ignore
-        }
-
-        try
-        {
-            _previewLibVlc.Dispose();
-        }
-        catch
-        {
-            // ignore
-        }
     }
 }

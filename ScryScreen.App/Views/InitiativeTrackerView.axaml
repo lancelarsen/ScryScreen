@@ -9,7 +9,35 @@
              x:Class="ScryScreen.App.Views.InitiativeTrackerView"
              x:DataType="vm:InitiativeTrackerViewModel">
 
-  <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+  <UserControl.Styles>
+    <!-- Make text entry feel consistent and centered in this table -->
+    <Style Selector="TextBox">
+      <Setter Property="Background" Value="#0A0F18" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- Gold focus instead of the default/red highlight -->
+    <Style Selector="TextBox:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    </Style>
+    <Style Selector="TextBox:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    </Style>
+
+    <!-- FluentTheme uses a template border; override it explicitly to avoid red focus outlines -->
+    <Style Selector="TextBox:focus /template/ Border">
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    </Style>
+    <Style Selector="TextBox:focus-within /template/ Border">
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="10">
     <!-- Line 1: Turn + Round controls -->
     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
       <TextBlock Text="Turn" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
@@ -44,29 +72,33 @@
     </Grid>
 
     <!-- Line 2: Headers -->
-    <Grid Grid.Row="1" ColumnDefinitions="24,70,70,3*,7*,Auto,Auto" ColumnSpacing="10">
+    <Grid Grid.Row="1" ColumnDefinitions="24,50,50,3*,7*,Auto,Auto" ColumnSpacing="10">
       <Border />
       <TextBlock Grid.Column="1" Text="Init" Foreground="{DynamicResource ScryTextMuted}" HorizontalAlignment="Center" />
       <TextBlock Grid.Column="2" Text="Mod" Foreground="{DynamicResource ScryTextMuted}" HorizontalAlignment="Center" />
-      <TextBlock Grid.Column="3" Text="Name" Foreground="{DynamicResource ScryTextMuted}" />
-      <TextBlock Grid.Column="4" Text="GM Notes" Foreground="{DynamicResource ScryTextMuted}" />
+      <TextBlock Grid.Column="3" Text="Name" Foreground="{DynamicResource ScryTextMuted}" Margin="10,0,0,0" />
+      <TextBlock Grid.Column="4" Text="GM Notes" Foreground="{DynamicResource ScryTextMuted}" Margin="10,0,0,0" HorizontalAlignment="Left" />
       <Border Grid.Column="5" />
       <Border Grid.Column="6" />
     </Grid>
 
     <!-- Line 3: New row (add) -->
-    <Grid Grid.Row="2" ColumnDefinitions="24,70,70,3*,7*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+    <Grid Grid.Row="2" ColumnDefinitions="24,50,50,3*,7*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
       <Border />
 
-      <TextBox Grid.Column="1" Width="70"
+      <TextBox Grid.Column="1" Width="42"
+               HorizontalAlignment="Center"
+               TextAlignment="Center"
                HorizontalContentAlignment="Center"
                beh:NumericTextBoxBehavior.IsEnabled="True"
                Text="{Binding NewInitiative, Mode=TwoWay}" />
 
-      <TextBox Grid.Column="2" Width="70"
-           HorizontalContentAlignment="Center"
-           beh:NumericTextBoxBehavior.IsEnabled="True"
-           Text="{Binding NewMod, Mode=TwoWay}" />
+      <TextBox Grid.Column="2" Width="42"
+               HorizontalAlignment="Center"
+               TextAlignment="Center"
+               HorizontalContentAlignment="Center"
+               beh:NumericTextBoxBehavior.IsEnabled="True"
+               Text="{Binding NewMod, Mode=TwoWay}" />
 
       <TextBox Grid.Column="3" Text="{Binding NewName, Mode=TwoWay}" />
 
@@ -74,8 +106,8 @@
 
       <ToggleButton Grid.Column="5" Classes="circleSmall noAccent" IsChecked="{Binding NewIsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
         <Grid>
-          <i:Icon IsVisible="{Binding !NewIsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-          <i:Icon IsVisible="{Binding NewIsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+          <i:Icon IsVisible="{Binding !NewIsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
+          <i:Icon IsVisible="{Binding NewIsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
         </Grid>
       </ToggleButton>
 
@@ -84,12 +116,15 @@
       </Button>
     </Grid>
 
-    <!-- Line 4: Entries -->
-    <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <!-- Line 4: Separator between add row and list -->
+    <Border Grid.Row="3" Height="1" Background="{DynamicResource ScryBorder}" Opacity="0.6" />
+
+    <!-- Line 5: Entries -->
+    <ScrollViewer Grid.Row="4" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
       <ItemsControl ItemsSource="{Binding Entries}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:InitiativeEntryViewModel" x:CompileBindings="False">
-            <Grid ColumnDefinitions="24,70,70,3*,7*,Auto,Auto" ColumnSpacing="10" Margin="0,0,0,8" VerticalAlignment="Center">
+            <Grid ColumnDefinitions="24,50,50,3*,7*,Auto,Auto" ColumnSpacing="10" Margin="0,0,0,8" VerticalAlignment="Center">
               <i:Icon Value="mdi-rhombus"
                       FontSize="14"
                       Foreground="{DynamicResource ScryTextMuted}"
@@ -97,13 +132,17 @@
                       HorizontalAlignment="Center"
                       IsVisible="{Binding IsActive}" />
 
-              <TextBox Grid.Column="1" Width="70"
+              <TextBox Grid.Column="1" Width="42"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
                        HorizontalContentAlignment="Center"
                        beh:NumericTextBoxBehavior.IsEnabled="True"
                        Text="{Binding Initiative, Mode=TwoWay}" />
 
               <TextBox Grid.Column="2"
-                       Width="70"
+                       Width="42"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
                        HorizontalContentAlignment="Center"
                        beh:NumericTextBoxBehavior.IsEnabled="True"
                        Text="{Binding Mod, Mode=TwoWay}" />
@@ -114,8 +153,8 @@
 
               <ToggleButton Grid.Column="5" Classes="circleSmall noAccent" IsChecked="{Binding IsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
                 <Grid>
-                  <i:Icon IsVisible="{Binding !IsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                  <i:Icon IsVisible="{Binding IsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                  <i:Icon IsVisible="{Binding !IsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
+                  <i:Icon IsVisible="{Binding IsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
                 </Grid>
               </ToggleButton>
 
@@ -124,7 +163,7 @@
                       ToolTip.Tip="Delete"
                       Command="{Binding DataContext.RemoveEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                       CommandParameter="{Binding .}">
-                <i:Icon Value="mdi-delete" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                <i:Icon Value="mdi-delete" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
               </Button>
             </Grid>
           </DataTemplate>

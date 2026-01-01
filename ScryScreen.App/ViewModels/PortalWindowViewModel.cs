@@ -639,8 +639,16 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         }
         _currentVideoMedia = null;
 
-        _mediaPlayer.Dispose();
-        _libVlc.Dispose();
+        // Avoid disposing LibVLC objects here; depending on timing/window teardown,
+        // native disposal can terminate the process (no managed exception to catch).
+        try
+        {
+            _mediaPlayer.Media = null;
+        }
+        catch
+        {
+            // ignore
+        }
 
         _contentImage?.Dispose();
         _contentImage = null;

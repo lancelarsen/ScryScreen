@@ -72,7 +72,20 @@ public sealed class PortalHostService
                 {
                     // ignore cleanup failures
                 }
-                PortalClosed?.Invoke(portalNumber);
+
+                // Always raise on the UI thread. If a handler mutates UI-bound collections
+                // off-thread, Avalonia can throw and crash the process.
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        PortalClosed?.Invoke(portalNumber);
+                    }
+                    catch (Exception ex)
+                    {
+                        ErrorReporter.Report(ex, "PortalClosed handler failed");
+                    }
+                });
             }
         };
 
