@@ -94,6 +94,11 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(IsMediaTabSelected));
         OnPropertyChanged(nameof(IsAppsTabSelected));
+
+        if (value == LibraryTab.Apps && !IsControlsSectionVisible)
+        {
+            IsControlsSectionVisible = true;
+        }
     }
 
     [RelayCommand]
@@ -101,6 +106,17 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     private void ShowAppsTab() => SelectedLibraryTab = LibraryTab.Apps;
+
+    [RelayCommand]
+    private void SelectInitiativeTrackerApp()
+    {
+        SelectedLibraryTab = LibraryTab.Apps;
+
+        if (!IsControlsSectionVisible)
+        {
+            IsControlsSectionVisible = true;
+        }
+    }
 
     [ObservableProperty]
     private MediaScaleMode selectedScaleMode;

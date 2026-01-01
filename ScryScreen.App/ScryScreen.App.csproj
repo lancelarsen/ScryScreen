@@ -17,11 +17,6 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
-  <Target Name="DumpAvaloniaItems" BeforeTargets="Compile">
-    <Message Importance="High" Text="AvaloniaXaml: @(AvaloniaXaml)" />
-    <Message Importance="High" Text="AvaloniaResource: @(AvaloniaResource)" />
-  </Target>
-
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.10" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.10" />

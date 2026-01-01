@@ -8,7 +8,7 @@ public static class InitiativeTrackerFormatter
 {
     public sealed record Options(
         bool ShowRound = true,
-        bool ShowInitiativeValues = true,
+        bool ShowInitiativeValues = false,
         bool IncludeHidden = false,
         int MaxEntries = 12)
     {
@@ -24,12 +24,14 @@ public static class InitiativeTrackerFormatter
 
         var sb = new StringBuilder();
 
+        // Header line (requested portal UX): show Turn controls hint + round.
+        sb.Append("Turn (<) (>)");
         if (options.ShowRound)
         {
-            sb.Append("Round ");
+            sb.Append("   Round: ");
             sb.Append(Math.Max(1, state.Round));
-            sb.AppendLine();
         }
+        sb.AppendLine();
 
         var entries = state.Entries ?? Array.Empty<InitiativeEntry>();
         if (!options.IncludeHidden)
@@ -51,7 +53,7 @@ public static class InitiativeTrackerFormatter
             var e = entries[i];
             var isActive = activeId.HasValue && e.Id == activeId.Value;
 
-            sb.Append(isActive ? "▶ " : "  ");
+            sb.Append(isActive ? "> " : "   ");
 
             if (options.ShowInitiativeValues)
             {

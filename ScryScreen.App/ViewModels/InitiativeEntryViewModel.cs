@@ -25,5 +25,8 @@ public sealed partial class InitiativeEntryViewModel : ViewModelBase
     private bool isHidden;
 
     [ObservableProperty]
+    private bool isActive;
+
+    [ObservableProperty]
     private string? notes;
 }

@@ -10,7 +10,7 @@ public class InitiativeTrackerFormatterTests
     public void EmptyState_ShowsNoCombatants()
     {
         var text = InitiativeTrackerFormatter.ToPortalText(InitiativeTrackerState.Empty);
-        Assert.Contains("Round", text);
+        Assert.Contains("Round:", text);
         Assert.Contains("No combatants", text);
     }
 
@@ -23,8 +23,8 @@ public class InitiativeTrackerFormatterTests
 
         var text = InitiativeTrackerFormatter.ToPortalText(state, new InitiativeTrackerFormatter.Options(ShowRound: true, ShowInitiativeValues: true, IncludeHidden: true, MaxEntries: 12));
 
-        Assert.Contains("Round 2", text);
-        Assert.Contains("▶", text);
+        Assert.Contains("Round: 2", text);
+        Assert.Contains(">", text);
         Assert.Contains("5 (1)", text);
         Assert.Contains("B", text);
     }

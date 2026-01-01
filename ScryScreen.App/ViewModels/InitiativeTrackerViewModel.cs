@@ -4,6 +4,9 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScryScreen.Core.InitiativeTracker;
@@ -15,6 +18,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     private InitiativeTrackerState _state = InitiativeTrackerState.Empty;
 
     private bool _isReordering;
+
+    private CancellationTokenSource? _resortCts;
 
     public event Action? StateChanged;
 
@@ -79,20 +84,30 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             return;
         }
 
+        if (e.PropertyName is nameof(InitiativeEntryViewModel.IsActive))
+        {
+            // UI-only; driven by ActiveId.
+            return;
+        }
+
         // Any change affects portal output.
         var needsResort = e.PropertyName is nameof(InitiativeEntryViewModel.Initiative)
             or nameof(InitiativeEntryViewModel.Mod);
 
-        RebuildStateFromEntries(sort: needsResort);
+        // Keep portal output updated immediately, but delay sorting/reordering while the user is typing.
+        RebuildStateFromEntries(sort: false);
+
         if (needsResort)
         {
-            ReorderCollectionToMatchState();
+            ScheduleResortAndReorder();
         }
     }
 
     [RelayCommand]
     private void AddEntry()
     {
+        CancelPendingResort();
+
         var id = Guid.NewGuid();
         var vm = new InitiativeEntryViewModel(id)
         {
@@ -123,6 +138,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             return;
         }
 
+        CancelPendingResort();
+
         Entries.Remove(entry);
         RebuildStateFromEntries(sort: true);
         ReorderCollectionToMatchState();
@@ -131,6 +148,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     [RelayCommand]
     private void ClearAll()
     {
+        CancelPendingResort();
+
         Entries.Clear();
         _state = InitiativeTrackerState.Empty;
         Round = _state.Round;
@@ -140,6 +159,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     [RelayCommand]
     private void Sort()
     {
+        CancelPendingResort();
+
         RebuildStateFromEntries(sort: true);
         ReorderCollectionToMatchState();
     }
@@ -147,40 +168,55 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     [RelayCommand]
     private void NextTurn()
     {
+        CancelPendingResort();
+
         _state = InitiativeTrackerEngine.NextTurn(_state);
         Round = _state.Round;
+        UpdateActiveFlags();
         RaisePortalTextChanged();
     }
 
     [RelayCommand]
     private void PreviousTurn()
     {
+        CancelPendingResort();
+
         _state = InitiativeTrackerEngine.PreviousTurn(_state);
         Round = _state.Round;
+        UpdateActiveFlags();
         RaisePortalTextChanged();
     }
 
     [RelayCommand]
     private void ResetRound()
     {
+        CancelPendingResort();
+
         _state = InitiativeTrackerEngine.SetRound(_state, 1);
         Round = _state.Round;
+        UpdateActiveFlags();
         RaisePortalTextChanged();
     }
 
     [RelayCommand]
     private void IncrementRound()
     {
+        CancelPendingResort();
+
         _state = InitiativeTrackerEngine.SetRound(_state, _state.Round + 1);
         Round = _state.Round;
+        UpdateActiveFlags();
         RaisePortalTextChanged();
     }
 
     [RelayCommand]
     private void DecrementRound()
     {
+        CancelPendingResort();
+
         _state = InitiativeTrackerEngine.SetRound(_state, _state.Round - 1);
         Round = _state.Round;
+        UpdateActiveFlags();
         RaisePortalTextChanged();
     }
 
@@ -188,7 +224,48 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     {
         // Round can be changed via commands; normalize if it changes for any other reason.
         _state = InitiativeTrackerEngine.SetRound(_state, value);
+        UpdateActiveFlags();
         RaisePortalTextChanged();
+    }
+
+    private void ScheduleResortAndReorder()
+    {
+        CancelPendingResort();
+
+        _resortCts = new CancellationTokenSource();
+        var token = _resortCts.Token;
+
+        _ = DebouncedResortAndReorderAsync(token);
+    }
+
+    private async Task DebouncedResortAndReorderAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            RebuildStateFromEntries(sort: true);
+            ReorderCollectionToMatchState();
+        });
+    }
+
+    private void CancelPendingResort()
+    {
+        _resortCts?.Cancel();
+        _resortCts?.Dispose();
+        _resortCts = null;
     }
 
     private void RebuildStateFromEntries(bool sort)
@@ -215,6 +292,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
         _state = next;
         Round = _state.Round;
+        UpdateActiveFlags();
         RaisePortalTextChanged();
     }
 
@@ -254,11 +332,23 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         {
             _isReordering = false;
         }
+
+        UpdateActiveFlags();
+    }
+
+    private void UpdateActiveFlags()
+    {
+        var activeId = _state.ActiveId;
+        foreach (var vm in Entries)
+        {
+            vm.IsActive = activeId.HasValue && vm.Id == activeId.Value;
+        }
     }
 
     private void RaisePortalTextChanged()
     {
         OnPropertyChanged(nameof(PortalText));
+        OnPropertyChanged(nameof(ActiveId));
         StateChanged?.Invoke();
     }
 }

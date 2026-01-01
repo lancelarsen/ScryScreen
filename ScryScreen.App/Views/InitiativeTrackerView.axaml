@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ScryScreen.App.ViewModels"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:beh="using:ScryScreen.App.Behaviors"
              mc:Ignorable="d"
              x:Class="ScryScreen.App.Views.InitiativeTrackerView"
              x:DataType="vm:InitiativeTrackerViewModel">
@@ -13,24 +14,19 @@
     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
       <TextBlock Text="Turn" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
-      <Button Grid.Column="1" Classes="circleSmall" Command="{Binding NextTurnCommand}" ToolTip.Tip="Next Turn">
-        <i:Icon Value="mdi-skip-next" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+      <Button Grid.Column="1" Classes="circleSmall" Command="{Binding PreviousTurnCommand}" ToolTip.Tip="Previous Turn">
+        <i:Icon Value="mdi-chevron-left" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
       </Button>
-      <Button Grid.Column="2" Classes="circleSmall" Command="{Binding PreviousTurnCommand}" ToolTip.Tip="Previous Turn">
-        <i:Icon Value="mdi-skip-previous" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+      <Button Grid.Column="2" Classes="circleSmall" Command="{Binding NextTurnCommand}" ToolTip.Tip="Next Turn">
+        <i:Icon Value="mdi-chevron-right" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
       </Button>
 
       <TextBlock Grid.Column="3" Text="Round" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
-      <Grid Grid.Column="4" ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
-        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-        <NumericUpDown Grid.Column="1"
-                       Width="80"
-                       Minimum="1"
-                       IsEnabled="False"
-                       Value="{Binding Round}" />
-        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-      </Grid>
+      <TextBox Grid.Column="4"
+           Width="80"
+           IsReadOnly="True"
+           Text="{Binding Round}" />
 
       <Button Grid.Column="5" Classes="circleSmall" Command="{Binding IncrementRoundCommand}" ToolTip.Tip="Increment Round">
         <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
@@ -48,49 +44,42 @@
     </Grid>
 
     <!-- Line 2: Headers -->
-    <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,*,Auto,Auto" ColumnSpacing="10">
-      <TextBlock Text="Init" Foreground="{DynamicResource ScryTextMuted}" />
-      <TextBlock Grid.Column="1" Text="Mod" Foreground="{DynamicResource ScryTextMuted}" />
-      <TextBlock Grid.Column="2" Text="Name" Foreground="{DynamicResource ScryTextMuted}" />
-      <TextBlock Grid.Column="3" Text="GM Notes" Foreground="{DynamicResource ScryTextMuted}" />
-      <Border Grid.Column="4" />
+    <Grid Grid.Row="1" ColumnDefinitions="24,70,70,3*,7*,Auto,Auto" ColumnSpacing="10">
+      <Border />
+      <TextBlock Grid.Column="1" Text="Init" Foreground="{DynamicResource ScryTextMuted}" HorizontalAlignment="Center" />
+      <TextBlock Grid.Column="2" Text="Mod" Foreground="{DynamicResource ScryTextMuted}" HorizontalAlignment="Center" />
+      <TextBlock Grid.Column="3" Text="Name" Foreground="{DynamicResource ScryTextMuted}" />
+      <TextBlock Grid.Column="4" Text="GM Notes" Foreground="{DynamicResource ScryTextMuted}" />
       <Border Grid.Column="5" />
+      <Border Grid.Column="6" />
     </Grid>
 
     <!-- Line 3: New row (add) -->
-    <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-      <Grid ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
-        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-        <NumericUpDown Grid.Column="1" Width="70" Value="{Binding NewInitiative, Mode=TwoWay}" />
-        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-      </Grid>
+    <Grid Grid.Row="2" ColumnDefinitions="24,70,70,3*,7*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+      <Border />
 
-      <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
-        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-        <NumericUpDown Grid.Column="1" Width="70" Value="{Binding NewMod, Mode=TwoWay}" />
-        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-      </Grid>
+      <TextBox Grid.Column="1" Width="70"
+               HorizontalContentAlignment="Center"
+               beh:NumericTextBoxBehavior.IsEnabled="True"
+               Text="{Binding NewInitiative, Mode=TwoWay}" />
 
-      <Grid Grid.Column="2" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-        <TextBox Grid.Column="1" Text="{Binding NewName, Mode=TwoWay}" />
-        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-      </Grid>
+      <TextBox Grid.Column="2" Width="70"
+           HorizontalContentAlignment="Center"
+           beh:NumericTextBoxBehavior.IsEnabled="True"
+           Text="{Binding NewMod, Mode=TwoWay}" />
 
-      <Grid Grid.Column="3" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-        <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-        <TextBox Grid.Column="1" Text="{Binding NewNotes, Mode=TwoWay}" />
-        <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-      </Grid>
+      <TextBox Grid.Column="3" Text="{Binding NewName, Mode=TwoWay}" />
 
-      <ToggleButton Grid.Column="4" Classes="circleSmall noAccent" IsChecked="{Binding NewIsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
+      <TextBox Grid.Column="4" Text="{Binding NewNotes, Mode=TwoWay}" />
+
+      <ToggleButton Grid.Column="5" Classes="circleSmall noAccent" IsChecked="{Binding NewIsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
         <Grid>
           <i:Icon IsVisible="{Binding !NewIsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
           <i:Icon IsVisible="{Binding NewIsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
         </Grid>
       </ToggleButton>
 
-      <Button Grid.Column="5" Classes="circleSmall" Command="{Binding AddEntryCommand}" ToolTip.Tip="Add">
+      <Button Grid.Column="6" Classes="circleSmall" Command="{Binding AddEntryCommand}" ToolTip.Tip="Add">
         <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
       </Button>
     </Grid>
@@ -100,39 +89,37 @@
       <ItemsControl ItemsSource="{Binding Entries}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:InitiativeEntryViewModel" x:CompileBindings="False">
-            <Grid ColumnDefinitions="Auto,Auto,*,*,Auto,Auto" ColumnSpacing="10" Margin="0,0,0,8" VerticalAlignment="Center">
-              <Grid ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
-                <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                <NumericUpDown Grid.Column="1" Width="70" Value="{Binding Initiative, Mode=TwoWay}" />
-                <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-              </Grid>
+            <Grid ColumnDefinitions="24,70,70,3*,7*,Auto,Auto" ColumnSpacing="10" Margin="0,0,0,8" VerticalAlignment="Center">
+              <i:Icon Value="mdi-rhombus"
+                      FontSize="14"
+                      Foreground="{DynamicResource ScryTextMuted}"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                      IsVisible="{Binding IsActive}" />
 
-              <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
-                <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                <NumericUpDown Grid.Column="1" Width="70" Value="{Binding Mod, Mode=TwoWay}" />
-                <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-              </Grid>
+              <TextBox Grid.Column="1" Width="70"
+                       HorizontalContentAlignment="Center"
+                       beh:NumericTextBoxBehavior.IsEnabled="True"
+                       Text="{Binding Initiative, Mode=TwoWay}" />
 
-              <Grid Grid.Column="2" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-                <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" Text="{Binding Name, Mode=TwoWay}" />
-                <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-              </Grid>
+              <TextBox Grid.Column="2"
+                       Width="70"
+                       HorizontalContentAlignment="Center"
+                       beh:NumericTextBoxBehavior.IsEnabled="True"
+                       Text="{Binding Mod, Mode=TwoWay}" />
 
-              <Grid Grid.Column="3" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-                <TextBlock Text="[" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" Text="{Binding Notes, Mode=TwoWay}" />
-                <TextBlock Grid.Column="2" Text="]" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-              </Grid>
+              <TextBox Grid.Column="3" Text="{Binding Name, Mode=TwoWay}" />
 
-              <ToggleButton Grid.Column="4" Classes="circleSmall noAccent" IsChecked="{Binding IsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
+              <TextBox Grid.Column="4" Text="{Binding Notes, Mode=TwoWay}" />
+
+              <ToggleButton Grid.Column="5" Classes="circleSmall noAccent" IsChecked="{Binding IsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
                 <Grid>
                   <i:Icon IsVisible="{Binding !IsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
                   <i:Icon IsVisible="{Binding IsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
                 </Grid>
               </ToggleButton>
 
-              <Button Grid.Column="5"
+              <Button Grid.Column="6"
                       Classes="circleSmall"
                       ToolTip.Tip="Delete"
                       Command="{Binding DataContext.RemoveEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

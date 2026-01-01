@@ -182,6 +182,18 @@
                                                 CornerRadius="8"
                                                 Padding="6">
                                             <Grid Height="80">
+                                                  <Border IsVisible="{Binding IsSelectedForInitiative}"
+                                                          Background="#0A0F18"
+                                                          CornerRadius="6"
+                                                          Padding="6"
+                                                          ClipToBounds="True">
+                                                      <TextBlock Text="{Binding DataContext.InitiativeTracker.PortalText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                 Foreground="{DynamicResource ScryTextMuted}"
+                                                                 FontFamily="Consolas"
+                                                                 FontSize="12"
+                                                                 TextWrapping="Wrap" />
+                                                  </Border>
+
                                                   <Image Source="{Binding AssignedPreview}"
                                                       IsVisible="{Binding HasMediaPreview}"
                                                       Stretch="Uniform" />
@@ -204,6 +216,18 @@
                                                     Padding="6"
                                                     ToolTip.Tip="{Binding MonitorPreviewToolTip}">
                                                 <Grid Width="120" Height="60">
+                                                    <Border IsVisible="{Binding IsSelectedForInitiative}"
+                                                            Background="#0A0F18"
+                                                            CornerRadius="6"
+                                                            Padding="6"
+                                                            ClipToBounds="True">
+                                                        <TextBlock Text="{Binding DataContext.InitiativeTracker.PortalText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                   Foreground="{DynamicResource ScryTextMuted}"
+                                                                   FontFamily="Consolas"
+                                                                   FontSize="10"
+                                                                   TextWrapping="Wrap" />
+                                                    </Border>
+
                                                     <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
                                                     <Border Background="#05070B"
                                                             CornerRadius="10"
@@ -534,39 +558,55 @@
                                 </Grid>
 
                                 <!-- Apps content -->
-                                <Grid IsVisible="{Binding IsAppsTabSelected}" RowDefinitions="Auto,*" RowSpacing="10">
-                                    <Border Background="#0A0F18"
-                                            BorderBrush="{DynamicResource ScryBorder}"
-                                            BorderThickness="1"
-                                            CornerRadius="10"
-                                            Padding="12">
-                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
-                                            <TextBlock Text="Initiative Tracker" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <Grid IsVisible="{Binding IsAppsTabSelected}">
+                                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl>
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" ItemSpacing="12" LineSpacing="12" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
 
-                                            <ItemsControl Grid.Column="1" ItemsSource="{Binding Portals}" HorizontalAlignment="Left">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <WrapPanel ItemSpacing="8" LineSpacing="8" />
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
+                                            <Button Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    Command="{Binding SelectInitiativeTrackerAppCommand}"
+                                                    ToolTip.Tip="Track the player and monster turn order for your game!">
+                                                <Border Background="#0A0F18"
+                                                        BorderBrush="{DynamicResource ScryBorder}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="10"
+                                                        Padding="8"
+                                                        Width="140"
+                                                        Height="140">
+                                                    <Grid>
+                                                        <!-- watermark icon -->
+                                                        <i:Icon Value="mdi-sword-cross"
+                                                                FontSize="110"
+                                                                Foreground="{DynamicResource ScryTextMuted}"
+                                                                Opacity="0.12"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center" />
 
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
-                                                        <ToggleButton Classes="circleSmall"
-                                                                      Content="{Binding PortalNumber}"
-                                                                      ToolTip.Tip="Show Initiative Tracker on this Portal"
-                                                                      IsChecked="{Binding IsSelectedForInitiative, Mode=TwoWay}"
-                                                                      Command="{Binding DataContext.ToggleInitiativeForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                      CommandParameter="{Binding .}" />
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </Grid>
-                                    </Border>
-
-                                    <Border Grid.Row="1" Classes="card" Padding="14">
-                                        <views:InitiativeTrackerView DataContext="{Binding InitiativeTracker}" />
-                                    </Border>
+                                                        <!-- centered title -->
+                                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                                            <TextBlock Text="Initiative"
+                                                                       FontSize="16"
+                                                                       FontWeight="SemiBold"
+                                                                       HorizontalAlignment="Center"
+                                                                       TextAlignment="Center" />
+                                                            <TextBlock Text="Tracker"
+                                                                       FontSize="16"
+                                                                       FontWeight="SemiBold"
+                                                                       HorizontalAlignment="Center"
+                                                                       TextAlignment="Center" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </Button>
+                                        </ItemsControl>
+                                    </ScrollViewer>
                                 </Grid>
                             </Grid>
                         </Grid>
@@ -582,122 +622,157 @@
                 BorderBrush="{DynamicResource ScryBorder}"
                 BorderThickness="0,1,0,0"
                 Padding="12,10">
-            <Border Classes="card" Padding="10">
-                <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="12" RowDefinitions="Auto">
-                    <!-- Selected image (left) -->
-                    <Border Background="#0A0F18"
-                            BorderBrush="{DynamicResource ScryBorder}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="6"
-                            Width="170"
-                            Height="100">
-                        <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" />
-                    </Border>
+            <Grid>
+                <!-- Media controls (default) -->
+                <Border Classes="card" Padding="10" IsVisible="{Binding IsMediaTabSelected}">
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="12" RowDefinitions="Auto">
+                        <!-- Selected image (left) -->
+                        <Border Background="#0A0F18"
+                                BorderBrush="{DynamicResource ScryBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="6"
+                                Width="170"
+                                Height="100">
+                            <Image Source="{Binding Media.SelectedItem.Thumbnail}" Stretch="Uniform" />
+                        </Border>
 
-                    <!-- Assign to portals (middle) -->
-                    <StackPanel Grid.Column="1" Spacing="4">
-                        <TextBlock Text="Assign to Portals" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" Margin="0,0,0,6" />
-                        <ItemsControl ItemsSource="{Binding Portals}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <UniformGrid Columns="3" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
+                        <!-- Assign to portals (middle) -->
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="Assign to Portals" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" Margin="0,0,0,6" />
+                            <ItemsControl ItemsSource="{Binding Portals}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="3" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
 
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
-                                    <ToggleButton Classes="circleSmall"
-                                                  Margin="0,0,8,8"
-                                                  Content="{Binding PortalNumber}"
-                                                  ToolTip.Tip="Show Image on this Portal"
-                                                  IsChecked="{Binding IsSelectedForCurrentMedia}"
-                                                  Command="{Binding DataContext.ToggleSelectedMediaForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                  CommandParameter="{Binding .}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-
-                    <!-- Alignment (right) -->
-                    <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Top">
-                        <TextBlock Text="Alignment" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" Margin="0,0,0,6" />
-
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <ToggleButton Classes="circleSmall"
-                                          IsChecked="{Binding IsFillHeight, Mode=OneWay}"
-                                          Command="{Binding SetScaleFillHeightCommand}"
-                                          ToolTip.Tip="Fill Height (Crops Left/Right)">
-                                <svg:Svg Path="/Assets/Icons/fit_height.svg" Width="18" Height="18" />
-                            </ToggleButton>
-
-                            <ToggleButton Classes="circleSmall"
-                                          IsChecked="{Binding IsFillWidth, Mode=OneWay}"
-                                          Command="{Binding SetScaleFillWidthCommand}"
-                                          ToolTip.Tip="Fill Width (Crops Top/Bottom)">
-                                <svg:Svg Path="/Assets/Icons/fit_width.svg" Width="18" Height="18" />
-                            </ToggleButton>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
+                                        <ToggleButton Classes="circleSmall"
+                                                      Margin="0,0,8,8"
+                                                      Content="{Binding PortalNumber}"
+                                                      ToolTip.Tip="Show Image on this Portal"
+                                                      IsChecked="{Binding IsSelectedForCurrentMedia}"
+                                                      Command="{Binding DataContext.ToggleSelectedMediaForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      CommandParameter="{Binding .}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <!-- For Fill Width (W): vertical align (Top/Center/Bottom) -->
-                            <ToggleButton Classes="circleSmall"
-                                          IsVisible="{Binding IsFillWidth}"
-                                          IsChecked="{Binding IsAlignStart, Mode=OneWay}"
-                                          Command="{Binding SetAlignStartCommand}"
-                                          ToolTip.Tip="Top">
-                                <svg:Svg Path="/Assets/Icons/align_top.svg" Width="18" Height="18" />
-                            </ToggleButton>
-                            <ToggleButton Classes="circleSmall"
-                                          IsVisible="{Binding IsFillWidth}"
-                                          IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
-                                          Command="{Binding SetAlignCenterCommand}"
-                                          ToolTip.Tip="Center">
-                                <svg:Svg Path="/Assets/Icons/align_v_center.svg" Width="18" Height="18" />
-                            </ToggleButton>
-                            <ToggleButton Classes="circleSmall"
-                                          IsVisible="{Binding IsFillWidth}"
-                                          IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
-                                          Command="{Binding SetAlignEndCommand}"
-                                          ToolTip.Tip="Bottom">
-                                <svg:Svg Path="/Assets/Icons/align_bottom.svg" Width="18" Height="18" />
-                            </ToggleButton>
+                        <!-- Alignment (right) -->
+                        <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Top">
+                            <TextBlock Text="Alignment" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" Margin="0,0,0,6" />
 
-                            <!-- For Fill Height (H): horizontal align (Left/Center/Right) -->
-                            <ToggleButton Classes="circleSmall"
-                                          IsVisible="{Binding IsFillHeight}"
-                                          IsChecked="{Binding IsAlignStart, Mode=OneWay}"
-                                          Command="{Binding SetAlignStartCommand}"
-                                          ToolTip.Tip="Left">
-                                <svg:Svg Path="/Assets/Icons/align_left.svg" Width="18" Height="18" />
-                            </ToggleButton>
-                            <ToggleButton Classes="circleSmall"
-                                          IsVisible="{Binding IsFillHeight}"
-                                          IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
-                                          Command="{Binding SetAlignCenterCommand}"
-                                          ToolTip.Tip="Center">
-                                <svg:Svg Path="/Assets/Icons/align_h_center.svg" Width="18" Height="18" />
-                            </ToggleButton>
-                            <ToggleButton Classes="circleSmall"
-                                          IsVisible="{Binding IsFillHeight}"
-                                          IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
-                                          Command="{Binding SetAlignEndCommand}"
-                                          ToolTip.Tip="Right">
-                                <svg:Svg Path="/Assets/Icons/align_right.svg" Width="18" Height="18" />
-                            </ToggleButton>
-                        </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ToggleButton Classes="circleSmall"
+                                              IsChecked="{Binding IsFillHeight, Mode=OneWay}"
+                                              Command="{Binding SetScaleFillHeightCommand}"
+                                              ToolTip.Tip="Fill Height (Crops Left/Right)">
+                                    <svg:Svg Path="/Assets/Icons/fit_height.svg" Width="18" Height="18" />
+                                </ToggleButton>
 
-                        <!-- Video options -->
-                        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsSelectedMediaVideo}" Margin="0,6,0,0">
-                            <ToggleButton Classes="circleSmall"
-                                          IsChecked="{Binding IsVideoLoop, Mode=TwoWay}"
-                                          ToolTip.Tip="Loop">
-                                <i:Icon Value="mdi-repeat" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                            </ToggleButton>
+                                <ToggleButton Classes="circleSmall"
+                                              IsChecked="{Binding IsFillWidth, Mode=OneWay}"
+                                              Command="{Binding SetScaleFillWidthCommand}"
+                                              ToolTip.Tip="Fill Width (Crops Top/Bottom)">
+                                    <svg:Svg Path="/Assets/Icons/fit_width.svg" Width="18" Height="18" />
+                                </ToggleButton>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <!-- For Fill Width (W): vertical align (Top/Center/Bottom) -->
+                                <ToggleButton Classes="circleSmall"
+                                              IsVisible="{Binding IsFillWidth}"
+                                              IsChecked="{Binding IsAlignStart, Mode=OneWay}"
+                                              Command="{Binding SetAlignStartCommand}"
+                                              ToolTip.Tip="Top">
+                                    <svg:Svg Path="/Assets/Icons/align_top.svg" Width="18" Height="18" />
+                                </ToggleButton>
+                                <ToggleButton Classes="circleSmall"
+                                              IsVisible="{Binding IsFillWidth}"
+                                              IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
+                                              Command="{Binding SetAlignCenterCommand}"
+                                              ToolTip.Tip="Center">
+                                    <svg:Svg Path="/Assets/Icons/align_v_center.svg" Width="18" Height="18" />
+                                </ToggleButton>
+                                <ToggleButton Classes="circleSmall"
+                                              IsVisible="{Binding IsFillWidth}"
+                                              IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
+                                              Command="{Binding SetAlignEndCommand}"
+                                              ToolTip.Tip="Bottom">
+                                    <svg:Svg Path="/Assets/Icons/align_bottom.svg" Width="18" Height="18" />
+                                </ToggleButton>
+
+                                <!-- For Fill Height (H): horizontal align (Left/Center/Right) -->
+                                <ToggleButton Classes="circleSmall"
+                                              IsVisible="{Binding IsFillHeight}"
+                                              IsChecked="{Binding IsAlignStart, Mode=OneWay}"
+                                              Command="{Binding SetAlignStartCommand}"
+                                              ToolTip.Tip="Left">
+                                    <svg:Svg Path="/Assets/Icons/align_left.svg" Width="18" Height="18" />
+                                </ToggleButton>
+                                <ToggleButton Classes="circleSmall"
+                                              IsVisible="{Binding IsFillHeight}"
+                                              IsChecked="{Binding IsAlignCenter, Mode=OneWay}"
+                                              Command="{Binding SetAlignCenterCommand}"
+                                              ToolTip.Tip="Center">
+                                    <svg:Svg Path="/Assets/Icons/align_h_center.svg" Width="18" Height="18" />
+                                </ToggleButton>
+                                <ToggleButton Classes="circleSmall"
+                                              IsVisible="{Binding IsFillHeight}"
+                                              IsChecked="{Binding IsAlignEnd, Mode=OneWay}"
+                                              Command="{Binding SetAlignEndCommand}"
+                                              ToolTip.Tip="Right">
+                                    <svg:Svg Path="/Assets/Icons/align_right.svg" Width="18" Height="18" />
+                                </ToggleButton>
+                            </StackPanel>
+
+                            <!-- Video options -->
+                            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsSelectedMediaVideo}" Margin="0,6,0,0">
+                                <ToggleButton Classes="circleSmall"
+                                              IsChecked="{Binding IsVideoLoop, Mode=TwoWay}"
+                                              ToolTip.Tip="Loop">
+                                    <i:Icon Value="mdi-repeat" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                </ToggleButton>
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
-                </Grid>
-            </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Apps controls (Initiative Tracker) -->
+                <Border Classes="card" Padding="10" IsVisible="{Binding IsAppsTabSelected}">
+                    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
+                            <TextBlock Text="Assign to Portals" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+
+                            <ItemsControl Grid.Column="1" ItemsSource="{Binding Portals}" HorizontalAlignment="Left">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
+                                        <ToggleButton Classes="circleSmall"
+                                                      Content="{Binding PortalNumber}"
+                                                      ToolTip.Tip="Show Initiative Tracker on this Portal"
+                                                      IsChecked="{Binding IsSelectedForInitiative, Mode=TwoWay}"
+                                                      Command="{Binding DataContext.ToggleInitiativeForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      CommandParameter="{Binding .}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+
+                        <Border Grid.Row="1" Height="1" Background="{DynamicResource ScryBorder}" Opacity="0.6" />
+
+                        <views:InitiativeTrackerView Grid.Row="2" DataContext="{Binding InitiativeTracker}" />
+                    </Grid>
+                </Border>
+            </Grid>
         </Border>
     </Grid>
 
