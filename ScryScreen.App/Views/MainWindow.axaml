@@ -257,12 +257,14 @@
                                                 Padding="8,6">
                                             <StackPanel Spacing="6">
                                                 <!-- Time bar: short, with times on same line -->
-                                                <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="0" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding VideoTimeText}"
                                                                Foreground="{DynamicResource ScryTextMuted}"
                                                                FontSize="10"
                                                                MinWidth="38"
                                                                HorizontalAlignment="Right"
+                                                               TextAlignment="Right"
+                                                               Margin="0,6,6,0"
                                                                VerticalAlignment="Center" />
 
                                                     <Slider Grid.Column="1"
@@ -279,6 +281,8 @@
                                                                FontSize="10"
                                                                MinWidth="38"
                                                                HorizontalAlignment="Left"
+                                                               TextAlignment="Left"
+                                                               Margin="6,6,0,0"
                                                                VerticalAlignment="Center" />
                                                 </Grid>
 
