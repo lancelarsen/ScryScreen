@@ -182,6 +182,14 @@
                                                 CornerRadius="8"
                                                 Padding="6">
                                             <Grid Height="80">
+                                                  <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
+                                                         IsVisible="{Binding !HasMediaPreview}"
+                                                     Width="40"
+                                                     Height="40"
+                                                         Opacity="0.8"
+                                                         HorizontalAlignment="Center"
+                                                         VerticalAlignment="Center" />
+
                                                   <Border IsVisible="{Binding IsSelectedForInitiative}"
                                                           Background="#0A0F18"
                                                           CornerRadius="6"
@@ -216,6 +224,14 @@
                                                     Padding="6"
                                                     ToolTip.Tip="{Binding MonitorPreviewToolTip}">
                                                 <Grid Width="120" Height="60">
+                                                    <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
+                                                           IsVisible="{Binding !HasMediaPreview}"
+                                                           Width="40"
+                                                           Height="40"
+                                                           Opacity="0.8"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+
                                                     <Border IsVisible="{Binding IsSelectedForInitiative}"
                                                             Background="#0A0F18"
                                                             CornerRadius="6"
@@ -229,7 +245,8 @@
                                                     </Border>
 
                                                     <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
-                                                    <Border Background="#05070B"
+                                                        <Border Background="#05070B"
+                                                            IsVisible="{Binding HasMonitorRenderablePreview}"
                                                             CornerRadius="10"
                                                             ClipToBounds="True"
                                                             HorizontalAlignment="Center"
@@ -259,6 +276,7 @@
 
                                                     <!-- Drawn screen outline overlay (does not affect layout) -->
                                                     <Rectangle Fill="Transparent"
+                                                               IsVisible="{Binding HasMonitorRenderablePreview}"
                                                                Stroke="#3A557D"
                                                                StrokeThickness="2"
                                                                RadiusX="10"

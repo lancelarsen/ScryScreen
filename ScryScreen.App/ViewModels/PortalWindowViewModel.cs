@@ -130,6 +130,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(IsShowingImage));
             OnPropertyChanged(nameof(IsShowingText));
             OnPropertyChanged(nameof(IsShowingVideo));
+            OnPropertyChanged(nameof(IsShowingIdleLogo));
+            OnPropertyChanged(nameof(IsShowingNonIdleText));
         }
     }
 
@@ -202,6 +204,11 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsShowingText => !IsSetup && !HasImage && !HasVideo;
 
+    public bool IsShowingIdleLogo =>
+        IsShowingText && string.Equals(ContentTitle, "Idle", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsShowingNonIdleText => IsShowingText && !IsShowingIdleLogo;
+
     [ObservableProperty]
     private bool isSetup;
 
@@ -210,6 +217,14 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsShowingImage));
         OnPropertyChanged(nameof(IsShowingVideo));
         OnPropertyChanged(nameof(IsShowingText));
+        OnPropertyChanged(nameof(IsShowingIdleLogo));
+        OnPropertyChanged(nameof(IsShowingNonIdleText));
+    }
+
+    partial void OnContentTitleChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsShowingIdleLogo));
+        OnPropertyChanged(nameof(IsShowingNonIdleText));
     }
 
     [ObservableProperty]
@@ -264,6 +279,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasVideo));
         OnPropertyChanged(nameof(IsShowingVideo));
         OnPropertyChanged(nameof(IsShowingText));
+        OnPropertyChanged(nameof(IsShowingIdleLogo));
+        OnPropertyChanged(nameof(IsShowingNonIdleText));
 
         UpdateLoopTimer();
 
@@ -577,6 +594,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasVideo));
         OnPropertyChanged(nameof(IsShowingVideo));
         OnPropertyChanged(nameof(IsShowingText));
+        OnPropertyChanged(nameof(IsShowingIdleLogo));
+        OnPropertyChanged(nameof(IsShowingNonIdleText));
     }
 
     public bool TryGetVideoPixelSize(out int width, out int height)

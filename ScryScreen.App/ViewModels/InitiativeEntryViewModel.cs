@@ -16,10 +16,10 @@ public sealed partial class InitiativeEntryViewModel : ViewModelBase
     private string name = string.Empty;
 
     [ObservableProperty]
-    private int initiative;
+    private string initiative = string.Empty;
 
     [ObservableProperty]
-    private int mod;
+    private string mod = string.Empty;
 
     [ObservableProperty]
     private bool isHidden;

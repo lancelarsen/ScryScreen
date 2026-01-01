@@ -15,6 +15,8 @@ namespace ScryScreen.App.ViewModels;
 
 public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 {
+    private const int DefaultRowCount = 5;
+
     private InitiativeTrackerState _state = InitiativeTrackerState.Empty;
 
     private bool _isReordering;
@@ -25,25 +27,26 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     public InitiativeTrackerViewModel()
     {
+        // Start with a few blank rows so the tracker feels ready immediately.
+        for (var i = 0; i < DefaultRowCount; i++)
+        {
+            Entries.Add(CreateBlankEntry());
+        }
+
+        foreach (var entry in Entries)
+        {
+            entry.PropertyChanged += OnEntryPropertyChanged;
+        }
+
         Entries.CollectionChanged += OnEntriesCollectionChanged;
+
+        RebuildStateFromEntries(sort: true);
+        ReorderCollectionToMatchState();
     }
 
     public ObservableCollection<InitiativeEntryViewModel> Entries { get; } = new();
 
-    [ObservableProperty]
-    private string newName = string.Empty;
-
-    [ObservableProperty]
-    private int newInitiative;
-
-    [ObservableProperty]
-    private int newMod;
-
-    [ObservableProperty]
-    private string? newNotes;
-
-    [ObservableProperty]
-    private bool newIsHidden;
+    public bool IsEmpty => Entries.Count == 0;
 
     [ObservableProperty]
     private int round = 1;
@@ -56,6 +59,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     private void OnEntriesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        OnPropertyChanged(nameof(IsEmpty));
+
         if (e.OldItems is not null)
         {
             foreach (var o in e.OldItems.OfType<InitiativeEntryViewModel>())
@@ -108,23 +113,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     {
         CancelPendingResort();
 
-        var id = Guid.NewGuid();
-        var vm = new InitiativeEntryViewModel(id)
-        {
-            Name = NewName,
-            Initiative = NewInitiative,
-            Mod = NewMod,
-            IsHidden = NewIsHidden,
-            Notes = NewNotes,
-        };
-
-        Entries.Add(vm);
-
-        NewName = string.Empty;
-        NewInitiative = 0;
-        NewMod = 0;
-        NewNotes = null;
-        NewIsHidden = false;
+        Entries.Add(CreateBlankEntry());
 
         RebuildStateFromEntries(sort: true);
         ReorderCollectionToMatchState();
@@ -151,9 +140,15 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         CancelPendingResort();
 
         Entries.Clear();
+        for (var i = 0; i < DefaultRowCount; i++)
+        {
+            Entries.Add(CreateBlankEntry());
+        }
+
         _state = InitiativeTrackerState.Empty;
         Round = _state.Round;
-        RaisePortalTextChanged();
+        RebuildStateFromEntries(sort: true);
+        ReorderCollectionToMatchState();
     }
 
     [RelayCommand]
@@ -270,11 +265,21 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     private void RebuildStateFromEntries(bool sort)
     {
+        static int ParseIntOrZero(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return 0;
+            }
+
+            return int.TryParse(text, out var value) ? value : 0;
+        }
+
         var entries = Entries.Select(vm => new InitiativeEntry(
                 Id: vm.Id,
                 Name: vm.Name,
-                Initiative: vm.Initiative,
-                Mod: vm.Mod,
+                Initiative: ParseIntOrZero(vm.Initiative),
+                Mod: ParseIntOrZero(vm.Mod),
                 IsHidden: vm.IsHidden,
                 Notes: vm.Notes))
             .ToArray();
@@ -294,6 +299,18 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         Round = _state.Round;
         UpdateActiveFlags();
         RaisePortalTextChanged();
+    }
+
+    private static InitiativeEntryViewModel CreateBlankEntry()
+    {
+        return new InitiativeEntryViewModel(Guid.NewGuid())
+        {
+            Name = string.Empty,
+            Initiative = string.Empty,
+            Mod = string.Empty,
+            IsHidden = false,
+            Notes = null,
+        };
     }
 
     private void ReorderCollectionToMatchState()

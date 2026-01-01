@@ -129,6 +129,8 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
     public bool ShowMonitorLiveVideo => IsVideoAssigned;
 
+    public bool HasMonitorRenderablePreview => ShowMonitorSnapshot || ShowMonitorLiveVideo;
+
     public bool HasMonitorAndMediaPreview => HasMonitorPreview && HasMediaPreview;
 
     public string FitModeText
@@ -178,6 +180,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasMonitorAndMediaPreview));
         OnPropertyChanged(nameof(ShowMonitorSnapshot));
         OnPropertyChanged(nameof(ShowMonitorLiveVideo));
+        OnPropertyChanged(nameof(HasMonitorRenderablePreview));
         OnPropertyChanged(nameof(MonitorPreviewToolTip));
         UpdateMonitorPreviewGeometry();
     }
@@ -214,6 +217,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasMonitorAndMediaPreview));
         OnPropertyChanged(nameof(ShowMonitorSnapshot));
         OnPropertyChanged(nameof(ShowMonitorLiveVideo));
+        OnPropertyChanged(nameof(HasMonitorRenderablePreview));
         OnPropertyChanged(nameof(MonitorPreviewToolTip));
 
         if (IsVideoAssigned)
