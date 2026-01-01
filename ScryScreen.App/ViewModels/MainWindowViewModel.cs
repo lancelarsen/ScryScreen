@@ -17,8 +17,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ReadOnlyCollection<ScreenInfoViewModel> _screens;
     private string? _lastSelectedMediaPath;
 
-    private sealed record PortalContentSnapshot(bool IsVisible, string CurrentAssignment, string? AssignedMediaFilePath, bool IsVideo, bool IsVideoLoop, MediaScaleMode ScaleMode, MediaAlign Align);
-    private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentSnapshot>> _portalHistory = new();
+    private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentRestorationPlanner.Snapshot>> _portalHistory = new();
 
     public MainWindowViewModel(PortalHostService portalHost)
     {
@@ -214,9 +213,13 @@ public partial class MainWindowViewModel : ViewModelBase
         var portalNumber = GetNextAvailablePortalNumber();
         // Startup UX: if multiple monitors exist, put the first portal on a non-primary monitor.
         // Subsequent portals keep the existing default ordering.
-        var defaultScreen = (Portals.Count == 0)
-            ? Screens.FirstOrDefault(s => !s.IsPrimary) ?? Screens.FirstOrDefault()
-            : Screens.FirstOrDefault();
+        var defaultIndex = DefaultScreenSelector.GetDefaultScreenIndex(
+            isPrimaryByIndex: Screens.Select(s => s.IsPrimary).ToList(),
+            isFirstPortal: Portals.Count == 0);
+
+        var defaultScreen = (defaultIndex >= 0 && defaultIndex < Screens.Count)
+            ? Screens[defaultIndex]
+            : null;
 
         _portalHost.CreatePortal(portalNumber, defaultScreen);
 
@@ -283,11 +286,11 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (!_portalHistory.TryGetValue(portal.PortalNumber, out var stack))
         {
-            stack = new System.Collections.Generic.Stack<PortalContentSnapshot>();
+            stack = new System.Collections.Generic.Stack<PortalContentRestorationPlanner.Snapshot>();
             _portalHistory[portal.PortalNumber] = stack;
         }
 
-        stack.Push(new PortalContentSnapshot(
+        stack.Push(new PortalContentRestorationPlanner.Snapshot(
             IsVisible: portal.IsVisible,
             CurrentAssignment: portal.CurrentAssignment,
             AssignedMediaFilePath: portal.AssignedMediaFilePath,
@@ -338,7 +341,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            if (!string.Equals(portal.AssignedMediaFilePath, expectedFilePath, StringComparison.OrdinalIgnoreCase) || !portal.IsVideoAssigned)
+            if (!PortalSnapshotRules.ShouldApplyVideoSnapshot(portal.AssignedMediaFilePath, portal.IsVideoAssigned, expectedFilePath))
             {
                 snap.Bitmap.Dispose();
                 return;
@@ -368,51 +371,45 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void RestorePreviousContent(PortalRowViewModel portal)
     {
-        if (!_portalHistory.TryGetValue(portal.PortalNumber, out var stack) || stack.Count == 0)
+        PortalContentRestorationPlanner.Snapshot? snapshot = null;
+        if (_portalHistory.TryGetValue(portal.PortalNumber, out var stack) && stack.Count > 0)
         {
-            // Fallback: restore to idle.
-            portal.AssignedMediaFilePath = null;
-            portal.CurrentAssignment = "Idle";
-            portal.AssignedPreview = null;
-            _portalHost.SetContentText(portal.PortalNumber, portal.CurrentAssignment);
-            return;
+            snapshot = stack.Pop();
         }
 
-        var snapshot = stack.Pop();
+        var plan = PortalContentRestorationPlanner.ComputeFromSnapshot(snapshot, idleTitle: "Idle");
 
-        portal.IsVisible = snapshot.IsVisible;
-        portal.CurrentAssignment = snapshot.CurrentAssignment;
-        portal.AssignedMediaFilePath = snapshot.AssignedMediaFilePath;
-        portal.IsVideoLoop = snapshot.IsVideoLoop;
-        portal.ScaleMode = snapshot.ScaleMode;
-        portal.Align = snapshot.Align;
+        portal.IsVisible = plan.IsVisible;
+        portal.CurrentAssignment = plan.CurrentAssignment;
+        portal.AssignedMediaFilePath = plan.AssignedMediaFilePath;
+        portal.IsVideoLoop = plan.IsVideoLoop;
+        portal.ScaleMode = plan.ScaleMode;
+        portal.Align = plan.Align;
 
-        if (!string.IsNullOrWhiteSpace(snapshot.AssignedMediaFilePath))
+        switch (plan.Kind)
         {
-            if (snapshot.IsVideo)
-            {
+            case PortalContentRestorationPlanner.ContentKind.Video:
                 portal.AssignedPreview = null;
-                _portalHost.SetContentVideo(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align, loop: snapshot.IsVideoLoop);
-
+                _portalHost.SetContentVideo(portal.PortalNumber, plan.AssignedMediaFilePath!, plan.CurrentAssignment, portal.ScaleMode, portal.Align, loop: plan.IsVideoLoop);
                 portal.IsVideoPlaying = false;
                 _portalHost.SeekVideo(portal.PortalNumber, 1000);
-                _ = UpdatePortalVideoSnapshotAsync(portal, snapshot.AssignedMediaFilePath);
-            }
-            else
-            {
-                portal.SetAssignedPreviewFromFile(snapshot.AssignedMediaFilePath);
-                _portalHost.SetContentImage(portal.PortalNumber, snapshot.AssignedMediaFilePath, snapshot.CurrentAssignment, portal.ScaleMode, portal.Align);
-            }
-        }
-        else
-        {
-            portal.AssignedPreview = null;
-            portal.IsVideoPlaying = false;
-            portal.IsVideoLoop = false;
-            _portalHost.SetContentText(portal.PortalNumber, snapshot.CurrentAssignment);
+                _ = UpdatePortalVideoSnapshotAsync(portal, plan.AssignedMediaFilePath!);
+                break;
+            case PortalContentRestorationPlanner.ContentKind.Image:
+                portal.SetAssignedPreviewFromFile(plan.AssignedMediaFilePath!);
+                _portalHost.SetContentImage(portal.PortalNumber, plan.AssignedMediaFilePath!, plan.CurrentAssignment, portal.ScaleMode, portal.Align);
+                portal.IsVideoPlaying = false;
+                portal.IsVideoLoop = false;
+                break;
+            default:
+                portal.AssignedPreview = null;
+                portal.IsVideoPlaying = false;
+                portal.IsVideoLoop = false;
+                _portalHost.SetContentText(portal.PortalNumber, plan.CurrentAssignment);
+                break;
         }
 
-        _portalHost.SetVisibility(portal.PortalNumber, snapshot.IsVisible);
+        _portalHost.SetVisibility(portal.PortalNumber, plan.IsVisible);
     }
 
     private void UpdatePortalMediaSelectionFlags()

@@ -167,4 +167,140 @@ public class VideoLoopControllerTests
 
         Assert.Equal(1, restartCalls);
     }
+
+    [Fact]
+    public void DisablingController_ClearsPendingRestart()
+    {
+        var clock = new FakeClock();
+        var restartCalls = 0;
+
+        var controller = new VideoLoopController(
+            restart: () => { restartCalls++; return true; },
+            utcNowTicks: clock.UtcNowTicks);
+
+        controller.SetHasVideo(true);
+        controller.SetEnabled(true);
+        controller.SetArmed(true);
+
+        controller.SignalEndReached();
+        controller.SetEnabled(false);
+
+        controller.SetEnabled(true);
+        controller.Tick();
+
+        Assert.Equal(0, restartCalls);
+    }
+
+    [Fact]
+    public void ClearingHasVideo_ClearsPendingRestart()
+    {
+        var clock = new FakeClock();
+        var restartCalls = 0;
+
+        var controller = new VideoLoopController(
+            restart: () => { restartCalls++; return true; },
+            utcNowTicks: clock.UtcNowTicks);
+
+        controller.SetHasVideo(true);
+        controller.SetEnabled(true);
+        controller.SetArmed(true);
+
+        controller.SignalEndReached();
+        controller.SetHasVideo(false);
+
+        controller.SetHasVideo(true);
+        controller.Tick();
+
+        Assert.Equal(0, restartCalls);
+    }
+
+    [Fact]
+    public void ClearingArmed_ClearsPendingRestart()
+    {
+        var clock = new FakeClock();
+        var restartCalls = 0;
+
+        var controller = new VideoLoopController(
+            restart: () => { restartCalls++; return true; },
+            utcNowTicks: clock.UtcNowTicks);
+
+        controller.SetHasVideo(true);
+        controller.SetEnabled(true);
+        controller.SetArmed(true);
+
+        controller.SignalEndReached();
+        controller.SetArmed(false);
+
+        controller.SetArmed(true);
+        controller.Tick();
+
+        Assert.Equal(0, restartCalls);
+    }
+
+    [Fact]
+    public void RestartExceptions_AreCaught_AndBackoffIsApplied()
+    {
+        var clock = new FakeClock();
+        var restartCalls = 0;
+
+        var controller = new VideoLoopController(
+            restart: () =>
+            {
+                restartCalls++;
+                throw new InvalidOperationException("boom");
+            },
+            utcNowTicks: clock.UtcNowTicks);
+
+        controller.SetHasVideo(true);
+        controller.SetEnabled(true);
+        controller.SetArmed(true);
+        controller.SignalEndReached();
+
+        controller.Tick();
+        Assert.Equal(1, restartCalls);
+
+        controller.Tick();
+        Assert.Equal(1, restartCalls);
+
+        clock.AdvanceMs(400);
+        controller.Tick();
+        Assert.Equal(2, restartCalls);
+    }
+
+    [Fact]
+    public void Backoff_ClampsAt1200ms_AfterRepeatedFailures()
+    {
+        var clock = new FakeClock();
+        var restartCalls = 0;
+
+        var controller = new VideoLoopController(
+            restart: () => { restartCalls++; return false; },
+            utcNowTicks: clock.UtcNowTicks);
+
+        controller.SetHasVideo(true);
+        controller.SetEnabled(true);
+        controller.SetArmed(true);
+        controller.SignalEndReached();
+
+        controller.Tick(); // attempt 1, sets 350ms
+        Assert.Equal(1, restartCalls);
+        clock.AdvanceMs(400);
+        controller.Tick(); // attempt 2, sets 500ms
+        Assert.Equal(2, restartCalls);
+        clock.AdvanceMs(600);
+        controller.Tick(); // attempt 3, sets 800ms
+        Assert.Equal(3, restartCalls);
+        clock.AdvanceMs(900);
+        controller.Tick(); // attempt 4, sets 1200ms (clamped)
+        Assert.Equal(4, restartCalls);
+
+        // Not enough time to hit 1200ms yet.
+        clock.AdvanceMs(1000);
+        controller.Tick();
+        Assert.Equal(4, restartCalls);
+
+        clock.AdvanceMs(300);
+        controller.Tick();
+        Assert.Equal(5, restartCalls);
+    }
 }

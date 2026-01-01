@@ -44,6 +44,43 @@ public class VideoLoopRestarterTests
         }
     }
 
+    private sealed class ThrowingMediaSetTarget : IVideoLoopRestartTarget<object>
+    {
+        public bool IsNativeTargetReady { get; set; } = true;
+
+        private object? _media;
+        public object? Media
+        {
+            get => _media;
+            set
+            {
+                _media = value;
+                throw new InvalidOperationException("set failed");
+            }
+        }
+
+        public readonly List<string> Calls = new();
+        public Queue<bool> PlayResults { get; } = new();
+
+        public bool TryStop()
+        {
+            Calls.Add("Stop");
+            return true;
+        }
+
+        public bool TryPlay()
+        {
+            Calls.Add("Play");
+            return PlayResults.Count > 0 ? PlayResults.Dequeue() : false;
+        }
+
+        public bool TrySetTimeMs(long timeMs)
+        {
+            Calls.Add($"Time={timeMs}");
+            return true;
+        }
+    }
+
     private sealed class FakeFactory : IVideoMediaFactory<object>
     {
         public readonly List<string> CreatedFromPaths = new();
@@ -161,5 +198,45 @@ public class VideoLoopRestarterTests
 
         Assert.False(ok);
         Assert.Empty(factory.CreatedFromPaths);
+    }
+
+    [Fact]
+    public void TryRestart_RecreatesMedia_WhenCurrentIsNull_AndPathPresent()
+    {
+        var target = new FakeTarget();
+        target.PlayResults.Enqueue(false); // first play fails
+        target.PlayResults.Enqueue(true);  // play succeeds after recreate
+
+        var factory = new FakeFactory();
+        var sleeper = new FakeSleeper();
+        var restarter = new VideoLoopRestarter<object>(target, factory, sleeper);
+
+        object? current = null;
+        var ok = restarter.TryRestart(ref current, mediaPath: "c:/video.mp4");
+
+        Assert.True(ok);
+        Assert.Single(factory.CreatedFromPaths);
+        Assert.Empty(factory.Disposed);
+        Assert.NotNull(current);
+    }
+
+    [Fact]
+    public void TryRestart_IgnoresMediaSetterExceptions_AndStillAttemptsPlay()
+    {
+        var target = new ThrowingMediaSetTarget();
+        target.PlayResults.Enqueue(false); // first play fails
+        target.PlayResults.Enqueue(true);  // second play succeeds even though media set throws
+
+        var factory = new FakeFactory();
+        var sleeper = new FakeSleeper();
+        var restarter = new VideoLoopRestarter<object>(target, factory, sleeper);
+
+        var media = new object();
+        object? current = media;
+
+        var ok = restarter.TryRestart(ref current, mediaPath: null);
+
+        Assert.True(ok);
+        Assert.Equal(new[] { "Stop", "Time=0", "Play", "Play" }, target.Calls);
     }
 }

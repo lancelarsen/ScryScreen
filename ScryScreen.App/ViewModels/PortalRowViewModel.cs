@@ -78,8 +78,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     private bool isVideoLoop;
 
     public bool IsVideoAssigned =>
-        !string.IsNullOrWhiteSpace(AssignedMediaFilePath) &&
-        string.Equals(Path.GetExtension(AssignedMediaFilePath), ".mp4", StringComparison.OrdinalIgnoreCase);
+        MediaFileClassifier.IsVideo(AssignedMediaFilePath);
 
     public MediaPlayer PreviewVideoPlayer => _previewPlayer;
 
@@ -188,14 +187,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var ext = Path.GetExtension(filePath);
-        var isImage = ext.Equals(".png", StringComparison.OrdinalIgnoreCase) ||
-                      ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
-                      ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) ||
-                      ext.Equals(".bmp", StringComparison.OrdinalIgnoreCase) ||
-                      ext.Equals(".gif", StringComparison.OrdinalIgnoreCase);
-
-        if (!isImage)
+        if (!MediaFileClassifier.IsImage(filePath))
         {
             AssignedPreview = null;
             return;
@@ -369,77 +361,32 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         var monitorW = Math.Max(1, SelectedScreen.WidthPx);
         var monitorH = Math.Max(1, SelectedScreen.HeightPx);
 
-        // Scale the actual monitor aspect ratio to fit the fixed preview box (120x60)
-        var monitorScale = Math.Min(MonitorPreviewOuterW / monitorW, MonitorPreviewOuterH / monitorH);
-        var screenW = monitorW * monitorScale;
-        var screenH = monitorH * monitorScale;
-        MonitorPreviewScreenWidth = screenW;
-        MonitorPreviewScreenHeight = screenH;
-
-        mediaW = Math.Max(1, mediaW);
-        mediaH = Math.Max(1, mediaH);
-
-        var sx = screenW / mediaW;
-        var sy = screenH / mediaH;
-
-        // Stabilize the filled axis to avoid sub-pixel drift that can show as a 1px gap.
-        // FillHeight (H) => displayed height matches monitorH exactly.
-        // FillWidth  (W) => displayed width  matches monitorW exactly.
-        var displayW = 0.0;
-        var displayH = 0.0;
-
-        switch (ScaleMode)
+        if (!MonitorPreviewGeometryCalculator.TryCalculate(
+                MonitorPreviewOuterW,
+                MonitorPreviewOuterH,
+                monitorW,
+                monitorH,
+                mediaW,
+                mediaH,
+                ScaleMode,
+                Align,
+                out var geometry))
         {
-            case MediaScaleMode.FillHeight:
-                displayH = screenH;
-                displayW = mediaW * sy;
-                break;
-            case MediaScaleMode.FillWidth:
-                displayW = screenW;
-                displayH = mediaH * sx;
-                break;
-            default:
-                displayW = screenW;
-                displayH = mediaH * sx;
-                break;
+            PreviewImageLeft = 0;
+            PreviewImageTop = 0;
+            PreviewImageWidth = 0;
+            PreviewImageHeight = 0;
+            MonitorPreviewScreenWidth = 0;
+            MonitorPreviewScreenHeight = 0;
+            return;
         }
 
-        PreviewImageWidth = displayW;
-        PreviewImageHeight = displayH;
-
-        var leftoverX = screenW - displayW;
-        var leftoverY = screenH - displayH;
-
-        // Clamp tiny floating-point leftovers to 0 to prevent hairline slivers.
-        if (Math.Abs(leftoverX) < 1e-6)
-        {
-            leftoverX = 0;
-        }
-
-        if (Math.Abs(leftoverY) < 1e-6)
-        {
-            leftoverY = 0;
-        }
-
-        // Align only on the axis that might overflow/letterbox for the selected scale mode.
-        // FillHeight (H) => horizontal align; FillWidth (W) => vertical align.
-        var ax = Align switch
-        {
-            MediaAlign.Start => 0.0,
-            MediaAlign.Center => 0.5,
-            MediaAlign.End => 1.0,
-            _ => 0.5,
-        };
-
-        var left = ScaleMode == MediaScaleMode.FillHeight ? leftoverX * ax : leftoverX * 0.5;
-        var top = ScaleMode == MediaScaleMode.FillWidth ? leftoverY * ax : leftoverY * 0.5;
-
-        // Snap to pixel-ish boundaries for the preview to avoid hairline gaps caused by sub-pixel rendering.
-        // Oversize slightly (ceil) and shift slightly (floor) is safe because the host clips.
-        PreviewImageWidth = Math.Ceiling(PreviewImageWidth);
-        PreviewImageHeight = Math.Ceiling(PreviewImageHeight);
-        PreviewImageLeft = Math.Floor(left);
-        PreviewImageTop = Math.Floor(top);
+        MonitorPreviewScreenWidth = geometry.ScreenWidth;
+        MonitorPreviewScreenHeight = geometry.ScreenHeight;
+        PreviewImageLeft = geometry.ImageLeft;
+        PreviewImageTop = geometry.ImageTop;
+        PreviewImageWidth = geometry.ImageWidth;
+        PreviewImageHeight = geometry.ImageHeight;
     }
 
     private void EnsurePreviewMedia()

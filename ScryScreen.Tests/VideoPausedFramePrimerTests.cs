@@ -77,6 +77,16 @@ public class VideoPausedFramePrimerTests
         }
     }
 
+    private sealed class ThrowingDelay : IVideoDelay
+    {
+        public int Calls;
+        public Task Delay(int milliseconds, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            throw new OperationCanceledException(cancellationToken);
+        }
+    }
+
     private sealed class BlockingDelay : IVideoDelay
     {
         private readonly TaskCompletionSource _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -111,6 +121,28 @@ public class VideoPausedFramePrimerTests
         Assert.False(ok);
         Assert.Empty(player.Calls);
         Assert.Equal(0, delay.Calls);
+    }
+
+    [Fact]
+    public async Task PrimePausedFrameAsync_Throws_OnNullPlayer()
+    {
+        var delay = new ImmediateDelay();
+        var primer = new VideoPausedFramePrimer(delay);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            primer.PrimePausedFrameAsync(null!, targetMs: 0, decodeDelayMs: 0));
+    }
+
+    [Fact]
+    public async Task PrimePausedFrameAsync_Throws_OnNegativeDecodeDelay()
+    {
+        var delay = new ImmediateDelay();
+        var primer = new VideoPausedFramePrimer(delay);
+        var player = new FakePlayback { IsPlaying = false };
+        player.SetInitialState(mute: false, volume: 80);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            primer.PrimePausedFrameAsync(player, targetMs: 0, decodeDelayMs: -1));
     }
 
     [Fact]
@@ -151,6 +183,39 @@ public class VideoPausedFramePrimerTests
 
         // Delay called once (even though it's immediate).
         Assert.Equal(1, delay.Calls);
+    }
+
+    [Fact]
+    public async Task PrimePausedFrameAsync_DoesNotCallDelay_WhenDecodeDelayIsZero()
+    {
+        var delay = new ImmediateDelay();
+        var primer = new VideoPausedFramePrimer(delay);
+        var player = new FakePlayback { IsPlaying = false };
+        player.SetInitialState(mute: true, volume: 0);
+
+        var ok = await primer.PrimePausedFrameAsync(player, targetMs: 1234, decodeDelayMs: 0);
+
+        Assert.True(ok);
+        Assert.Equal(0, delay.Calls);
+    }
+
+    [Fact]
+    public async Task PrimePausedFrameAsync_RestoresState_WhenDelayThrows()
+    {
+        var delay = new ThrowingDelay();
+        var primer = new VideoPausedFramePrimer(delay);
+        var player = new FakePlayback { IsPlaying = false };
+        player.SetInitialState(mute: false, volume: 80);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            primer.PrimePausedFrameAsync(player, targetMs: 1234, decodeDelayMs: 1, cancellationToken: cts.Token));
+
+        Assert.False(primer.IsPriming);
+        Assert.False(player.Mute);
+        Assert.Equal(80, player.Volume);
     }
 
     [Fact]
