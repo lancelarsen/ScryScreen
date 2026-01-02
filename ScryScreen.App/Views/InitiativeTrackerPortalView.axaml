@@ -43,47 +43,47 @@
   <Grid Background="Black">
     <Grid RowDefinitions="*,Auto" Margin="32">
       <!-- Row 0 takes remaining space; center the whole table vertically in it. -->
-      <Border VerticalAlignment="Center" HorizontalAlignment="Center" Width="1400" MaxWidth="1600">
+      <Border VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="1400">
         <ItemsControl ItemsSource="{Binding Entries}" HorizontalAlignment="Stretch">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:InitiativePortalEntryViewModel">
               <Grid Margin="0,0,0,14"
-                    ColumnDefinitions="44,260,*"
+                ColumnDefinitions="320,*"
                     ColumnSpacing="22"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Stretch">
 
-                <!-- Gem marker (always reserves space; only visible for active) -->
-                <Border Width="40"
-                        Height="40"
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="Center">
-                  <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
-                         Width="36"
-                         Height="36"
-                         IsVisible="{Binding IsActive}" />
-                </Border>
+                <!-- Initiative group (diamond + initiative + mod), right-aligned so digits stay column-aligned -->
+                <Grid ColumnDefinitions="Auto,Auto,Auto"
+                  ColumnSpacing="14"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Center">
 
-                <!-- Initiative + mod (fixed-width column so names align) -->
-                <Grid Grid.Column="1"
-                      ColumnDefinitions="Auto,Auto"
-                      ColumnSpacing="14"
-                    HorizontalAlignment="Right"
-                      VerticalAlignment="Center">
-                  <TextBlock Classes="init"
-                             Text="{Binding InitiativeDisplay}"
-                       HorizontalAlignment="Right"
-                             VerticalAlignment="Center" />
+              <!-- Diamond marker placeholder (always reserves space; image only visible when active) -->
+              <Border Width="36"
+                  Height="36"
+                  VerticalAlignment="Center"
+                  HorizontalAlignment="Center">
+                <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
+                   Stretch="Uniform"
+                   IsVisible="{Binding IsActive}" />
+              </Border>
 
-                  <TextBlock Grid.Column="1"
-                             Classes="mod"
-                             Text="{Binding ModDisplay}"
-                             IsVisible="{Binding HasMod}"
-                             VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1"
+                     Classes="init"
+                     Text="{Binding InitiativeDisplay}"
+                     HorizontalAlignment="Right"
+                     VerticalAlignment="Center" />
+
+              <TextBlock Grid.Column="2"
+                     Classes="mod"
+                     Text="{Binding ModDisplay}"
+                     IsVisible="{Binding HasMod}"
+                     VerticalAlignment="Center" />
                 </Grid>
 
                 <!-- Name (column-aligned) -->
-                <TextBlock Grid.Column="2"
+                <TextBlock Grid.Column="1"
                            Classes="entry"
                            Text="{Binding Name}"
                            TextTrimming="CharacterEllipsis"

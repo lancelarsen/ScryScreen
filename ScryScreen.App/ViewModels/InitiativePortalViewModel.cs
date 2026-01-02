@@ -46,7 +46,13 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
             .ToArray();
         HiddenOmittedCount = all.Length - visible.Length;
 
-        var activeId = state.ActiveId;
+        Guid? activeId = state.ActiveId;
+        if (visible.Length > 0 && (!activeId.HasValue || visible.All(e => e.Id != activeId.Value)))
+        {
+            // If the state's active entry is omitted from the portal (blank/unnamed/hidden),
+            // show the gem on the first visible entry instead.
+            activeId = visible[0].Id;
+        }
 
         var limited = visible
             .Take(MaxEntries)
