@@ -83,6 +83,16 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     public string PortalText => InitiativeTrackerFormatter.ToPortalText(_state);
 
+    public string PrevTurnDetailsText => BuildPrevTurnPreviewDetails();
+
+    public string UpTurnDetailsText => BuildTurnPreviewDetails(offsetFromUp: 0);
+
+    public string NextTurnDetailsText => BuildTurnPreviewDetails(offsetFromUp: 1);
+
+    public string UpTurnLineText => $"Up: {UpTurnDetailsText}";
+
+    public string NextTurnLineText => $"Next: {NextTurnDetailsText}";
+
     public string ExportConfigJson(bool indented = true)
     {
         var config = new InitiativeTrackerConfig
@@ -535,6 +545,120 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(PortalText));
         OnPropertyChanged(nameof(ActiveId));
+        OnPropertyChanged(nameof(PrevTurnDetailsText));
+        OnPropertyChanged(nameof(UpTurnDetailsText));
+        OnPropertyChanged(nameof(NextTurnDetailsText));
+        OnPropertyChanged(nameof(UpTurnLineText));
+        OnPropertyChanged(nameof(NextTurnLineText));
         StateChanged?.Invoke();
+    }
+
+    private string BuildPrevTurnPreviewDetails()
+    {
+        var eligible = GetEligibleIdsInStateOrder();
+        if (eligible.Length == 0)
+        {
+            return "—";
+        }
+
+        var idx = -1;
+        if (_state.ActiveId.HasValue)
+        {
+            for (var i = 0; i < eligible.Length; i++)
+            {
+                if (eligible[i] == _state.ActiveId.Value)
+                {
+                    idx = i;
+                    break;
+                }
+            }
+        }
+
+        var targetIdx = idx >= 0 ? (idx - 1 + eligible.Length) % eligible.Length : eligible.Length - 1;
+        var id = eligible[targetIdx];
+
+        var vm = Entries.FirstOrDefault(e => e.Id == id);
+        if (vm is null)
+        {
+            return "—";
+        }
+
+        var name = (vm.Name ?? string.Empty).Trim();
+        if (name.Length == 0)
+        {
+            name = UnnamedToken;
+        }
+
+        var notes = (vm.Notes ?? string.Empty).Trim();
+        return notes.Length > 0 ? $"{name} ({notes})" : name;
+    }
+
+    private string BuildTurnPreviewDetails(int offsetFromUp)
+    {
+        var eligible = GetEligibleIdsInStateOrder();
+        if (eligible.Length == 0)
+        {
+            return "—";
+        }
+
+        var idx = -1;
+        if (_state.ActiveId.HasValue)
+        {
+            for (var i = 0; i < eligible.Length; i++)
+            {
+                if (eligible[i] == _state.ActiveId.Value)
+                {
+                    idx = i;
+                    break;
+                }
+            }
+        }
+
+        var upIdx = idx >= 0 ? idx : 0;
+        var targetIdx = idx >= 0
+            ? (upIdx + offsetFromUp) % eligible.Length
+            : Math.Min(upIdx + offsetFromUp, eligible.Length - 1);
+
+        var id = eligible[targetIdx];
+        var vm = Entries.FirstOrDefault(e => e.Id == id);
+        if (vm is null)
+        {
+            return "—";
+        }
+
+        var name = (vm.Name ?? string.Empty).Trim();
+        if (name.Length == 0)
+        {
+            name = UnnamedToken;
+        }
+
+        var notes = (vm.Notes ?? string.Empty).Trim();
+        return notes.Length > 0 ? $"{name} ({notes})" : name;
+    }
+
+    private Guid[] GetEligibleIdsInStateOrder()
+    {
+        var vmById = Entries.ToDictionary(e => e.Id);
+
+        bool IsEligible(InitiativeEntryViewModel vm)
+        {
+            if (vm.IsHidden)
+            {
+                return false;
+            }
+
+            var name = (vm.Name ?? string.Empty).Trim();
+            if (name.Length == 0 || string.Equals(name, UnnamedToken, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return !string.IsNullOrWhiteSpace(vm.Initiative);
+        }
+
+        return _state.Entries
+            .Select(e => e.Id)
+            .Where(id => vmById.TryGetValue(id, out var vm) && IsEligible(vm))
+            .ToArray();
     }
 }

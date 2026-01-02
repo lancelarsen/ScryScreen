@@ -181,33 +181,67 @@
                                                 BorderThickness="1"
                                                 CornerRadius="8"
                                                 Padding="6">
-                                            <Grid Height="80">
-                                                  <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
-                                                         IsVisible="{Binding !HasMediaPreview}"
-                                                     Width="40"
-                                                     Height="40"
-                                                         Opacity="0.8"
-                                                         HorizontalAlignment="Center"
-                                                         VerticalAlignment="Center" />
+                                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0">
+                                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <Button Classes="circleSmall"
+                                                                Width="28" Height="28" CornerRadius="14"
+                                                                Command="{Binding DataContext.InitiativeTracker.PreviousTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                ToolTip.Tip="Previous Turn">
+                                                            <i:Icon Value="mdi-chevron-left" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                        </Button>
+                                                        <Button Classes="circleSmall"
+                                                                Width="28" Height="28" CornerRadius="14"
+                                                                Command="{Binding DataContext.InitiativeTracker.NextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                ToolTip.Tip="Next Turn">
+                                                            <i:Icon Value="mdi-chevron-right" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                        </Button>
+                                                    </StackPanel>
+                                                </StackPanel>
 
-                                                  <Border IsVisible="{Binding IsSelectedForInitiative}"
-                                                          Background="#0A0F18"
-                                                          CornerRadius="6"
-                                                          Padding="6"
-                                                          ClipToBounds="True">
-                                                      <TextBlock Text="{Binding DataContext.InitiativeTracker.PortalText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                 Foreground="{DynamicResource ScryTextMuted}"
-                                                                 FontFamily="Consolas"
-                                                                 FontSize="12"
-                                                                 TextWrapping="Wrap" />
-                                                  </Border>
+                                                <Grid Grid.Row="0" Grid.Column="1" Height="80" HorizontalAlignment="Stretch">
+                                                    <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
+                                                           IsVisible="{Binding !HasMediaPreview}"
+                                                           Width="40"
+                                                           Height="40"
+                                                           Opacity="0.8"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
 
-                                                  <Image Source="{Binding AssignedPreview}"
-                                                      IsVisible="{Binding HasMediaPreview}"
-                                                      Stretch="Uniform" />
+                                                    <Border IsVisible="{Binding IsSelectedForInitiative}"
+                                                            Background="#0A0F18"
+                                                            CornerRadius="6"
+                                                            Padding="6"
+                                                            ClipToBounds="True">
+                                                        <TextBlock Text="{Binding DataContext.InitiativeTracker.PortalText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                   Foreground="{DynamicResource ScryTextMuted}"
+                                                                   FontFamily="Consolas"
+                                                                   FontSize="12"
+                                                                   TextWrapping="Wrap" />
+                                                    </Border>
 
-                                                  <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
-                                                             MediaPlayer="{Binding PreviewVideoPlayer}" />
+                                                    <Image Source="{Binding AssignedPreview}"
+                                                           IsVisible="{Binding HasMediaPreview}"
+                                                           Stretch="Uniform" />
+
+                                                    <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
+                                                                           MediaPlayer="{Binding PreviewVideoPlayer}" />
+                                                </Grid>
+
+                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
+                                                    <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                        <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                    </Grid>
+                                                    <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                        <TextBlock Grid.Column="0" Text="Up:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.UpTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                    </Grid>
+                                                    <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                        <TextBlock Grid.Column="0" Text="Next:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.NextTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                    </Grid>
+                                                </StackPanel>
                                             </Grid>
                                         </Border>
 
@@ -223,7 +257,25 @@
                                                     CornerRadius="8"
                                                     Padding="6"
                                                     ToolTip.Tip="{Binding MonitorPreviewToolTip}">
-                                                <Grid Width="120" Height="60">
+                                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0">
+                                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
+                                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                                            <Button Classes="circleSmall"
+                                                                    Width="28" Height="28" CornerRadius="14"
+                                                                    Command="{Binding DataContext.InitiativeTracker.PreviousTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    ToolTip.Tip="Previous Turn">
+                                                                <i:Icon Value="mdi-chevron-left" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            </Button>
+                                                            <Button Classes="circleSmall"
+                                                                    Width="28" Height="28" CornerRadius="14"
+                                                                    Command="{Binding DataContext.InitiativeTracker.NextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    ToolTip.Tip="Next Turn">
+                                                                <i:Icon Value="mdi-chevron-right" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            </Button>
+                                                        </StackPanel>
+                                                    </StackPanel>
+
+                                                    <Grid Grid.Row="0" Grid.Column="1" Width="120" Height="60" HorizontalAlignment="Center">
                                                     <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
                                                            IsVisible="{Binding !HasMediaPreview}"
                                                            Width="40"
@@ -286,6 +338,22 @@
                                                                Width="{Binding MonitorPreviewScreenWidth}"
                                                                Height="{Binding MonitorPreviewScreenHeight}"
                                                                IsHitTestVisible="False" />
+                                                    </Grid>
+
+                                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
+                                                        <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                            <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                        </Grid>
+                                                        <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                            <TextBlock Grid.Column="0" Text="Up:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.UpTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                        </Grid>
+                                                        <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                            <TextBlock Grid.Column="0" Text="Next:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.NextTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                        </Grid>
+                                                    </StackPanel>
                                                 </Grid>
                                             </Border>
                                         </Border>
