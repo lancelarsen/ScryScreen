@@ -175,15 +175,10 @@
                                         </Grid>
 
                                         <!-- Assigned media preview (fallback only when no monitor preview is available) -->
-                                        <Border Grid.Row="1"
-                                                IsVisible="{Binding ShowTopAssignedPreview}"
-                                                Background="#0A0F18"
-                                                BorderBrush="{DynamicResource ScryBorder}"
-                                                BorderThickness="1"
-                                                CornerRadius="8"
-                                            Padding="6"
-                                            Margin="0,1,0,0">
-                                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0">
+                                        <Grid Grid.Row="1"
+                                              IsVisible="{Binding ShowTopAssignedPreview}"
+                                              Margin="0,1,0,0">
+                                            <Grid RowDefinitions="80,Auto" ColumnDefinitions="60,*" ColumnSpacing="0" ClipToBounds="True">
                                                 <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
                                                         <Button Classes="circleSmall"
@@ -201,36 +196,41 @@
                                                     </StackPanel>
                                                 </StackPanel>
 
-                                                <Grid Grid.Row="0" Grid.Column="1" Height="80" HorizontalAlignment="Stretch">
-                                                    <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
-                                                           IsVisible="{Binding !HasMediaPreview}"
-                                                           Width="40"
-                                                           Height="40"
-                                                           Opacity="0.8"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center" />
+                                                <Image Grid.Row="0" Grid.Column="1"
+                                                       Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
+                                                       IsVisible="{Binding !HasMediaPreview}"
+                                                       Width="40"
+                                                       Height="40"
+                                                       Opacity="0.8"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
 
-                                                    <Border IsVisible="{Binding IsSelectedForInitiative}"
-                                                            Background="#0A0F18"
-                                                            CornerRadius="6"
-                                                            Padding="6"
-                                                            ClipToBounds="True">
-                                                        <TextBlock Text="{Binding DataContext.InitiativeTracker.PortalText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                   Foreground="{DynamicResource ScryTextMuted}"
-                                                                   FontFamily="Consolas"
-                                                                   FontSize="12"
-                                                                   TextWrapping="Wrap" />
-                                                    </Border>
+                                                <Border Grid.Row="0" Grid.Column="1"
+                                                        IsVisible="{Binding IsSelectedForInitiative}"
+                                                        Background="#0A0F18"
+                                                        CornerRadius="6"
+                                                        Padding="6"
+                                                        ClipToBounds="True">
+                                                    <TextBlock Text="{Binding DataContext.InitiativeTracker.PortalText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                               Foreground="{DynamicResource ScryTextMuted}"
+                                                               FontFamily="Consolas"
+                                                               FontSize="12"
+                                                               TextWrapping="Wrap" />
+                                                </Border>
 
-                                                    <Image Source="{Binding AssignedPreview}"
-                                                           IsVisible="{Binding HasMediaPreview}"
-                                                           Stretch="Uniform" />
+                                                <Image Grid.Row="0" Grid.Column="1"
+                                                       Source="{Binding AssignedPreview}"
+                                                       IsVisible="{Binding HasMediaPreview}"
+                                                          Stretch="UniformToFill"
+                                                          StretchDirection="Both"
+                                                          HorizontalAlignment="Stretch"
+                                                          VerticalAlignment="Stretch" />
 
-                                                    <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
-                                                                           MediaPlayer="{Binding PreviewVideoPlayer}" />
-                                                </Grid>
+                                                <controls:VlcVideoHost Grid.Row="0" Grid.Column="1"
+                                                                       IsVisible="{Binding ShowMonitorLiveVideo}"
+                                                                       MediaPlayer="{Binding PreviewVideoPlayer}" />
 
-                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
+                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
                                                     <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
                                                         <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
                                                         <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
@@ -245,21 +245,14 @@
                                                     </Grid>
                                                 </StackPanel>
                                             </Grid>
-                                        </Border>
+                                        </Grid>
 
                                         <!-- Monitor + media preview (matches portal crop/align) -->
-                                        <Border Grid.Row="2"
-                                                IsVisible="{Binding HasMonitorPreview}"
-                                                Background="Transparent"
-                                                BorderThickness="0"
-                                            Margin="0,2,0,0">
-                                            <Border Background="#0A0F18"
-                                                    BorderBrush="{DynamicResource ScryBorder}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="8"
-                                                    Padding="6"
-                                                    ToolTip.Tip="{Binding MonitorPreviewToolTip}">
-                                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0">
+                                        <Grid Grid.Row="2"
+                                              IsVisible="{Binding HasMonitorPreview}"
+                                              Margin="0,2,0,0"
+                                              ToolTip.Tip="{Binding MonitorPreviewToolTip}">
+											<Grid RowDefinitions="Auto,Auto" ColumnDefinitions="60,*" ColumnSpacing="0">
                                                     <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
                                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                                             <Button Classes="circleSmall"
@@ -342,7 +335,7 @@
                                                                IsHitTestVisible="False" />
                                                     </Grid>
 
-                                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
+                                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
                                                         <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
                                                             <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
                                                             <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
@@ -357,8 +350,7 @@
                                                         </Grid>
                                                     </StackPanel>
                                                 </Grid>
-                                            </Border>
-                                        </Border>
+                                        </Grid>
 
                                         <!-- Video timeline + controls (single outlined area) -->
                                         <Border Grid.Row="3"
