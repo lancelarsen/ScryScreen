@@ -384,6 +384,23 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         IsSetup = false;
     }
 
+    public void SetInitiativeOverlay(InitiativeTrackerState state)
+    {
+        if (state is null) throw new ArgumentNullException(nameof(state));
+
+        // Overlay mode: do NOT clear existing image/video content.
+        if (Initiative is null)
+        {
+            Initiative = new InitiativePortalViewModel(state);
+        }
+        else
+        {
+            Initiative.Update(state);
+        }
+
+        IsSetup = false;
+    }
+
     public void SetVideoLoop(bool loop)
     {
         _loopVideo = loop;

@@ -178,6 +178,15 @@ public sealed class PortalHostService
         }
     }
 
+    public void SetContentInitiativeOverlay(int portalNumber, InitiativeTrackerState state)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.SetInitiativeOverlay(state);
+            controller.ViewModel.IsContentVisible = true;
+        }
+    }
+
     public void ClearContent(int portalNumber, string contentTitle = "Idle")
     {
         if (_portals.TryGetValue(portalNumber, out var controller))

@@ -394,12 +394,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 continue;
             }
 
-            _portalHost.SetContentInitiative(portal.PortalNumber, state);
-            portal.CurrentAssignment = "Initiative";
-            portal.AssignedMediaFilePath = null;
-            portal.AssignedPreview = null;
-            portal.IsVideoPlaying = false;
-            portal.IsVideoLoop = false;
+            _portalHost.SetContentInitiativeOverlay(portal.PortalNumber, state);
         }
     }
 
@@ -407,14 +402,14 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         portal.IsSelectedForCurrentMedia = false;
 
-        _portalHost.SetContentInitiative(portal.PortalNumber, InitiativeTracker.SnapshotState());
+        _portalHost.SetContentInitiativeOverlay(portal.PortalNumber, InitiativeTracker.SnapshotState());
         _portalHost.SetVisibility(portal.PortalNumber, true);
         portal.IsVisible = true;
-        portal.CurrentAssignment = "Initiative";
-        portal.AssignedMediaFilePath = null;
-        portal.AssignedPreview = null;
-        portal.IsVideoPlaying = false;
-        portal.IsVideoLoop = false;
+
+        // Keep existing media assignment as the background; reflect overlay in the label.
+        portal.CurrentAssignment = string.IsNullOrWhiteSpace(portal.AssignedMediaFilePath)
+            ? "Initiative"
+            : $"{portal.CurrentAssignment} + Initiative";
     }
 
     private static async Task UpdatePortalVideoSnapshotAsync(PortalRowViewModel portal, string expectedFilePath)

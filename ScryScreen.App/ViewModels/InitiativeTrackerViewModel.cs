@@ -19,6 +19,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     private const string UnnamedToken = "(Unnamed)";
 
+    private bool _suppressRoundSync;
+
     private InitiativeTrackerState _state = InitiativeTrackerState.Empty;
 
     private bool _isReordering;
@@ -270,10 +272,14 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         _state = _state with { ActiveId = newActive, Round = newRound };
 
         // Update Round without invoking OnRoundChanged (we already updated state).
-        if (round != _state.Round)
+        _suppressRoundSync = true;
+        try
         {
-            round = _state.Round;
-            OnPropertyChanged(nameof(Round));
+            Round = _state.Round;
+        }
+        finally
+        {
+            _suppressRoundSync = false;
         }
 
         UpdateActiveFlags();
@@ -315,6 +321,11 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     partial void OnRoundChanged(int value)
     {
+        if (_suppressRoundSync)
+        {
+            return;
+        }
+
         // Round can be changed via commands; normalize if it changes for any other reason.
         _state = InitiativeTrackerEngine.SetRound(_state, value);
         UpdateActiveFlags();
