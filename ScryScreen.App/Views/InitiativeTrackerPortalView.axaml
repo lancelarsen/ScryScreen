@@ -59,17 +59,82 @@
                   HorizontalAlignment="Right"
                   VerticalAlignment="Center">
 
-                  <TextBlock Grid.Column="0"
-                     Classes="init"
-                     Text="{Binding InitiativeDisplay}"
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Center" />
+                  <!-- Initiative number (white) + gold glow when active -->
+                  <Grid Grid.Column="0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center">
+                    <TextBlock Classes="init"
+                               Text="{Binding InitiativeDisplay}"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center" />
 
-                  <TextBlock Grid.Column="1"
-                     Classes="mod"
-                     Text="{Binding ModDisplay}"
-                     IsVisible="{Binding HasMod}"
-                     VerticalAlignment="Center" />
+                    <TextBlock Classes="init"
+                               Text="{Binding InitiativeDisplay}"
+                               Foreground="#FFFFFF"
+                               IsVisible="{Binding IsActive}"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center">
+                      <TextBlock.Effect>
+                        <DropShadowEffect Color="#D4AF37"
+                                          BlurRadius="56"
+                                          OffsetX="0"
+                                          OffsetY="0"
+                                          Opacity="0.95" />
+                      </TextBlock.Effect>
+                    </TextBlock>
+
+                    <TextBlock Classes="init"
+                               Text="{Binding InitiativeDisplay}"
+                               Foreground="#FFFFFF"
+                               IsVisible="{Binding IsActive}"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center">
+                      <TextBlock.Effect>
+                        <DropShadowEffect Color="#FFD36A"
+                                          BlurRadius="26"
+                                          OffsetX="0"
+                                          OffsetY="0"
+                                          Opacity="0.90" />
+                      </TextBlock.Effect>
+                    </TextBlock>
+                  </Grid>
+
+                  <!-- Mod (white) + gold glow when active; whole block hidden when no mod -->
+                  <Grid Grid.Column="1"
+                        IsVisible="{Binding HasMod}"
+                        VerticalAlignment="Center">
+                    <TextBlock Classes="mod"
+                               Text="{Binding ModDisplay}"
+                               VerticalAlignment="Center" />
+
+                    <TextBlock Classes="mod"
+                               Text="{Binding ModDisplay}"
+                               Foreground="#FFFFFF"
+                               IsVisible="{Binding IsActive}"
+                               VerticalAlignment="Center">
+                      <TextBlock.Effect>
+                        <DropShadowEffect Color="#D4AF37"
+                                          BlurRadius="56"
+                                          OffsetX="0"
+                                          OffsetY="0"
+                                          Opacity="0.95" />
+                      </TextBlock.Effect>
+                    </TextBlock>
+
+                    <TextBlock Classes="mod"
+                               Text="{Binding ModDisplay}"
+                               Foreground="#FFFFFF"
+                               IsVisible="{Binding IsActive}"
+                               VerticalAlignment="Center">
+                      <TextBlock.Effect>
+                        <DropShadowEffect Color="#FFD36A"
+                                          BlurRadius="26"
+                                          OffsetX="0"
+                                          OffsetY="0"
+                                          Opacity="0.90" />
+                      </TextBlock.Effect>
+                    </TextBlock>
+                  </Grid>
 
                   <!-- Diamond marker placeholder (always reserves space; image only visible when active) -->
                   <Border Grid.Column="2"
@@ -84,12 +149,50 @@
                 </Grid>
 
                 <!-- Name (column-aligned) -->
-                <TextBlock Grid.Column="1"
-                           Classes="entry"
-                           Text="{Binding Name}"
-                           TextTrimming="CharacterEllipsis"
-                           HorizontalAlignment="Left"
-                           VerticalAlignment="Center" />
+                <Grid Grid.Column="1"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center">
+                  <!-- Base name (always visible, keeps high contrast) -->
+                  <TextBlock Classes="entry"
+                             Text="{Binding Name}"
+                             TextTrimming="CharacterEllipsis"
+                             HorizontalAlignment="Left"
+                             VerticalAlignment="Center" />
+
+                  <!-- Active glow overlay (golden glow) -->
+                  <TextBlock Classes="entry"
+                             Text="{Binding Name}"
+                             TextTrimming="CharacterEllipsis"
+                             Foreground="#FFFFFF"
+                             IsVisible="{Binding IsActive}"
+                             HorizontalAlignment="Left"
+                             VerticalAlignment="Center">
+                    <TextBlock.Effect>
+                      <DropShadowEffect Color="#D4AF37"
+                                        BlurRadius="56"
+                                        OffsetX="0"
+                                        OffsetY="0"
+                                        Opacity="0.95" />
+                    </TextBlock.Effect>
+                  </TextBlock>
+
+                  <!-- Extra inner glow layer to make the gold aura punchier (still white text) -->
+                  <TextBlock Classes="entry"
+                             Text="{Binding Name}"
+                             TextTrimming="CharacterEllipsis"
+                             Foreground="#FFFFFF"
+                             IsVisible="{Binding IsActive}"
+                             HorizontalAlignment="Left"
+                             VerticalAlignment="Center">
+                    <TextBlock.Effect>
+                      <DropShadowEffect Color="#FFD36A"
+                                        BlurRadius="26"
+                                        OffsetX="0"
+                                        OffsetY="0"
+                                        Opacity="0.90" />
+                    </TextBlock.Effect>
+                  </TextBlock>
+                </Grid>
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
