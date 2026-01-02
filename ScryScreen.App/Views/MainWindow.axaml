@@ -115,7 +115,7 @@
                             <DataTemplate x:CompileBindings="False">
                                 <!-- <Border Classes="card" Width="320" Padding="8,6,8,4"> -->
                                 <Border Classes="card" Width="320" Padding="8,6,8,4">
-                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="5">
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="3">
                                         <!-- Controls row -->
                                         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                             <!-- (1) Portal number badge -->
@@ -182,7 +182,7 @@
                                                 BorderThickness="1"
                                                 CornerRadius="8"
                                             Padding="6"
-                                            Margin="0,4,0,0">
+                                            Margin="0,1,0,0">
                                             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0">
                                                 <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
@@ -252,7 +252,7 @@
                                                 IsVisible="{Binding HasMonitorPreview}"
                                                 Background="Transparent"
                                                 BorderThickness="0"
-                                                Margin="0,6,0,0">
+                                            Margin="0,2,0,0">
                                             <Border Background="#0A0F18"
                                                     BorderBrush="{DynamicResource ScryBorder}"
                                                     BorderThickness="1"
