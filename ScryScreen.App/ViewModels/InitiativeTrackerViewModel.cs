@@ -87,8 +87,6 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     {
         var config = new InitiativeTrackerConfig
         {
-            Round = Round,
-            ActiveId = _state.ActiveId,
             OverlayOpacity = OverlayOpacity,
             PortalFontSize = PortalFontSize.ToString(),
             Entries = Entries.Select(e => new InitiativeTrackerConfigEntry
@@ -162,7 +160,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             }
         }
 
-        var round = Math.Max(1, config.Round);
+        const int round = 1;
         _suppressRoundSync = true;
         try
         {
@@ -173,13 +171,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             _suppressRoundSync = false;
         }
 
-        var activeId = config.ActiveId;
-        if (activeId.HasValue && Entries.All(e => e.Id != activeId.Value))
-        {
-            activeId = null;
-        }
-
-        RebuildStateFromEntries(sort: false, activeIdOverride: activeId);
+        // Always start at the top with no active selection.
+        RebuildStateFromEntries(sort: false, activeIdOverride: null);
         UpdateLastEntryFlags();
         RaisePortalTextChanged();
     }

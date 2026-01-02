@@ -7,10 +7,6 @@ public sealed class InitiativeTrackerConfig
 {
     public int SchemaVersion { get; set; } = 1;
 
-    public int Round { get; set; } = 1;
-
-    public Guid? ActiveId { get; set; }
-
     public double OverlayOpacity { get; set; }
 
     // Stored as a string so the config is resilient to enum renames/namespace changes.
