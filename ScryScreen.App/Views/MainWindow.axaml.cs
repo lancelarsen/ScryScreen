@@ -6,6 +6,9 @@ using System.ComponentModel;
 using ScryScreen.App.ViewModels;
 using Avalonia;
 using System;
+using System.IO;
+using System.Threading.Tasks;
+using ScryScreen.App.Services;
 
 namespace ScryScreen.App.Views;
 
@@ -156,5 +159,101 @@ public partial class MainWindow : Window
         }
 
         vm.ImportMediaFolder(path);
+    }
+
+    private async void OnSaveInitiativeConfig(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not MainWindowViewModel vm)
+            {
+                return;
+            }
+
+            if (StorageProvider is null)
+            {
+                return;
+            }
+
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Save Initiative Config",
+                SuggestedFileName = "initiative.json",
+                DefaultExtension = "json",
+                FileTypeChoices = new[]
+                {
+                    new FilePickerFileType("JSON")
+                    {
+                        Patterns = new[] { "*.json" },
+                    },
+                },
+            });
+
+            if (file is null)
+            {
+                return;
+            }
+
+            var path = file.TryGetLocalPath();
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            var json = vm.InitiativeTracker.ExportConfigJson(indented: true);
+            await File.WriteAllTextAsync(path, json);
+        }
+        catch (Exception ex)
+        {
+            ErrorReporter.Report(ex, "Save Initiative Config");
+        }
+    }
+
+    private async void OnLoadInitiativeConfig(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not MainWindowViewModel vm)
+            {
+                return;
+            }
+
+            if (StorageProvider is null)
+            {
+                return;
+            }
+
+            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                AllowMultiple = false,
+                Title = "Load Initiative Config",
+                FileTypeFilter = new[]
+                {
+                    new FilePickerFileType("JSON")
+                    {
+                        Patterns = new[] { "*.json" },
+                    },
+                },
+            });
+
+            var file = files.FirstOrDefault();
+            if (file is null)
+            {
+                return;
+            }
+
+            var path = file.TryGetLocalPath();
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return;
+            }
+
+            var json = await File.ReadAllTextAsync(path);
+            vm.InitiativeTracker.ImportConfigJson(json);
+        }
+        catch (Exception ex)
+        {
+            ErrorReporter.Report(ex, "Load Initiative Config");
+        }
     }
 }

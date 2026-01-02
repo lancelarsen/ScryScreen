@@ -178,11 +178,11 @@ public sealed class PortalHostService
         }
     }
 
-    public void SetContentInitiativeOverlay(int portalNumber, InitiativeTrackerState state)
+    public void SetContentInitiativeOverlay(int portalNumber, InitiativeTrackerState state, double overlayOpacity, InitiativePortalFontSize fontSize)
     {
         if (_portals.TryGetValue(portalNumber, out var controller))
         {
-            controller.ViewModel.SetInitiativeOverlay(state);
+            controller.ViewModel.SetInitiativeOverlay(state, overlayOpacity, fontSize);
             controller.ViewModel.IsContentVisible = true;
         }
     }

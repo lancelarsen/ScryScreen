@@ -384,7 +384,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         IsSetup = false;
     }
 
-    public void SetInitiativeOverlay(InitiativeTrackerState state)
+    public void SetInitiativeOverlay(InitiativeTrackerState state, double overlayOpacity, InitiativePortalFontSize fontSize)
     {
         if (state is null) throw new ArgumentNullException(nameof(state));
 
@@ -397,6 +397,9 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         {
             Initiative.Update(state);
         }
+
+        Initiative.OverlayOpacity = overlayOpacity;
+        Initiative.PortalFontSize = fontSize;
 
         IsSetup = false;
     }

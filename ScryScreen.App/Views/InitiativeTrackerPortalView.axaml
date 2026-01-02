@@ -9,7 +9,6 @@
 
   <UserControl.Styles>
     <Style Selector="TextBlock.entry">
-      <Setter Property="FontSize" Value="60" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Foreground" Value="#FFFFFF" />
       <Setter Property="TextWrapping" Value="NoWrap" />
@@ -17,7 +16,6 @@
     </Style>
 
     <Style Selector="TextBlock.init">
-      <Setter Property="FontSize" Value="64" />
       <Setter Property="FontWeight" Value="Black" />
       <Setter Property="Foreground" Value="#FFFFFF" />
       <Setter Property="TextWrapping" Value="NoWrap" />
@@ -25,7 +23,6 @@
     </Style>
 
     <Style Selector="TextBlock.mod">
-      <Setter Property="FontSize" Value="44" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Foreground" Value="#FFFFFF" />
       <Setter Property="TextWrapping" Value="NoWrap" />
@@ -33,7 +30,6 @@
     </Style>
 
     <Style Selector="TextBlock.round">
-      <Setter Property="FontSize" Value="48" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Foreground" Value="#FFFFFF" />
       <Setter Property="TextAlignment" Value="Center" />
@@ -42,20 +38,26 @@
 
   <Grid Background="Transparent">
     <!-- Soft dimmer over the background media to keep text readable. -->
-    <Border Background="#40000000" />
+    <Border Background="#000000" Opacity="{Binding OverlayScrimOpacity}" />
 
-    <Grid RowDefinitions="*,Auto" Margin="32">
+    <Grid RowDefinitions="*,Auto" Margin="32,32,32,6">
       <!-- Row 0 takes remaining space; center the whole table vertically in it. -->
       <Border VerticalAlignment="Center"
               HorizontalAlignment="Stretch"
               MaxWidth="1400"
-              Background="#8A000000"
-              CornerRadius="18"
-              Padding="28,22">
-        <ItemsControl ItemsSource="{Binding Entries}" HorizontalAlignment="Stretch">
+              Background="Transparent"
+              CornerRadius="18">
+        <Grid>
+          <!-- Background-only layer: opacity does NOT affect text. -->
+          <Border Background="#000000"
+                  Opacity="{Binding OverlayPanelOpacity}"
+                  CornerRadius="18"
+                  IsHitTestVisible="False" />
+
+          <ItemsControl ItemsSource="{Binding Entries}" HorizontalAlignment="Stretch" Margin="28,22">
           <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:InitiativePortalEntryViewModel">
-              <Grid Margin="0,0,0,14"
+            <DataTemplate x:DataType="vm:InitiativePortalEntryViewModel" x:CompileBindings="False">
+              <Grid Margin="0,0,0,8"
                 ColumnDefinitions="320,*"
                     ColumnSpacing="22"
                     VerticalAlignment="Center"
@@ -73,6 +75,7 @@
                         VerticalAlignment="Center">
                     <TextBlock Classes="init"
                                Text="{Binding InitiativeDisplay}"
+                           FontSize="{Binding DataContext.InitFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Center" />
 
@@ -80,6 +83,7 @@
                                Text="{Binding InitiativeDisplay}"
                                Foreground="#FFFFFF"
                                IsVisible="{Binding IsActive}"
+                               FontSize="{Binding DataContext.InitFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Center">
                       <TextBlock.Effect>
@@ -95,6 +99,7 @@
                                Text="{Binding InitiativeDisplay}"
                                Foreground="#FFFFFF"
                                IsVisible="{Binding IsActive}"
+                               FontSize="{Binding DataContext.InitFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Center">
                       <TextBlock.Effect>
@@ -113,12 +118,14 @@
                         VerticalAlignment="Center">
                     <TextBlock Classes="mod"
                                Text="{Binding ModDisplay}"
+                           FontSize="{Binding DataContext.ModFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                VerticalAlignment="Center" />
 
                     <TextBlock Classes="mod"
                                Text="{Binding ModDisplay}"
                                Foreground="#FFFFFF"
                                IsVisible="{Binding IsActive}"
+                               FontSize="{Binding DataContext.ModFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                VerticalAlignment="Center">
                       <TextBlock.Effect>
                         <DropShadowEffect Color="#D4AF37"
@@ -133,6 +140,7 @@
                                Text="{Binding ModDisplay}"
                                Foreground="#FFFFFF"
                                IsVisible="{Binding IsActive}"
+                               FontSize="{Binding DataContext.ModFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                VerticalAlignment="Center">
                       <TextBlock.Effect>
                         <DropShadowEffect Color="#FFD36A"
@@ -164,6 +172,7 @@
                   <TextBlock Classes="entry"
                              Text="{Binding Name}"
                              TextTrimming="CharacterEllipsis"
+                             FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                              HorizontalAlignment="Left"
                              VerticalAlignment="Center" />
 
@@ -173,6 +182,7 @@
                              TextTrimming="CharacterEllipsis"
                              Foreground="#FFFFFF"
                              IsVisible="{Binding IsActive}"
+                             FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                              HorizontalAlignment="Left"
                              VerticalAlignment="Center">
                     <TextBlock.Effect>
@@ -190,6 +200,7 @@
                              TextTrimming="CharacterEllipsis"
                              Foreground="#FFFFFF"
                              IsVisible="{Binding IsActive}"
+                             FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                              HorizontalAlignment="Left"
                              VerticalAlignment="Center">
                     <TextBlock.Effect>
@@ -204,31 +215,41 @@
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
-        </ItemsControl>
+          </ItemsControl>
+        </Grid>
       </Border>
 
       <Border Grid.Row="1"
               HorizontalAlignment="Center"
-              Margin="0,20,0,0"
-              Background="#8A000000"
-              CornerRadius="18"
-              Padding="24,14">
-        <StackPanel Orientation="Vertical"
-                    Spacing="6"
-                    HorizontalAlignment="Center">
-          <TextBlock IsVisible="{Binding HasAdditionalEntries}"
-                     Text="{Binding AdditionalEntriesCount, StringFormat=…{0} more}"
-                     FontSize="32"
-                     FontWeight="SemiBold"
-                     Foreground="#FFFFFF"
-                     TextAlignment="Center"
-                     HorizontalAlignment="Center" />
+              Margin="0,6,0,0"
+              Background="Transparent"
+              CornerRadius="18">
+        <Grid>
+          <!-- Background-only layer: opacity does NOT affect text. -->
+          <Border Background="#000000"
+                  Opacity="{Binding OverlayPanelOpacity}"
+                  CornerRadius="18"
+                  IsHitTestVisible="False" />
 
-          <TextBlock Classes="round"
-                     Text="{Binding Round, StringFormat=Round {0}}"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center" />
-        </StackPanel>
+          <StackPanel Orientation="Vertical"
+                      Spacing="6"
+                      HorizontalAlignment="Center"
+                      Margin="22,12">
+            <TextBlock IsVisible="{Binding HasAdditionalEntries}"
+                       Text="{Binding AdditionalEntriesCount, StringFormat=…{0} more}"
+                       FontSize="{Binding MoreFontSize}"
+                       FontWeight="SemiBold"
+                       Foreground="#FFFFFF"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center" />
+
+            <TextBlock Classes="round"
+                       Text="{Binding Round, StringFormat=Round {0}}"
+                       FontSize="{Binding RoundFontSize}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+        </Grid>
       </Border>
     </Grid>
   </Grid>

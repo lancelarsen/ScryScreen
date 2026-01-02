@@ -6,6 +6,13 @@ using ScryScreen.Core.InitiativeTracker;
 
 namespace ScryScreen.App.ViewModels;
 
+public enum InitiativePortalFontSize
+{
+    Small,
+    Medium,
+    Large,
+}
+
 public sealed partial class InitiativePortalViewModel : ObservableObject
 {
     private const int MaxEntries = 14;
@@ -16,6 +23,53 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
     {
         Update(state);
     }
+
+    [ObservableProperty]
+    private double overlayOpacity;
+
+    [ObservableProperty]
+    private InitiativePortalFontSize portalFontSize = InitiativePortalFontSize.Medium;
+
+    // Overlay slider should only affect the dark panels behind the text.
+    // Keep the full-screen scrim at 0 so the media remains unchanged.
+    public double OverlayScrimOpacity => 0.0;
+
+    public double OverlayPanelOpacity => Math.Clamp(OverlayOpacity, 0.0, 1.0);
+
+    public double EntryFontSize => PortalFontSize switch
+    {
+        InitiativePortalFontSize.Small => 34,
+        InitiativePortalFontSize.Medium => 44,
+        _ => 54,
+    };
+
+    public double InitFontSize => PortalFontSize switch
+    {
+        InitiativePortalFontSize.Small => 38,
+        InitiativePortalFontSize.Medium => 48,
+        _ => 58,
+    };
+
+    public double ModFontSize => PortalFontSize switch
+    {
+        InitiativePortalFontSize.Small => 24,
+        InitiativePortalFontSize.Medium => 32,
+        _ => 40,
+    };
+
+    public double RoundFontSize => PortalFontSize switch
+    {
+        InitiativePortalFontSize.Small => 26,
+        InitiativePortalFontSize.Medium => 34,
+        _ => 42,
+    };
+
+    public double MoreFontSize => PortalFontSize switch
+    {
+        InitiativePortalFontSize.Small => 18,
+        InitiativePortalFontSize.Medium => 24,
+        _ => 28,
+    };
 
     [ObservableProperty]
     private int round;
@@ -30,6 +84,21 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
     private int additionalEntriesCount;
 
     public bool HasAdditionalEntries => AdditionalEntriesCount > 0;
+
+    partial void OnOverlayOpacityChanged(double value)
+    {
+        OnPropertyChanged(nameof(OverlayScrimOpacity));
+        OnPropertyChanged(nameof(OverlayPanelOpacity));
+    }
+
+    partial void OnPortalFontSizeChanged(InitiativePortalFontSize value)
+    {
+        OnPropertyChanged(nameof(EntryFontSize));
+        OnPropertyChanged(nameof(InitFontSize));
+        OnPropertyChanged(nameof(ModFontSize));
+        OnPropertyChanged(nameof(RoundFontSize));
+        OnPropertyChanged(nameof(MoreFontSize));
+    }
 
     public void Update(InitiativeTrackerState state)
     {

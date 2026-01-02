@@ -394,7 +394,11 @@ public partial class MainWindowViewModel : ViewModelBase
                 continue;
             }
 
-            _portalHost.SetContentInitiativeOverlay(portal.PortalNumber, state);
+            _portalHost.SetContentInitiativeOverlay(
+                portal.PortalNumber,
+                state,
+                overlayOpacity: InitiativeTracker.OverlayOpacity,
+                fontSize: InitiativeTracker.PortalFontSize);
         }
     }
 
@@ -402,7 +406,11 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         portal.IsSelectedForCurrentMedia = false;
 
-        _portalHost.SetContentInitiativeOverlay(portal.PortalNumber, InitiativeTracker.SnapshotState());
+        _portalHost.SetContentInitiativeOverlay(
+            portal.PortalNumber,
+            InitiativeTracker.SnapshotState(),
+            overlayOpacity: InitiativeTracker.OverlayOpacity,
+            fontSize: InitiativeTracker.PortalFontSize);
         _portalHost.SetVisibility(portal.PortalNumber, true);
         portal.IsVisible = true;
 
