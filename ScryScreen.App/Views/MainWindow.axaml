@@ -178,7 +178,7 @@
                                         <Grid Grid.Row="1"
                                               IsVisible="{Binding ShowTopAssignedPreview}"
                                               Margin="0,1,0,0">
-										<Grid RowDefinitions="100,Auto" ColumnDefinitions="60,*" ColumnSpacing="0" ClipToBounds="True">
+                                            <Grid RowDefinitions="100,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0" ClipToBounds="True">
                                                 <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
                                                         <Button Classes="circleSmall"
@@ -200,7 +200,7 @@
                                                         Background="#0A0F18"
                                                         BorderBrush="{DynamicResource ScryBorder}"
                                                         BorderThickness="1"
-                                                        CornerRadius="8"
+                                                    CornerRadius="10"
                                                         Padding="6"
                                                         Width="170"
                                                         Height="100"
@@ -216,19 +216,19 @@
                                                                HorizontalAlignment="Center"
                                                                VerticalAlignment="Center" />
 
-                                                        <Image Source="{Binding AssignedPreview}"
-                                                               IsVisible="{Binding HasMediaPreview}"
-                                                               Stretch="Uniform"
-                                                               StretchDirection="Both"
-                                                               HorizontalAlignment="Stretch"
-                                                               VerticalAlignment="Stretch" />
+                                                            <Image Source="{Binding AssignedPreview}"
+                                                                    IsVisible="{Binding HasMediaPreview}"
+                                                                    Stretch="UniformToFill"
+                                                                    StretchDirection="Both"
+                                                                    HorizontalAlignment="Stretch"
+                                                                    VerticalAlignment="Stretch" />
 
                                                         <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
                                                                                MediaPlayer="{Binding PreviewVideoPlayer}" />
                                                     </Grid>
                                                 </Border>
 
-                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
+                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
                                                     <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
                                                         <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
                                                         <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
@@ -250,7 +250,7 @@
                                               IsVisible="{Binding HasMonitorPreview}"
                                               Margin="0,2,0,0"
                                               ToolTip.Tip="{Binding MonitorPreviewToolTip}">
-											<Grid RowDefinitions="100,Auto" ColumnDefinitions="60,*" ColumnSpacing="0">
+                                                <Grid RowDefinitions="100,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0">
                                                     <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
                                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                                             <Button Classes="circleSmall"
@@ -272,7 +272,7 @@
                                                             Background="#0A0F18"
                                                             BorderBrush="{DynamicResource ScryBorder}"
                                                             BorderThickness="1"
-                                                            CornerRadius="8"
+                                                            CornerRadius="10"
                                                             Padding="6"
                                                             Width="170"
                                                             Height="100"
@@ -288,52 +288,48 @@
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center" />
 
-                                                    <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
-                                                        <Border Background="#05070B"
-                                                            IsVisible="{Binding HasMonitorRenderablePreview}"
-                                                            CornerRadius="10"
-                                                            ClipToBounds="True"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"
-                                                            Width="{Binding MonitorPreviewScreenWidth}"
-                                                            Height="{Binding MonitorPreviewScreenHeight}">
-                                                        <Canvas>
-                                                            <!-- Image preview (cropped/letterboxed by clipping) -->
-                                                            <Border IsVisible="{Binding ShowMonitorSnapshot}"
-                                                                    Width="{Binding PreviewImageWidth}"
-                                                                    Height="{Binding PreviewImageHeight}"
-                                                                    Background="#16263B"
-                                                                    Canvas.Left="{Binding PreviewImageLeft}"
-                                                                    Canvas.Top="{Binding PreviewImageTop}">
-                                                                <Image Source="{Binding AssignedPreview}" Stretch="Fill" />
+                                                    <!-- Scale-to-fill monitor preview inside the fixed 170x100 tile preview box -->
+                                                    <Viewbox IsVisible="{Binding HasMonitorRenderablePreview}"
+                                                             Stretch="UniformToFill"
+                                                             StretchDirection="Both"
+                                                             HorizontalAlignment="Stretch"
+                                                             VerticalAlignment="Stretch">
+                                                        <Grid Width="{Binding MonitorPreviewScreenWidth}"
+                                                              Height="{Binding MonitorPreviewScreenHeight}">
+                                                            <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
+                                                            <Border Background="#05070B"
+                                                                    CornerRadius="0"
+                                                                    ClipToBounds="True"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    Width="{Binding MonitorPreviewScreenWidth}"
+                                                                    Height="{Binding MonitorPreviewScreenHeight}">
+                                                                <Canvas>
+                                                                    <!-- Image preview (cropped/letterboxed by clipping) -->
+                                                                    <Border IsVisible="{Binding ShowMonitorSnapshot}"
+                                                                            Width="{Binding PreviewImageWidth}"
+                                                                            Height="{Binding PreviewImageHeight}"
+                                                                            Background="#16263B"
+                                                                            Canvas.Left="{Binding PreviewImageLeft}"
+                                                                            Canvas.Top="{Binding PreviewImageTop}">
+                                                                        <Image Source="{Binding AssignedPreview}" Stretch="Fill" />
+                                                                    </Border>
+
+                                                                    <!-- Video preview (live; synced to portal playback) -->
+                                                                    <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
+                                                                                           Width="{Binding PreviewImageWidth}"
+                                                                                           Height="{Binding PreviewImageHeight}"
+                                                                                           Canvas.Left="{Binding PreviewImageLeft}"
+                                                                                           Canvas.Top="{Binding PreviewImageTop}"
+                                                                                           MediaPlayer="{Binding PreviewVideoPlayer}" />
+                                                                </Canvas>
                                                             </Border>
-
-                                                            <!-- Video preview (live; synced to portal playback) -->
-                                                            <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
-                                                                                   Width="{Binding PreviewImageWidth}"
-                                                                                   Height="{Binding PreviewImageHeight}"
-                                                                                   Canvas.Left="{Binding PreviewImageLeft}"
-                                                                                   Canvas.Top="{Binding PreviewImageTop}"
-                                                                                   MediaPlayer="{Binding PreviewVideoPlayer}" />
-                                                        </Canvas>
-                                                    </Border>
-
-                                                    <!-- Drawn screen outline overlay (does not affect layout) -->
-                                                    <Rectangle Fill="Transparent"
-                                                               IsVisible="{Binding HasMonitorRenderablePreview}"
-                                                               Stroke="#3A557D"
-                                                               StrokeThickness="2"
-                                                               RadiusX="10"
-                                                               RadiusY="10"
-                                                               HorizontalAlignment="Center"
-                                                               VerticalAlignment="Center"
-                                                               Width="{Binding MonitorPreviewScreenWidth}"
-                                                               Height="{Binding MonitorPreviewScreenHeight}"
-                                                               IsHitTestVisible="False" />
+                                                        </Grid>
+                                                    </Viewbox>
                                                     </Grid>
                                                     </Border>
 
-                                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
+                                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
                                                         <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
                                                             <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
                                                             <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
