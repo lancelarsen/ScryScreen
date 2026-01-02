@@ -216,18 +216,6 @@
                                                                HorizontalAlignment="Center"
                                                                VerticalAlignment="Center" />
 
-                                                        <Border IsVisible="{Binding IsSelectedForInitiative}"
-                                                                Background="#0A0F18"
-                                                                CornerRadius="6"
-                                                                Padding="6"
-                                                                ClipToBounds="True">
-                                                            <TextBlock Text="{Binding DataContext.InitiativeTracker.PortalText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                       Foreground="{DynamicResource ScryTextMuted}"
-                                                                       FontFamily="Consolas"
-                                                                       FontSize="12"
-                                                                       TextWrapping="Wrap" />
-                                                        </Border>
-
                                                         <Image Source="{Binding AssignedPreview}"
                                                                IsVisible="{Binding HasMediaPreview}"
                                                                Stretch="Uniform"
@@ -299,18 +287,6 @@
                                                            Opacity="0.8"
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center" />
-
-                                                    <Border IsVisible="{Binding IsSelectedForInitiative}"
-                                                            Background="#0A0F18"
-                                                            CornerRadius="6"
-                                                            Padding="6"
-                                                            ClipToBounds="True">
-                                                        <TextBlock Text="{Binding DataContext.InitiativeTracker.PortalText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                   Foreground="{DynamicResource ScryTextMuted}"
-                                                                   FontFamily="Consolas"
-                                                                   FontSize="10"
-                                                                   TextWrapping="Wrap" />
-                                                    </Border>
 
                                                     <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
                                                         <Border Background="#05070B"
