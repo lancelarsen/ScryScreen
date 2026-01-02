@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using ScryScreen.App.Models;
 using ScryScreen.App.ViewModels;
 using ScryScreen.App.Views;
 using ScryScreen.Core.InitiativeTracker;
@@ -309,6 +310,14 @@ public sealed class PortalHostService
         {
             controller.ViewModel.ScaleMode = scaleMode;
             controller.ViewModel.Align = align;
+        }
+    }
+
+    public void SetOverlayEffects(int portalNumber, OverlayEffectsState effects)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.SetOverlayEffects(effects);
         }
     }
 

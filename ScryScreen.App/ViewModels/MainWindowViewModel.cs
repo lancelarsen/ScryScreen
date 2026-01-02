@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ScryScreen.App.Models;
 using ScryScreen.App.Services;
 using ScryScreen.Core.Utilities;
 
@@ -18,6 +19,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private string? _lastSelectedMediaPath;
 
     private readonly InitiativeTrackerViewModel _initiativeTracker;
+
+    private MediaItemViewModel? _selectedMediaForEffects;
 
     private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentRestorationPlanner.Snapshot>> _portalHistory = new();
 
@@ -223,6 +226,9 @@ public partial class MainWindowViewModel : ViewModelBase
             UpdatePortalMediaSelectionFlags();
             OnPropertyChanged(nameof(IsSelectedMediaVideo));
 
+            AttachSelectedMediaEffects(Media.SelectedItem);
+            ApplyEffectsToAssignedPortals();
+
             var selectedPath = Media.SelectedItem?.FilePath;
             if (_lastSelectedMediaPath is null && selectedPath is not null && !IsControlsSectionVisible)
             {
@@ -230,6 +236,70 @@ public partial class MainWindowViewModel : ViewModelBase
             }
 
             _lastSelectedMediaPath = selectedPath;
+        }
+    }
+
+    private void AttachSelectedMediaEffects(MediaItemViewModel? item)
+    {
+        if (_selectedMediaForEffects is not null)
+        {
+            _selectedMediaForEffects.PropertyChanged -= OnSelectedMediaForEffectsChanged;
+        }
+
+        _selectedMediaForEffects = item;
+
+        if (_selectedMediaForEffects is not null)
+        {
+            _selectedMediaForEffects.PropertyChanged += OnSelectedMediaForEffectsChanged;
+        }
+    }
+
+    private void OnSelectedMediaForEffectsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(MediaItemViewModel.RainEnabled) or nameof(MediaItemViewModel.RainIntensity) or
+            nameof(MediaItemViewModel.SnowEnabled) or nameof(MediaItemViewModel.SnowIntensity) or
+            nameof(MediaItemViewModel.FogEnabled) or nameof(MediaItemViewModel.FogIntensity) or
+            nameof(MediaItemViewModel.SmokeEnabled) or nameof(MediaItemViewModel.SmokeIntensity) or
+            nameof(MediaItemViewModel.LightningEnabled) or nameof(MediaItemViewModel.LightningIntensity))
+        {
+            ApplyEffectsToAssignedPortals();
+        }
+    }
+
+    private static OverlayEffectsState BuildEffectsState(MediaItemViewModel item)
+    {
+        static double Clamp01(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
+
+        return new OverlayEffectsState(
+            RainEnabled: item.RainEnabled,
+            RainIntensity: Clamp01(item.RainIntensity),
+            SnowEnabled: item.SnowEnabled,
+            SnowIntensity: Clamp01(item.SnowIntensity),
+            FogEnabled: item.FogEnabled,
+            FogIntensity: Clamp01(item.FogIntensity),
+            SmokeEnabled: item.SmokeEnabled,
+            SmokeIntensity: Clamp01(item.SmokeIntensity),
+            LightningEnabled: item.LightningEnabled,
+            LightningIntensity: Clamp01(item.LightningIntensity));
+    }
+
+    private void ApplyEffectsToAssignedPortals()
+    {
+        var selected = Media.SelectedItem;
+        if (selected is null)
+        {
+            return;
+        }
+
+        var selectedPath = selected.FilePath;
+        var effects = BuildEffectsState(selected);
+
+        foreach (var portal in Portals)
+        {
+            if (string.Equals(portal.AssignedMediaFilePath, selectedPath, StringComparison.OrdinalIgnoreCase))
+            {
+                _portalHost.SetOverlayEffects(portal.PortalNumber, effects);
+            }
         }
     }
 
@@ -357,11 +427,13 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.Align = SelectedAlign;
 
         var selected = Media.SelectedItem;
+        var effects = selected is null ? OverlayEffectsState.None : BuildEffectsState(selected);
         if (selected?.IsVideo == true)
         {
             portal.AssignedPreview = null;
             portal.IsVideoLoop = IsVideoLoop;
             _portalHost.SetContentVideo(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align, loop: IsVideoLoop);
+            _portalHost.SetOverlayEffects(portal.PortalNumber, effects);
             portal.IsVideoPlaying = false;
 
             // Start preview/paused state at ~1s to avoid blank first-frame.
@@ -373,6 +445,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             portal.SetAssignedPreviewFromFile(filePath);
             _portalHost.SetContentImage(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align);
+            _portalHost.SetOverlayEffects(portal.PortalNumber, effects);
             portal.IsVideoPlaying = false;
             portal.IsVideoLoop = false;
         }
@@ -481,6 +554,7 @@ public partial class MainWindowViewModel : ViewModelBase
             case PortalContentRestorationPlanner.ContentKind.Video:
                 portal.AssignedPreview = null;
                 _portalHost.SetContentVideo(portal.PortalNumber, plan.AssignedMediaFilePath!, plan.CurrentAssignment, portal.ScaleMode, portal.Align, loop: plan.IsVideoLoop);
+                _portalHost.SetOverlayEffects(portal.PortalNumber, LookupEffectsForFile(plan.AssignedMediaFilePath!));
                 portal.IsVideoPlaying = false;
                 _portalHost.SeekVideo(portal.PortalNumber, 1000);
                 _ = UpdatePortalVideoSnapshotAsync(portal, plan.AssignedMediaFilePath!);
@@ -488,6 +562,7 @@ public partial class MainWindowViewModel : ViewModelBase
             case PortalContentRestorationPlanner.ContentKind.Image:
                 portal.SetAssignedPreviewFromFile(plan.AssignedMediaFilePath!);
                 _portalHost.SetContentImage(portal.PortalNumber, plan.AssignedMediaFilePath!, plan.CurrentAssignment, portal.ScaleMode, portal.Align);
+                _portalHost.SetOverlayEffects(portal.PortalNumber, LookupEffectsForFile(plan.AssignedMediaFilePath!));
                 portal.IsVideoPlaying = false;
                 portal.IsVideoLoop = false;
                 break;
@@ -496,6 +571,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 portal.IsVideoPlaying = false;
                 portal.IsVideoLoop = false;
                 _portalHost.SetContentText(portal.PortalNumber, plan.CurrentAssignment);
+                _portalHost.SetOverlayEffects(portal.PortalNumber, OverlayEffectsState.None);
                 break;
         }
 
@@ -538,7 +614,16 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.IsVideoLoop = false;
 
         _portalHost.ClearContent(portal.PortalNumber);
+        _portalHost.SetOverlayEffects(portal.PortalNumber, OverlayEffectsState.None);
         UpdatePortalMediaSelectionFlags();
+    }
+
+    private OverlayEffectsState LookupEffectsForFile(string filePath)
+    {
+        var match = Media.Items.FirstOrDefault(i =>
+            string.Equals(i.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+
+        return match is null ? OverlayEffectsState.None : BuildEffectsState(match);
     }
 
     public void Shutdown()

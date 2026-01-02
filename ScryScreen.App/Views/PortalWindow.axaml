@@ -75,6 +75,20 @@
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center" />
 
+      <!-- Overlay effects (rain/fog/smoke/snow/lightning) -->
+      <controls:OverlayEffectsLayer
+          RainEnabled="{Binding OverlayEffects.RainEnabled}"
+          RainIntensity="{Binding OverlayEffects.RainIntensity}"
+          SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
+          SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
+          FogEnabled="{Binding OverlayEffects.FogEnabled}"
+          FogIntensity="{Binding OverlayEffects.FogIntensity}"
+          SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
+          SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
+          LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
+          LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
+          IsHitTestVisible="False" />
+
       <!-- Identify overlay -->
       <Border IsVisible="{Binding IsIdentifyOverlayVisible}"
               Background="#AA000000">

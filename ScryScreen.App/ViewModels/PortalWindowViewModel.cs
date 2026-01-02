@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using LibVLCSharp.Shared;
+using ScryScreen.App.Models;
 using ScryScreen.App.Services;
 using ScryScreen.Core.InitiativeTracker;
 
@@ -260,6 +261,14 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private MediaAlign align;
+
+    [ObservableProperty]
+    private OverlayEffectsState overlayEffects = OverlayEffectsState.None;
+
+    public void SetOverlayEffects(OverlayEffectsState state)
+    {
+        OverlayEffects = state ?? OverlayEffectsState.None;
+    }
 
     public void ShowIdentifyOverlay() => IsIdentifyOverlayVisible = true;
 
@@ -624,6 +633,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         Initiative = null;
         ContentImage = null;
         ClearVideoInternal();
+            OverlayEffects = OverlayEffectsState.None;
         IsSetup = true;
     }
 

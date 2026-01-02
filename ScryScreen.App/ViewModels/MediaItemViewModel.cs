@@ -87,6 +87,37 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     [ObservableProperty]
     private Bitmap? thumbnail;
 
+    // Overlay effects (per-media). Multiple can be enabled at once.
+    [ObservableProperty]
+    private bool rainEnabled;
+
+    [ObservableProperty]
+    private double rainIntensity = 0.5;
+
+    [ObservableProperty]
+    private bool snowEnabled;
+
+    [ObservableProperty]
+    private double snowIntensity = 0.5;
+
+    [ObservableProperty]
+    private bool fogEnabled;
+
+    [ObservableProperty]
+    private double fogIntensity = 0.5;
+
+    [ObservableProperty]
+    private bool smokeEnabled;
+
+    [ObservableProperty]
+    private double smokeIntensity = 0.5;
+
+    [ObservableProperty]
+    private bool lightningEnabled;
+
+    [ObservableProperty]
+    private double lightningIntensity = 0.35;
+
     partial void OnThumbnailChanged(Bitmap? value)
     {
         _pixelSize = TryGetPixelSizeFromThumbnail(value) ?? _pixelSize;
