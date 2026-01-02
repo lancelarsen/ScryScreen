@@ -92,6 +92,7 @@ public class InitiativeTrackerEngineTests
         Assert.Equal(2, state.Round);
     }
 
+
     [Fact]
     public void Remove_RemovesEntry_AndIfActiveRemoved_SelectsNext()
     {

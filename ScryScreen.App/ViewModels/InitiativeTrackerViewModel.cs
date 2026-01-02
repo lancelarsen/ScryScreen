@@ -17,6 +17,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 {
     private const int DefaultRowCount = 5;
 
+    private const string UnnamedToken = "(Unnamed)";
+
     private InitiativeTrackerState _state = InitiativeTrackerState.Empty;
 
     private bool _isReordering;
@@ -171,10 +173,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     {
         CancelPendingResort();
 
-        _state = InitiativeTrackerEngine.NextTurn(_state);
-        Round = _state.Round;
-        UpdateActiveFlags();
-        RaisePortalTextChanged();
+        AdvanceTurn(forward: true);
     }
 
     [RelayCommand]
@@ -182,8 +181,101 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     {
         CancelPendingResort();
 
-        _state = InitiativeTrackerEngine.PreviousTurn(_state);
-        Round = _state.Round;
+        AdvanceTurn(forward: false);
+    }
+
+    private void AdvanceTurn(bool forward)
+    {
+        // Turn eligibility is based on UI field presence (so "0" counts as present).
+        // Order is based on current sorted state.
+        var vmById = Entries.ToDictionary(e => e.Id);
+
+        bool IsEligible(InitiativeEntryViewModel vm)
+        {
+            if (vm.IsHidden)
+            {
+                return false;
+            }
+
+            var name = (vm.Name ?? string.Empty).Trim();
+            if (name.Length == 0 || string.Equals(name, UnnamedToken, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // "Init present" = user typed something (including "0").
+            return !string.IsNullOrWhiteSpace(vm.Initiative);
+        }
+
+        var eligibleIds = _state.Entries
+            .Select(e => e.Id)
+            .Where(id => vmById.TryGetValue(id, out var vm) && IsEligible(vm))
+            .ToArray();
+
+        if (eligibleIds.Length == 0)
+        {
+            _state = _state with { ActiveId = null };
+            UpdateActiveFlags();
+            RaisePortalTextChanged();
+            return;
+        }
+
+        var currentIdx = -1;
+        if (_state.ActiveId.HasValue)
+        {
+            for (var i = 0; i < eligibleIds.Length; i++)
+            {
+                if (eligibleIds[i] == _state.ActiveId.Value)
+                {
+                    currentIdx = i;
+                    break;
+                }
+            }
+        }
+
+        var newRound = _state.Round;
+        Guid newActive;
+
+        if (currentIdx < 0)
+        {
+            newActive = forward ? eligibleIds[0] : eligibleIds[^1];
+        }
+        else if (forward)
+        {
+            var next = currentIdx + 1;
+            if (next >= eligibleIds.Length)
+            {
+                newActive = eligibleIds[0];
+                newRound = _state.Round + 1;
+            }
+            else
+            {
+                newActive = eligibleIds[next];
+            }
+        }
+        else
+        {
+            var prev = currentIdx - 1;
+            if (prev < 0)
+            {
+                newActive = eligibleIds[^1];
+                newRound = Math.Max(1, _state.Round - 1);
+            }
+            else
+            {
+                newActive = eligibleIds[prev];
+            }
+        }
+
+        _state = _state with { ActiveId = newActive, Round = newRound };
+
+        // Update Round without invoking OnRoundChanged (we already updated state).
+        if (round != _state.Round)
+        {
+            round = _state.Round;
+            OnPropertyChanged(nameof(Round));
+        }
+
         UpdateActiveFlags();
         RaisePortalTextChanged();
     }

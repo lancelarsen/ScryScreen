@@ -240,6 +240,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsShowingImage));
         OnPropertyChanged(nameof(IsShowingVideo));
+        OnPropertyChanged(nameof(IsShowingInitiative));
         OnPropertyChanged(nameof(IsShowingText));
         OnPropertyChanged(nameof(IsShowingIdleLogo));
         OnPropertyChanged(nameof(IsShowingNonIdleText));
