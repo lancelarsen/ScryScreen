@@ -53,33 +53,34 @@
                     VerticalAlignment="Center"
                     HorizontalAlignment="Stretch">
 
-                <!-- Initiative group (diamond + initiative + mod), right-aligned so digits stay column-aligned -->
-                <Grid ColumnDefinitions="Auto,Auto,Auto"
+                    <!-- Initiative group (initiative + mod + diamond), right-aligned so digits stay column-aligned -->
+                    <Grid ColumnDefinitions="Auto,Auto,Auto"
                   ColumnSpacing="14"
                   HorizontalAlignment="Right"
                   VerticalAlignment="Center">
 
-              <!-- Diamond marker placeholder (always reserves space; image only visible when active) -->
-              <Border Width="36"
-                  Height="36"
-                  VerticalAlignment="Center"
-                  HorizontalAlignment="Center">
-                <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
-                   Stretch="Uniform"
-                   IsVisible="{Binding IsActive}" />
-              </Border>
-
-              <TextBlock Grid.Column="1"
+                  <TextBlock Grid.Column="0"
                      Classes="init"
                      Text="{Binding InitiativeDisplay}"
                      HorizontalAlignment="Right"
                      VerticalAlignment="Center" />
 
-              <TextBlock Grid.Column="2"
+                  <TextBlock Grid.Column="1"
                      Classes="mod"
                      Text="{Binding ModDisplay}"
                      IsVisible="{Binding HasMod}"
                      VerticalAlignment="Center" />
+
+                  <!-- Diamond marker placeholder (always reserves space; image only visible when active) -->
+                  <Border Grid.Column="2"
+                      Width="36"
+                      Height="36"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center">
+                    <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
+                       Stretch="Uniform"
+                       IsVisible="{Binding IsActive}" />
+                  </Border>
                 </Grid>
 
                 <!-- Name (column-aligned) -->
