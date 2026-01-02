@@ -98,7 +98,7 @@
                 Background="{DynamicResource ScryBg0}"
                 BorderBrush="{DynamicResource ScryBorder}"
                 BorderThickness="0,0,0,1"
-                Padding="12,10">
+            Padding="12,10,12,8">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <ScrollViewer Grid.Column="0"
                               MaxHeight="220"
@@ -113,8 +113,9 @@
 
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:CompileBindings="False">
-                                <Border Classes="card" Width="320" Padding="8,6">
-                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
+                                <!-- <Border Classes="card" Width="320" Padding="8,6,8,4"> -->
+                                <Border Classes="card" Width="320" Padding="8,6,8,4">
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="5">
                                         <!-- Controls row -->
                                         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                             <!-- (1) Portal number badge -->
@@ -180,7 +181,8 @@
                                                 BorderBrush="{DynamicResource ScryBorder}"
                                                 BorderThickness="1"
                                                 CornerRadius="8"
-                                                Padding="6">
+                                            Padding="6"
+                                            Margin="0,4,0,0">
                                             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0">
                                                 <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
                                                     <StackPanel Orientation="Horizontal" Spacing="4">
@@ -365,7 +367,8 @@
                                                 BorderBrush="{DynamicResource ScryBorder}"
                                                 BorderThickness="1"
                                                 CornerRadius="8"
-                                                Padding="8,6">
+                                            Padding="8,6"
+                                            Margin="0,6,0,0">
                                             <StackPanel Spacing="6">
                                                 <!-- Time bar: short, with times on same line -->
                                                 <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="0" HorizontalAlignment="Center" VerticalAlignment="Center">
