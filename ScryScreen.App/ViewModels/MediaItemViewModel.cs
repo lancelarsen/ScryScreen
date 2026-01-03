@@ -94,7 +94,7 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool rainEnabled;
 
     [ObservableProperty]
-    private double rainMin = 0;
+    private double rainMin = 0.1;
 
     [ObservableProperty]
     private double rainMax = 5;
@@ -106,7 +106,7 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool snowEnabled;
 
     [ObservableProperty]
-    private double snowMin = 0;
+    private double snowMin = 0.1;
 
     [ObservableProperty]
     private double snowMax = 4;
@@ -118,7 +118,7 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool sandEnabled;
 
     [ObservableProperty]
-    private double sandMin = 0;
+    private double sandMin = 0.1;
 
     [ObservableProperty]
     private double sandMax = 1;
@@ -130,13 +130,13 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool fogEnabled;
 
     [ObservableProperty]
-    private double fogMin = 0;
+    private double fogMin = 0.5;
 
     [ObservableProperty]
-    private double fogMax = 1;
+    private double fogMax = 4;
 
     [ObservableProperty]
-    private double fogIntensity = 0.5;
+    private double fogIntensity = 1;
 
     [ObservableProperty]
     private bool smokeEnabled;

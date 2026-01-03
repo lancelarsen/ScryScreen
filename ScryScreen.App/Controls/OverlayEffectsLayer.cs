@@ -1,14 +1,75 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Threading;
 
 namespace ScryScreen.App.Controls;
 
 public sealed class OverlayEffectsLayer : Control
 {
+    // Larger tiles reduce visible repetition and help hide any residual tiling artifacts.
+    private const int FogTileSize = 512;
+    private const int FogLayerCount = 4;
+
+    private static readonly double[] FogLayerScales = { 4.0, 3.0, 2.3, 1.7 };
+    private static readonly double[] FogLayerSpeedX = { -38.0, -26.0, -16.0, -9.0 };
+    private static readonly double[] FogLayerSpeedY = { -4.0, -2.5, -1.4, -0.8 };
+    private static readonly double[] FogLayerOpacities = { 0.55, 0.38, 0.26, 0.18 };
+
+    private static readonly RadialGradientBrush FogPuffBrush = new()
+    {
+        Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+        GradientOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+        RadiusX = new RelativeScalar(0.60, RelativeUnit.Relative),
+        RadiusY = new RelativeScalar(0.60, RelativeUnit.Relative),
+        GradientStops = new GradientStops
+        {
+            // Softer falloff to hide hard-ish ellipse edges.
+            new GradientStop(Color.FromArgb(205, 205, 230, 250), 0.00),
+            new GradientStop(Color.FromArgb(110, 205, 230, 250), 0.28),
+            new GradientStop(Color.FromArgb(55, 205, 230, 250), 0.55),
+            new GradientStop(Color.FromArgb(0, 205, 230, 250), 1.00),
+        }
+    };
+
+    private static readonly RadialGradientBrush SmokePuffBrush = new()
+    {
+        Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+        GradientOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+        RadiusX = new RelativeScalar(0.65, RelativeUnit.Relative),
+        RadiusY = new RelativeScalar(0.65, RelativeUnit.Relative),
+        GradientStops = new GradientStops
+        {
+            // Dark core, soft falloff.
+            new GradientStop(Color.FromArgb(210, 35, 38, 45), 0.00),
+            new GradientStop(Color.FromArgb(140, 35, 38, 45), 0.22),
+            new GradientStop(Color.FromArgb(70, 35, 38, 45), 0.50),
+            new GradientStop(Color.FromArgb(0, 35, 38, 45), 1.00),
+        }
+    };
+
+    private static readonly LinearGradientBrush SandBandMask = new()
+    {
+        // Repeat a few vertical bands so the sandstorm has that "blowing sheets" look.
+        StartPoint = new RelativePoint(0.5, 0.0, RelativeUnit.Relative),
+        EndPoint = new RelativePoint(0.5, 1.0, RelativeUnit.Relative),
+        SpreadMethod = GradientSpreadMethod.Repeat,
+        GradientStops = new GradientStops
+        {
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.00),
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.18),
+            new GradientStop(Color.FromArgb(255, 255, 255, 255), 0.34),
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.52),
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 1.00),
+        }
+    };
+
+
     public static readonly StyledProperty<bool> RainEnabledProperty =
         AvaloniaProperty.Register<OverlayEffectsLayer, bool>(nameof(RainEnabled));
 
@@ -76,6 +137,9 @@ public sealed class OverlayEffectsLayer : Control
     private readonly SolidColorBrush?[] _snowBrushes = new SolidColorBrush?[256];
     private readonly Pen?[] _sandPens = new Pen?[256];
 
+    private readonly WriteableBitmap?[] _fogLayerTiles = new WriteableBitmap?[FogLayerCount];
+    private readonly WriteableBitmap?[] _sandBandTiles = new WriteableBitmap?[FogLayerCount];
+
     private DateTime _lastTickUtc = DateTime.UtcNow;
     private double _timeSeconds;
 
@@ -85,6 +149,9 @@ public sealed class OverlayEffectsLayer : Control
     public OverlayEffectsLayer()
     {
         IsHitTestVisible = false;
+
+        // Fog/smoke rely on scaled bitmaps; force good filtering to avoid edge/seam artifacts.
+        RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.HighQuality);
 
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(16), DispatcherPriority.Background, (_, _) => Tick());
         this.AttachedToVisualTree += (_, _) => { _lastTickUtc = DateTime.UtcNow; _timer.Start(); };
@@ -136,6 +203,210 @@ public sealed class OverlayEffectsLayer : Control
         cache[a] = brush;
         return brush;
     }
+
+    private static double SmoothStep(double edge0, double edge1, double x)
+    {
+        var t = (x - edge0) / (edge1 - edge0);
+        t = t < 0 ? 0 : (t > 1 ? 1 : t);
+        return t * t * (3 - (2 * t));
+    }
+
+    private static uint Hash(uint x)
+    {
+        // Simple integer hash for stable pseudo-random gradients.
+        x ^= x >> 16;
+        x *= 0x7feb352d;
+        x ^= x >> 15;
+        x *= 0x846ca68b;
+        x ^= x >> 16;
+        return x;
+    }
+
+    private static float Lerp(float a, float b, float t) => a + ((b - a) * t);
+
+    private static float Fade(float t)
+    {
+        // Smooth interpolation; similar to Perlin fade.
+        return t * t * t * (t * ((t * 6) - 15) + 10);
+    }
+
+    private static float ValueAt(int x, int y, int seed)
+    {
+        var h = Hash((uint)(x * 374761393) ^ (uint)(y * 668265263) ^ (uint)(seed * 1442695041));
+        return (h & 0x00FFFFFF) / 16777215f; // 0..1
+    }
+
+    private static float ValueNoise(float x, float y, int seed)
+    {
+        var x0 = (int)MathF.Floor(x);
+        var y0 = (int)MathF.Floor(y);
+        var x1 = x0 + 1;
+        var y1 = y0 + 1;
+
+        var tx = x - x0;
+        var ty = y - y0;
+        var u = Fade(tx);
+        var v = Fade(ty);
+
+        var a = ValueAt(x0, y0, seed);
+        var b = ValueAt(x1, y0, seed);
+        var c = ValueAt(x0, y1, seed);
+        var d = ValueAt(x1, y1, seed);
+
+        var ab = Lerp(a, b, u);
+        var cd = Lerp(c, d, u);
+        return Lerp(ab, cd, v);
+    }
+
+    private static float FractalNoise(float x, float y, int seed, int octaves)
+    {
+        float sum = 0;
+        float amp = 1;
+        float freq = 1;
+        float norm = 0;
+
+        for (var i = 0; i < octaves; i++)
+        {
+            sum += amp * ValueNoise(x * freq, y * freq, seed + (i * 1013));
+            norm += amp;
+            amp *= 0.5f;
+            freq *= 2.0f;
+        }
+
+        return sum / MathF.Max(0.0001f, norm);
+    }
+
+    private static float SeamlessFogNoise(float u, float v, int seed, float structureScale, int octaves)
+    {
+        // u/v are in [0..1]. Blend 4 samples to make a seamless, tileable noise field.
+        // This prevents visible seams at fog tile boundaries when the texture is repeated.
+        var fu = Fade(u);
+        var fv = Fade(v);
+
+        float Sample(float uu, float vv)
+        {
+            // Fractal value noise with stronger domain warping + a slight domain rotation.
+            // This reduces axis-aligned artifacts that can show up as straight-ish lines.
+            var ux = uu * structureScale;
+            var uy = vv * structureScale;
+
+            // Rotate domain to avoid grid alignment.
+            const float ca = 0.8253356f; // cos(0.6)
+            const float sa = 0.5649858f; // sin(0.6)
+            var rx = (ux * ca) - (uy * sa);
+            var ry = (ux * sa) + (uy * ca);
+
+            // Two independent warps (not the same value) to avoid directional streaks.
+            var w1 = FractalNoise((rx * 0.85f) + 17.3f, (ry * 0.85f) - 9.7f, seed + 17, octaves: 3);
+            var w2 = FractalNoise((rx * 0.65f) - 41.1f, (ry * 0.65f) + 33.8f, seed + 51, octaves: 3);
+
+            var fx = rx + ((w1 - 0.5f) * 1.35f) + ((w2 - 0.5f) * 0.85f);
+            var fy = ry + ((w2 - 0.5f) * 1.20f) - ((w1 - 0.5f) * 0.70f);
+
+            return FractalNoise(fx, fy, seed, octaves);
+        }
+
+        var n00 = Sample(u, v);
+        var n10 = Sample(u + 1, v);
+        var n01 = Sample(u, v + 1);
+        var n11 = Sample(u + 1, v + 1);
+
+        var nx0 = Lerp(n00, n10, fu);
+        var nx1 = Lerp(n01, n11, fu);
+        return Lerp(nx0, nx1, fv);
+    }
+
+    private static float TinyDither01(int x, int y, int seed)
+    {
+        // Very small stable dither in [0..1] to break up banding.
+        var h = Hash((uint)(x * 1597334677) ^ (uint)(y * 3812015801) ^ (uint)(seed * 1103515245));
+        return (h & 0xFFFF) / 65535f;
+    }
+
+    private void EnsureFogTiles()
+    {
+        if (_fogLayerTiles[0] is not null)
+        {
+            return;
+        }
+
+        // Slightly different tint/structure per layer so they don't stack into one flat sheet.
+        _fogLayerTiles[0] = CreateFogTile(seed: 1337, baseColor: new Color(255, 195, 220, 245), structureScale: 2.2f, octaves: 5, alphaBias: 0.38f);
+        _fogLayerTiles[1] = CreateFogTile(seed: 7331, baseColor: new Color(255, 205, 230, 250), structureScale: 3.1f, octaves: 5, alphaBias: 0.42f);
+        _fogLayerTiles[2] = CreateFogTile(seed: 4242, baseColor: new Color(255, 185, 210, 235), structureScale: 4.2f, octaves: 4, alphaBias: 0.46f);
+        _fogLayerTiles[3] = CreateFogTile(seed: 9001, baseColor: new Color(255, 175, 200, 225), structureScale: 5.4f, octaves: 4, alphaBias: 0.50f);
+    }
+
+    private void EnsureSandBandTiles()
+    {
+        if (_sandBandTiles[0] is not null)
+        {
+            return;
+        }
+
+        // Warm / sandy tint, tuned to read like dusty sheets rather than fog.
+        _sandBandTiles[0] = CreateFogTile(seed: 2468, baseColor: new Color(255, 235, 210, 150), structureScale: 2.0f, octaves: 4, alphaBias: 0.40f);
+        _sandBandTiles[1] = CreateFogTile(seed: 8642, baseColor: new Color(255, 230, 195, 130), structureScale: 3.0f, octaves: 4, alphaBias: 0.45f);
+        _sandBandTiles[2] = CreateFogTile(seed: 1357, baseColor: new Color(255, 220, 185, 120), structureScale: 4.0f, octaves: 3, alphaBias: 0.50f);
+        _sandBandTiles[3] = CreateFogTile(seed: 9753, baseColor: new Color(255, 210, 175, 110), structureScale: 5.0f, octaves: 3, alphaBias: 0.54f);
+    }
+
+    private static WriteableBitmap CreateFogTile(int seed, Color baseColor, float structureScale, int octaves, float alphaBias)
+    {
+        var bmp = new WriteableBitmap(
+            new PixelSize(FogTileSize, FogTileSize),
+            new Vector(96, 96),
+            PixelFormat.Bgra8888,
+            AlphaFormat.Premul);
+
+        using var fb = bmp.Lock();
+        var stride = fb.RowBytes;
+        var data = new byte[stride * FogTileSize];
+
+        for (var y = 0; y < FogTileSize; y++)
+        {
+            // Use [0..1) UVs (not inclusive of 1.0) so the last pixel doesn't duplicate the first.
+            // This reduces visible edge artifacts when the tile is repeated with filtering.
+            var ny = y / (float)FogTileSize;
+            var rowBase = y * stride;
+            for (var x = 0; x < FogTileSize; x++)
+            {
+                var nx = x / (float)FogTileSize;
+
+                // Seamless, tileable fog texture. The vertical density gradient is applied globally at render time
+                // (via an opacity mask) so it does not repeat per-tile and create hard horizontal bands.
+                var n = SeamlessFogNoise(nx, ny, seed, structureScale, octaves);
+                // Push towards wispy shapes.
+                n = MathF.Pow(n, 1.7f);
+
+                // Convert noise to alpha. alphaBias shifts how much is visible.
+                var a01 = (n - alphaBias) / (1.0f - alphaBias);
+                if (a01 < 0) a01 = 0;
+                if (a01 > 1) a01 = 1;
+
+                // Tiny dither helps hide 8-bit alpha banding on large smooth gradients.
+                a01 = Math.Clamp(a01 + ((TinyDither01(x, y, seed) - 0.5f) * (1f / 255f)), 0f, 1f);
+
+                var a = (byte)(a01 * 255);
+
+                // Premultiply for AlphaFormat.Premul.
+                var pr = (byte)((baseColor.R * a) / 255);
+                var pg = (byte)((baseColor.G * a) / 255);
+                var pb = (byte)((baseColor.B * a) / 255);
+
+                var idx = rowBase + (x * 4);
+                data[idx + 0] = pb;
+                data[idx + 1] = pg;
+                data[idx + 2] = pr;
+                data[idx + 3] = a;
+            }
+        }
+
+        Marshal.Copy(data, 0, fb.Address, data.Length);
+
+        return bmp;
+    }
+
 
     private bool AnyEnabled =>
         RainEnabled || SnowEnabled || SandEnabled || FogEnabled || SmokeEnabled || LightningEnabled;
@@ -357,18 +628,32 @@ public sealed class OverlayEffectsLayer : Control
             _fog.Add(HazePuff.Create(_rng, w, h, upward: false, dark: false));
         }
 
+        // Movement scales with intensity; above 1.0, increase speed/flow noticeably.
+        var speedScale = 0.55 + (1.10 * level);
+        if (density > 1)
+        {
+            speedScale *= 1.0 + (Math.Min(density, 4) - 1.0) * 0.65;
+        }
+
         for (var i = _fog.Count - 1; i >= 0; i--)
         {
             var p = _fog[i];
-            p.X += p.Vx * dt;
-            p.Y += p.Vy * dt;
 
-            if (p.X + p.R < -100) p.X = w + p.R + 100;
-            if (p.X - p.R > w + 100) p.X = -p.R - 100;
+            // Add a bit of swirly drift so it doesn't read as straight translation.
+            var t = _timeSeconds;
+            var swirl = Math.Sin((t * 0.45) + (i * 0.37)) * (10 + (40 * level));
+            var swirl2 = Math.Cos((t * 0.32) + (i * 0.51)) * (8 + (30 * level));
 
-            // wrap vertical gently
-            if (p.Y + p.R < -120) p.Y = h + p.R + 120;
-            if (p.Y - p.R > h + 120) p.Y = -p.R - 120;
+            p.X += ((p.Vx * speedScale) + swirl) * dt;
+            p.Y += ((p.Vy * speedScale) + (swirl2 * 0.35)) * dt;
+
+            // Wrap with generous margins so there are always puffs partly off-screen.
+            var mx = p.R + 260;
+            var my = p.R + 280;
+            if (p.X < -mx) p.X = w + mx;
+            if (p.X > w + mx) p.X = -mx;
+            if (p.Y < -my) p.Y = h + my;
+            if (p.Y > h + my) p.Y = -my;
 
             _fog[i] = p;
         }
@@ -389,31 +674,53 @@ public sealed class OverlayEffectsLayer : Control
             return;
         }
 
-        // 3x volume requested.
-        // Above 1, add more wisps (cap to avoid runaway allocations).
-        var scale = density <= 1 ? 1 : Math.Min(density, 8);
-        var target = (int)((15 + (27 * level)) * scale);
+        // Above 1, add more puffs (cap to avoid runaway allocations).
+        var scale = density <= 1 ? 1 : Math.Min(density, 6);
+        var target = (int)((12 + (20 * level)) * scale);
         while (_smoke.Count < target)
         {
-            _smoke.Add(HazePuff.Create(_rng, w, h, upward: true, dark: true));
+            var p = HazePuff.Create(_rng, w, h, upward: true, dark: true);
+            var pad = p.R * 0.70;
+            p.X = (-pad) + (_rng.NextDouble() * (w + (pad * 2)));
+            p.Y = h + (_rng.NextDouble() * (h * 0.25)) + pad;
+            _smoke.Add(p);
+        }
+
+        var speedScale = 0.70 + (1.20 * level);
+        if (density > 1)
+        {
+            speedScale *= 1.0 + (Math.Min(density, 4) - 1.0) * 0.75;
         }
 
         for (var i = _smoke.Count - 1; i >= 0; i--)
         {
             var p = _smoke[i];
-            p.X += p.Vx * dt;
-            p.Y += p.Vy * dt;
-            p.R += dt * (6 + _rng.NextDouble() * 8);
-            p.Alpha = Math.Max(0, p.Alpha - dt * (0.010 + (1 - level) * 0.020));
 
-            if (p.Alpha <= 0 || p.Y + p.R < -200)
+            var t = _timeSeconds;
+            var swirl = Math.Sin((t * 0.55) + (i * 0.41)) * (10 + (55 * level));
+            var swirl2 = Math.Cos((t * 0.38) + (i * 0.57)) * (9 + (45 * level));
+
+            // Upward drift + sideways billow.
+            p.X += ((p.Vx * 0.70 * speedScale) + (swirl * 0.75)) * dt;
+            p.Y += ((p.Vy * 1.15 * speedScale) - (Math.Abs(swirl2) * 0.55)) * dt;
+
+            // Billow/expand as it rises and gradually thin.
+            p.R += dt * ((10 + (_rng.NextDouble() * 18)) * (0.65 + (0.85 * level)));
+            p.Alpha = Math.Max(0, p.Alpha - dt * (0.008 + ((1 - level) * 0.018)));
+
+            if (p.Alpha <= 0 || p.Y + p.R < -240)
             {
-                _smoke[i] = HazePuff.Create(_rng, w, h, upward: true, dark: true);
+                var np = HazePuff.Create(_rng, w, h, upward: true, dark: true);
+                var pad = np.R * 0.70;
+                np.X = (-pad) + (_rng.NextDouble() * (w + (pad * 2)));
+                np.Y = h + (_rng.NextDouble() * (h * 0.25)) + pad;
+                _smoke[i] = np;
                 continue;
             }
 
-            if (p.X + p.R < -160) p.X = w + p.R + 160;
-            if (p.X - p.R > w + 160) p.X = -p.R - 160;
+            var mx = p.R + 220;
+            if (p.X < -mx) p.X = w + mx;
+            if (p.X > w + mx) p.X = -mx;
 
             _smoke[i] = p;
         }
@@ -487,41 +794,92 @@ public sealed class OverlayEffectsLayer : Control
         {
             var density = ClampMin0(FogIntensity);
             var intensity = Clamp01(density);
-            var a = (byte)(intensity * 55);
-            if (a > 0)
+            if (intensity > 0)
             {
-                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(a, 160, 190, 220)), null, new Rect(0, 0, w, h));
-            }
-
-            // Flowing fog: layered wavy bands (no obvious circles).
-            var bandScale = density <= 1 ? 1 : Math.Min(density, 6);
-            var bands = (int)((3 + (intensity * 6)) * bandScale);
-            for (var i = 0; i < bands; i++)
-            {
-                var t = _timeSeconds * (0.06 + (i * 0.03));
-                var bandHeight = h * (0.18 + (i % 3) * 0.06);
-                var y = ((Math.Sin(t + i) * 0.5) + 0.5) * (h - bandHeight);
-                var xDrift = (Math.Sin((t * 1.7) + (i * 2.2)) * 0.5 + 0.5) * (w * 0.10);
-
-                var alpha = (byte)Math.Clamp((18 + (intensity * 38)) - (i * 2), 0, 80);
-                if (alpha == 0)
-                {
-                    continue;
-                }
-
-                var brush = new LinearGradientBrush
+                // Apply a single global vertical mask so fog naturally pools near the bottom
+                // without repeating hard bands at each fog tile boundary.
+                var fogMask = new LinearGradientBrush
                 {
                     StartPoint = new RelativePoint(0.5, 0.0, RelativeUnit.Relative),
                     EndPoint = new RelativePoint(0.5, 1.0, RelativeUnit.Relative),
                     GradientStops = new GradientStops
                     {
-                        new GradientStop(Color.FromArgb(0, 205, 225, 245), 0.0),
-                        new GradientStop(Color.FromArgb(alpha, 205, 225, 245), 0.50),
-                        new GradientStop(Color.FromArgb(0, 205, 225, 245), 1.0),
+                        new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.00),
+                        // Bring fog higher up the portal while still pooling toward the bottom.
+                        new GradientStop(Color.FromArgb(70, 255, 255, 255), 0.12),
+                        new GradientStop(Color.FromArgb(190, 255, 255, 255), 0.55),
+                        new GradientStop(Color.FromArgb(255, 255, 255, 255), 0.92),
+                        new GradientStop(Color.FromArgb(255, 255, 255, 255), 1.00),
                     }
                 };
 
-                context.DrawRectangle(brush, null, new Rect(-xDrift, y, w + (xDrift * 2), bandHeight));
+                using var _mask = context.PushOpacityMask(fogMask, new Rect(0, 0, w, h));
+
+                // A very subtle base wash, then the scrolling layered fog.
+                var a = (byte)(intensity * 40);
+                if (a > 0)
+                {
+                    context.DrawRectangle(new SolidColorBrush(Color.FromArgb(a, 160, 190, 220)), null, new Rect(0, 0, w, h));
+                }
+
+                // Puff-based fog: lots of soft radial gradients drifting around.
+                // This intentionally avoids bitmap tiling so there are no straight seam lines.
+                // We still vary opacity with a few pseudo-layers to keep depth.
+                var scaleBoost = density <= 1 ? 1 : Math.Min(density, 4);
+                var globalOpacity = (0.40 + (0.60 * intensity)) * scaleBoost;
+
+                // Draw from larger/softer to smaller/sharper so it feels layered.
+                for (var layer = 0; layer < FogLayerCount; layer++)
+                {
+                    var layerOpacity = globalOpacity * FogLayerOpacities[layer];
+                    if (layerOpacity <= 0)
+                    {
+                        continue;
+                    }
+
+                    var layerRadiusScale = 1.10 - (layer * 0.12);
+                    var layerStretchY = 0.85 - (layer * 0.06);
+                    var motionBoost = 1.0 + (intensity * 0.9);
+                    if (density > 1)
+                    {
+                        motionBoost *= 1.0 + (Math.Min(density, 4) - 1.0) * 0.85;
+                    }
+
+                    var layerOffsetX = Math.Sin((_timeSeconds * 0.22) + (layer * 1.7)) * (w * 0.02 * motionBoost);
+                    var layerOffsetY = Math.Sin((_timeSeconds * 0.18) + (layer * 2.3)) * (h * 0.01 * motionBoost);
+
+                    using var _ = context.PushOpacity(layerOpacity);
+
+                    for (var i = 0; i < _fog.Count; i++)
+                    {
+                        var p = _fog[i];
+
+                        // Each puff has its own alpha; keep it subtle.
+                        var puffOpacity = Math.Clamp(p.Alpha * 2.0, 0, 1);
+                        if (puffOpacity <= 0)
+                        {
+                            continue;
+                        }
+
+                        using var __ = context.PushOpacity(puffOpacity);
+
+                        var cx = p.X + layerOffsetX;
+                        var cy = p.Y + layerOffsetY;
+
+                        // Per-puff shape variation to avoid obvious ellipse edges.
+                        var h1 = Hash((uint)(i * 2654435761) ^ 0xA3C59AC3u);
+                        var h2 = Hash((uint)(i * 1597334677) ^ 0xC2B2AE35u);
+                        var sx = 0.85 + (((h1 & 0xFFFF) / 65535.0) * 0.55);
+                        var sy = 0.75 + (((h2 & 0xFFFF) / 65535.0) * 0.65);
+
+                        var rx = p.R * layerRadiusScale * sx;
+                        var ry = p.R * layerRadiusScale * layerStretchY * sy;
+
+                        // Draw twice with a slight offset to break symmetry and soften boundaries.
+                        context.DrawEllipse(FogPuffBrush, null, new Point(cx, cy), rx, ry);
+                        context.DrawEllipse(FogPuffBrush, null, new Point(cx + (rx * 0.12), cy - (ry * 0.08)), rx * 0.75, ry * 0.70);
+                    }
+                }
             }
         }
 
@@ -529,51 +887,145 @@ public sealed class OverlayEffectsLayer : Control
         {
             var density = ClampMin0(SmokeIntensity);
             var intensity = Clamp01(density);
-            var a = (byte)(intensity * 45);
-            if (a > 0)
+            if (intensity <= 0)
             {
-                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(a, 30, 35, 45)), null, new Rect(0, 0, w, h));
+                return;
             }
 
-            // Flowing smoke: vertical-ish wisps that drift upward.
-            var wispScale = density <= 1 ? 1 : Math.Min(density, 6);
-            var wisps = (int)((3 + (intensity * 6)) * wispScale);
-            for (var i = 0; i < wisps; i++)
+            // Darken slightly, then draw billowing rising puffs (fog-like but darker).
+            var baseA = (byte)(intensity * 28);
+            if (baseA > 0)
             {
-                var t = _timeSeconds * (0.08 + (i * 0.04));
-                var wispWidth = w * (0.10 + ((i % 3) * 0.04));
-                var x = ((Math.Sin((t * 0.9) + i) * 0.5) + 0.5) * (w - wispWidth);
-                var yDrift = (Math.Sin((t * 1.4) + (i * 1.7)) * 0.5 + 0.5) * (h * 0.10);
+                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(baseA, 18, 20, 24)), null, new Rect(0, 0, w, h));
+            }
 
-                var alpha = (byte)Math.Clamp((16 + (intensity * 45)) - (i * 2), 0, 95);
-                if (alpha == 0)
+            // Smoke tends to originate lower and thin as it rises.
+            var smokeMask = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0.5, 0.0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(0.5, 1.0, RelativeUnit.Relative),
+                GradientStops = new GradientStops
+                {
+                    new GradientStop(Color.FromArgb(10, 255, 255, 255), 0.00),
+                    new GradientStop(Color.FromArgb(120, 255, 255, 255), 0.40),
+                    new GradientStop(Color.FromArgb(255, 255, 255, 255), 1.00),
+                }
+            };
+
+            using var _mask = context.PushOpacityMask(smokeMask, new Rect(0, 0, w, h));
+
+            var scaleBoost = density <= 1 ? 1 : Math.Min(density, 4);
+            var globalOpacity = (0.35 + (0.65 * intensity)) * scaleBoost;
+            using var _op = context.PushOpacity(globalOpacity);
+
+            // A couple of pseudo-layers add depth.
+            for (var layer = 0; layer < 3; layer++)
+            {
+                var layerOpacity = (0.55 - (layer * 0.16));
+                if (layerOpacity <= 0)
                 {
                     continue;
                 }
 
-                var brush = new LinearGradientBrush
-                {
-                    StartPoint = new RelativePoint(0.0, 0.5, RelativeUnit.Relative),
-                    EndPoint = new RelativePoint(1.0, 0.5, RelativeUnit.Relative),
-                    GradientStops = new GradientStops
-                    {
-                        new GradientStop(Color.FromArgb(0, 55, 60, 70), 0.0),
-                        new GradientStop(Color.FromArgb(alpha, 55, 60, 70), 0.50),
-                        new GradientStop(Color.FromArgb(0, 55, 60, 70), 1.0),
-                    }
-                };
+                var layerRadiusScale = 1.25 - (layer * 0.12);
+                var layerStretchY = 1.05 + (layer * 0.06);
+                var driftX = Math.Sin((_timeSeconds * 0.18) + (layer * 1.9)) * (w * 0.01);
 
-                context.DrawRectangle(brush, null, new Rect(x, -yDrift, wispWidth, h + (yDrift * 2)));
+                using var _lop = context.PushOpacity(layerOpacity);
+
+                for (var i = 0; i < _smoke.Count; i++)
+                {
+                    var p = _smoke[i];
+                    var puffOpacity = Math.Clamp(p.Alpha * 2.2, 0, 1);
+                    if (puffOpacity <= 0)
+                    {
+                        continue;
+                    }
+
+                    using var __ = context.PushOpacity(puffOpacity);
+
+                    var cx = p.X + driftX;
+                    var cy = p.Y;
+
+                    var h1 = Hash((uint)(i * 2246822519) ^ 0x9E3779B9u);
+                    var h2 = Hash((uint)(i * 3266489917) ^ 0x85EBCA6Bu);
+                    var sx = 0.85 + (((h1 & 0xFFFF) / 65535.0) * 0.60);
+                    var sy = 0.90 + (((h2 & 0xFFFF) / 65535.0) * 0.70);
+
+                    var rx = p.R * layerRadiusScale * sx;
+                    var ry = p.R * layerRadiusScale * layerStretchY * sy;
+
+                    context.DrawEllipse(SmokePuffBrush, null, new Point(cx, cy), rx, ry);
+                    context.DrawEllipse(SmokePuffBrush, null, new Point(cx - (rx * 0.10), cy + (ry * 0.08)), rx * 0.72, ry * 0.66);
+                }
             }
         }
 
         if (SandEnabled)
         {
-            // A subtle warm wash + streaks.
-            var a = (byte)(Clamp01(SandIntensity) * 22);
+            var density = ClampMin0(SandIntensity);
+            var intensity = Clamp01(density);
+
+            // A subtle warm wash + banded sheets + streaks.
+            var a = (byte)(intensity * 22);
             if (a > 0)
             {
                 context.DrawRectangle(new SolidColorBrush(Color.FromArgb(a, 120, 95, 55)), null, new Rect(0, 0, w, h));
+            }
+
+            // Add the old "blowing band" look as a sand-colored overlay.
+            if (intensity > 0)
+            {
+                EnsureSandBandTiles();
+                RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.HighQuality);
+
+                var scaleBoost = density <= 1 ? 1 : Math.Min(density, 4);
+                var bandOpacity = (0.10 + (0.45 * intensity)) * scaleBoost;
+
+                // Make bands more obvious as intensity increases.
+                using (context.PushOpacityMask(SandBandMask, new Rect(0, 0, w, h)))
+                using (context.PushOpacity(bandOpacity))
+                {
+                    for (var layer = 0; layer < FogLayerCount; layer++)
+                    {
+                        var bmp = _sandBandTiles[layer];
+                        if (bmp is null)
+                        {
+                            continue;
+                        }
+
+                        // Big scale so it reads as sheets, not as tiny noise.
+                        var s = 1.55 + (layer * 0.35);
+                        var dstW = FogTileSize * s;
+                        var dstH = FogTileSize * s;
+
+                        var speed = (50 + (layer * 28)) * (0.45 + (1.10 * intensity));
+                        if (density > 1)
+                        {
+                            speed *= 1.0 + (Math.Min(density, 4) - 1.0) * 0.65;
+                        }
+
+                        var ox = -((_timeSeconds * speed) % dstW);
+                        var oy = (Math.Sin((_timeSeconds * 0.35) + layer) * (h * 0.03));
+
+                        // Slight tilt so bands are not perfectly horizontal.
+                        var tilt = (-0.06 + (layer * 0.02));
+                        using var _tx = context.PushTransform(Matrix.CreateRotation(tilt) * Matrix.CreateTranslation(ox, oy));
+
+                        // Tile across the portal with a small overlap.
+                        var xCount = (int)Math.Ceiling((w + dstW) / dstW) + 2;
+                        var yCount = (int)Math.Ceiling((h + dstH) / dstH) + 2;
+                        for (var yy = -1; yy < yCount; yy++)
+                        {
+                            for (var xx = -1; xx < xCount; xx++)
+                            {
+                                var dx = xx * dstW;
+                                var dy = yy * dstH;
+                                context.DrawImage(bmp, new Rect(0, 0, FogTileSize, FogTileSize), new Rect(dx, dy, dstW, dstH));
+                            }
+                        }
+                    }
+                }
             }
 
             foreach (var g in _sand)
@@ -681,8 +1133,11 @@ public sealed class OverlayEffectsLayer : Control
         public static HazePuff Create(Random rng, double w, double h, bool upward, bool dark)
         {
             var baseR = 120 + rng.NextDouble() * 260;
-            var x = rng.NextDouble() * w;
-            var y = rng.NextDouble() * h;
+
+            // Spawn slightly outside the visible bounds so cropped puffs soften the portal edges.
+            var pad = baseR * 0.80;
+            var x = (-pad) + (rng.NextDouble() * (w + (pad * 2)));
+            var y = (-pad) + (rng.NextDouble() * (h + (pad * 2)));
 
             // Fog drifts horizontally; smoke drifts upward.
             var vx = (upward ? (-25 + rng.NextDouble() * 50) : (-20 + rng.NextDouble() * 40));

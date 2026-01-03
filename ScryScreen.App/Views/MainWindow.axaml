@@ -897,6 +897,7 @@
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.FogMax, Mode=TwoWay}" />
                                 </StackPanel>
+
                             </StackPanel>
 
                             <!-- Column 2: Snow / Sand Storm / Smoke -->
