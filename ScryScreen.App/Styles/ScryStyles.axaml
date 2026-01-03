@@ -231,6 +231,15 @@
     <Setter Property="Foreground" Value="{DynamicResource ScryAccent}" />
   </Style>
 
+  <!-- Sound toggles: highlight icon when enabled, but keep a neutral border (use with .noAccent) -->
+  <Style Selector="ToggleButton.circleSmall.soundToggle">
+    <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
+  </Style>
+
+  <Style Selector="ToggleButton.circleSmall.soundToggle:checked">
+    <Setter Property="Foreground" Value="{DynamicResource ScryAccent}" />
+  </Style>
+
   <!-- For icon toggles where "checked" is not a selection (e.g., visibility), keep the neutral border -->
   <Style Selector="ToggleButton.circleSmall.noAccent:checked /template/ Border">
     <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />

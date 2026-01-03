@@ -21,7 +21,9 @@
     <controls:QuakeShakeDecorator
         QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
         QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
-        QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}">
+        QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}"
+        EmitAudioEvents="True"
+        AudioPortalNumber="{Binding PortalNumber}">
       <!-- All portal output (hidden => true blackout) -->
       <Grid IsVisible="{Binding IsContentVisible}">
       <!-- Assigned image (after setup) -->
@@ -98,6 +100,8 @@
           LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
           LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
           LightningTrigger="{Binding OverlayEffects.LightningTrigger}"
+          EmitAudioEvents="True"
+          AudioPortalNumber="{Binding PortalNumber}"
           IsHitTestVisible="False" />
 
       <!-- Identify overlay -->

@@ -36,5 +36,8 @@
     <PackageReference Include="LibVLCSharp" Version="3.8.5" />
     <PackageReference Include="LibVLCSharp.Avalonia" Version="3.8.5" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
+
+    <!-- Audio playback (effects SFX / loops) -->
+    <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
 </Project>

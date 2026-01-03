@@ -910,6 +910,15 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.RainMax, Mode=TwoWay}" />
+                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                              Width="28"
+                                              Height="28"
+                                              CornerRadius="14"
+                                              IsChecked="{Binding Media.SelectedItem.RainSoundEnabled, Mode=TwoWay}"
+                                              ToolTip.Tip="Rain sound">
+                                    <i:Icon Value="mdi-volume-high" FontSize="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -939,6 +948,15 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.LightningMax, Mode=TwoWay}" />
+                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                              Width="28"
+                                              Height="28"
+                                              CornerRadius="14"
+                                              IsChecked="{Binding Media.SelectedItem.LightningSoundEnabled, Mode=TwoWay}"
+                                              ToolTip.Tip="Lightning sound">
+                                    <i:Icon Value="mdi-volume-high" FontSize="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -1006,6 +1024,15 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.SandMax, Mode=TwoWay}" />
+                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                              Width="28"
+                                              Height="28"
+                                              CornerRadius="14"
+                                              IsChecked="{Binding Media.SelectedItem.SandSoundEnabled, Mode=TwoWay}"
+                                              ToolTip.Tip="Sand sound">
+                                    <i:Icon Value="mdi-volume-high" FontSize="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -1080,6 +1107,15 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.QuakeMax, Mode=TwoWay}" />
+                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                              Width="28"
+                                              Height="28"
+                                              CornerRadius="14"
+                                              IsChecked="{Binding Media.SelectedItem.QuakeSoundEnabled, Mode=TwoWay}"
+                                              ToolTip.Tip="Quake sound">
+                                    <i:Icon Value="mdi-volume-high" FontSize="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -1101,6 +1137,15 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.FireMax, Mode=TwoWay}" />
+                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                              Width="28"
+                                              Height="28"
+                                              CornerRadius="14"
+                                              IsChecked="{Binding Media.SelectedItem.FireSoundEnabled, Mode=TwoWay}"
+                                              ToolTip.Tip="Fire sound">
+                                    <i:Icon Value="mdi-volume-high" FontSize="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
                                 </StackPanel>
                             </StackPanel>
                             </Grid>

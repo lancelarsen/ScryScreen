@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:ScryScreen.App.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ScryScreen.App.ViewModels"
+        mc:Ignorable="d"
+        x:Class="ScryScreen.App.Views.PortalOverlayWindow"
+        x:DataType="vm:PortalWindowViewModel"
+        Title="ScryPortalOverlay"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Topmost="False"
+        ShowActivated="False"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        WindowStartupLocation="Manual">
+
+  <!-- Overlay window is only shown over native video (HWND) to allow effects above it. -->
+  <controls:QuakeShakeDecorator
+      QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
+      QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
+      QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}"
+      EmitAudioEvents="True"
+      AudioPortalNumber="{Binding PortalNumber}">
+
+    <Grid IsHitTestVisible="False">
+      <controls:OverlayEffectsLayer
+          RainEnabled="{Binding OverlayEffects.RainEnabled}"
+          RainIntensity="{Binding OverlayEffects.RainIntensity}"
+          SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
+          SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
+          AshEnabled="{Binding OverlayEffects.AshEnabled}"
+          AshIntensity="{Binding OverlayEffects.AshIntensity}"
+          FireEnabled="{Binding OverlayEffects.FireEnabled}"
+          FireIntensity="{Binding OverlayEffects.FireIntensity}"
+          SandEnabled="{Binding OverlayEffects.SandEnabled}"
+          SandIntensity="{Binding OverlayEffects.SandIntensity}"
+          FogEnabled="{Binding OverlayEffects.FogEnabled}"
+          FogIntensity="{Binding OverlayEffects.FogIntensity}"
+          SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
+          SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
+          LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
+          LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
+          LightningTrigger="{Binding OverlayEffects.LightningTrigger}"
+          EmitAudioEvents="True"
+          AudioPortalNumber="{Binding PortalNumber}"
+          IsHitTestVisible="False" />
+
+      <!-- Identify overlay (needed because this window sits above the native video surface) -->
+      <Border IsVisible="{Binding IsIdentifyOverlayVisible}"
+              Background="#AA000000">
+        <TextBlock Text="{Binding PortalNumber}"
+                   Foreground="White"
+                   FontSize="220"
+                   FontWeight="Black"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
+      </Border>
+    </Grid>
+  </controls:QuakeShakeDecorator>
+</Window>

@@ -59,13 +59,57 @@ public sealed class PortalHostService
             DataContext = portalVm,
         };
 
-        var controller = new PortalWindowController(portalNumber, portalWindow, portalVm);
+        // Native video uses a child HWND (see VlcVideoHost). Avalonia visuals can't draw above it.
+        // Use an owned transparent window to render overlay effects above the video surface.
+        var overlayWindow = new PortalOverlayWindow
+        {
+            DataContext = portalVm,
+        };
+
+        void SyncOverlayBounds()
+        {
+            // IMPORTANT: position is in pixels; size is in DIPs.
+            overlayWindow.WindowState = WindowState.Normal;
+            overlayWindow.Position = portalWindow.Position;
+            overlayWindow.Width = portalWindow.Width;
+            overlayWindow.Height = portalWindow.Height;
+        }
+
+        void UpdateOverlayVisibility()
+        {
+            if (portalVm.IsShowingVideo)
+            {
+                SyncOverlayBounds();
+                if (!overlayWindow.IsVisible)
+                {
+                    overlayWindow.Show(portalWindow);
+                }
+            }
+            else
+            {
+                if (overlayWindow.IsVisible)
+                {
+                    overlayWindow.Hide();
+                }
+            }
+        }
+
+        var controller = new PortalWindowController(portalNumber, portalWindow, overlayWindow, portalVm);
         _portals.Add(portalNumber, controller);
 
         portalWindow.Closed += (_, _) =>
         {
             if (_portals.Remove(portalNumber))
             {
+                try
+                {
+                    overlayWindow.Close();
+                }
+                catch
+                {
+                    // ignore cleanup failures
+                }
+
                 try
                 {
                     portalVm.Dispose();
@@ -102,9 +146,35 @@ public sealed class PortalHostService
                 // Put it somewhere predictable if screens are not known yet.
                 portalWindow.Position = new PixelPoint(20 + (portalNumber * 30), 20 + (portalNumber * 30));
             }
+
+            UpdateOverlayVisibility();
+        };
+
+        portalWindow.PropertyChanged += (_, e) =>
+        {
+            if (!overlayWindow.IsVisible)
+            {
+                return;
+            }
+
+            if (e.Property.Name is "Position" or "Width" or "Height" or "WindowState")
+            {
+                SyncOverlayBounds();
+            }
+        };
+
+        portalVm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(PortalWindowViewModel.IsShowingVideo))
+            {
+                UpdateOverlayVisibility();
+            }
         };
 
         portalWindow.Show();
+
+        // If the portal starts in video mode for any reason, show overlay immediately.
+        UpdateOverlayVisibility();
 
         // Ensure the GM console stays on top, even if a portal was created on the same monitor.
         _owner.Activate();
@@ -146,6 +216,15 @@ public sealed class PortalHostService
         controller.Window.Height = bounds.Height / scaling;
 
         controller.Window.WindowState = WindowState.FullScreen;
+
+        // Keep the video overlay aligned if it is visible.
+        if (controller.OverlayWindow.IsVisible)
+        {
+            controller.OverlayWindow.WindowState = WindowState.Normal;
+            controller.OverlayWindow.Position = controller.Window.Position;
+            controller.OverlayWindow.Width = controller.Window.Width;
+            controller.OverlayWindow.Height = controller.Window.Height;
+        }
 
         controller.ViewModel.ScreenName = screen.DisplayName;
 
@@ -340,5 +419,5 @@ public sealed class PortalHostService
         });
     }
 
-    private sealed record PortalWindowController(int PortalNumber, PortalWindow Window, PortalWindowViewModel ViewModel);
+    private sealed record PortalWindowController(int PortalNumber, PortalWindow Window, PortalOverlayWindow OverlayWindow, PortalWindowViewModel ViewModel);
 }

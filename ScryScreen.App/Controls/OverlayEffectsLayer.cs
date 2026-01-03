@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using ScryScreen.App.Services;
 
 namespace ScryScreen.App.Controls;
 
@@ -164,6 +165,12 @@ public sealed class OverlayEffectsLayer : Control
     public static readonly StyledProperty<long> LightningTriggerProperty =
         AvaloniaProperty.Register<OverlayEffectsLayer, long>(nameof(LightningTrigger), defaultValue: 0);
 
+    public static readonly StyledProperty<bool> EmitAudioEventsProperty =
+        AvaloniaProperty.Register<OverlayEffectsLayer, bool>(nameof(EmitAudioEvents), defaultValue: false);
+
+    public static readonly StyledProperty<int> AudioPortalNumberProperty =
+        AvaloniaProperty.Register<OverlayEffectsLayer, int>(nameof(AudioPortalNumber), defaultValue: 0);
+
     public bool RainEnabled { get => GetValue(RainEnabledProperty); set => SetValue(RainEnabledProperty, value); }
     public double RainIntensity { get => GetValue(RainIntensityProperty); set => SetValue(RainIntensityProperty, value); }
 
@@ -188,6 +195,9 @@ public sealed class OverlayEffectsLayer : Control
     public bool LightningEnabled { get => GetValue(LightningEnabledProperty); set => SetValue(LightningEnabledProperty, value); }
     public double LightningIntensity { get => GetValue(LightningIntensityProperty); set => SetValue(LightningIntensityProperty, value); }
     public long LightningTrigger { get => GetValue(LightningTriggerProperty); set => SetValue(LightningTriggerProperty, value); }
+
+    public bool EmitAudioEvents { get => GetValue(EmitAudioEventsProperty); set => SetValue(EmitAudioEventsProperty, value); }
+    public int AudioPortalNumber { get => GetValue(AudioPortalNumberProperty); set => SetValue(AudioPortalNumberProperty, value); }
 
     private readonly DispatcherTimer _timer;
     private readonly Random _rng = new();
@@ -1054,6 +1064,11 @@ public sealed class OverlayEffectsLayer : Control
             _lightningInterPulseTimer = 0;
             _lightningPulseDuration = (0.06 + (_rng.NextDouble() * 0.05)) + ((1.0 - ease) * 0.03);
             _lightningFlash = 1.0;
+
+            if (EmitAudioEvents)
+            {
+                EffectsEventBus.RaiseLightningFlash(AudioPortalNumber, cappedDensity);
+            }
         }
 
         // Manual trigger from UI (a nonce that increments).

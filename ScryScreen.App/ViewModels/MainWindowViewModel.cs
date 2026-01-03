@@ -15,6 +15,7 @@ namespace ScryScreen.App.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly PortalHostService _portalHost;
+    private readonly EffectsAudioService _effectsAudio;
     private readonly ReadOnlyCollection<ScreenInfoViewModel> _screens;
     private string? _lastSelectedMediaPath;
 
@@ -27,9 +28,12 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(PortalHostService portalHost)
     {
         _portalHost = portalHost ?? throw new ArgumentNullException(nameof(portalHost));
+        _effectsAudio = new EffectsAudioService();
         _screens = new ReadOnlyCollection<ScreenInfoViewModel>(_portalHost.GetScreens().ToList());
         Portals = new ObservableCollection<PortalRowViewModel>();
         Media = new MediaLibraryViewModel();
+
+        Portals.CollectionChanged += (_, _) => UpdateEffectsAudioMix();
 
         _initiativeTracker = new InitiativeTrackerViewModel();
         _initiativeTracker.StateChanged += OnInitiativeStateChanged;
@@ -260,14 +264,23 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OnSelectedMediaForEffectsChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(MediaItemViewModel.RainEnabled) or nameof(MediaItemViewModel.RainIntensity) or nameof(MediaItemViewModel.RainMin) or nameof(MediaItemViewModel.RainMax) or
+            nameof(MediaItemViewModel.RainSoundEnabled) or
             nameof(MediaItemViewModel.SnowEnabled) or nameof(MediaItemViewModel.SnowIntensity) or nameof(MediaItemViewModel.SnowMin) or nameof(MediaItemViewModel.SnowMax) or
+            nameof(MediaItemViewModel.SnowSoundEnabled) or
             nameof(MediaItemViewModel.AshEnabled) or nameof(MediaItemViewModel.AshIntensity) or nameof(MediaItemViewModel.AshMin) or nameof(MediaItemViewModel.AshMax) or
+            nameof(MediaItemViewModel.AshSoundEnabled) or
             nameof(MediaItemViewModel.FireEnabled) or nameof(MediaItemViewModel.FireIntensity) or nameof(MediaItemViewModel.FireMin) or nameof(MediaItemViewModel.FireMax) or
+            nameof(MediaItemViewModel.FireSoundEnabled) or
             nameof(MediaItemViewModel.SandEnabled) or nameof(MediaItemViewModel.SandIntensity) or nameof(MediaItemViewModel.SandMin) or nameof(MediaItemViewModel.SandMax) or
+            nameof(MediaItemViewModel.SandSoundEnabled) or
             nameof(MediaItemViewModel.FogEnabled) or nameof(MediaItemViewModel.FogIntensity) or nameof(MediaItemViewModel.FogMin) or nameof(MediaItemViewModel.FogMax) or
+            nameof(MediaItemViewModel.FogSoundEnabled) or
             nameof(MediaItemViewModel.SmokeEnabled) or nameof(MediaItemViewModel.SmokeIntensity) or nameof(MediaItemViewModel.SmokeMin) or nameof(MediaItemViewModel.SmokeMax) or
+            nameof(MediaItemViewModel.SmokeSoundEnabled) or
             nameof(MediaItemViewModel.LightningEnabled) or nameof(MediaItemViewModel.LightningIntensity) or nameof(MediaItemViewModel.LightningMin) or nameof(MediaItemViewModel.LightningMax) or
-            nameof(MediaItemViewModel.QuakeEnabled) or nameof(MediaItemViewModel.QuakeIntensity) or nameof(MediaItemViewModel.QuakeMin) or nameof(MediaItemViewModel.QuakeMax))
+            nameof(MediaItemViewModel.LightningSoundEnabled) or
+            nameof(MediaItemViewModel.QuakeEnabled) or nameof(MediaItemViewModel.QuakeIntensity) or nameof(MediaItemViewModel.QuakeMin) or nameof(MediaItemViewModel.QuakeMax) or
+            nameof(MediaItemViewModel.QuakeSoundEnabled))
         {
             ApplyEffectsToAssignedPortals();
         }
@@ -291,24 +304,33 @@ public partial class MainWindowViewModel : ViewModelBase
         return new OverlayEffectsState(
             RainEnabled: item.RainEnabled,
             RainIntensity: ClampMin0(item.RainIntensity),
+            RainSoundEnabled: item.RainSoundEnabled,
             SnowEnabled: item.SnowEnabled,
             SnowIntensity: ClampMin0(item.SnowIntensity),
+            SnowSoundEnabled: item.SnowSoundEnabled,
             AshEnabled: item.AshEnabled,
             AshIntensity: ClampMin0(item.AshIntensity),
+            AshSoundEnabled: item.AshSoundEnabled,
             FireEnabled: item.FireEnabled,
             FireIntensity: ClampMin0(item.FireIntensity),
+            FireSoundEnabled: item.FireSoundEnabled,
             SandEnabled: item.SandEnabled,
             SandIntensity: ClampMin0(item.SandIntensity),
+            SandSoundEnabled: item.SandSoundEnabled,
             FogEnabled: item.FogEnabled,
             FogIntensity: ClampMin0(item.FogIntensity),
+            FogSoundEnabled: item.FogSoundEnabled,
             SmokeEnabled: item.SmokeEnabled,
             SmokeIntensity: ClampMin0(item.SmokeIntensity),
+            SmokeSoundEnabled: item.SmokeSoundEnabled,
             LightningEnabled: item.LightningEnabled,
             LightningIntensity: ClampMin0(item.LightningIntensity),
+            LightningSoundEnabled: item.LightningSoundEnabled,
             QuakeEnabled: item.QuakeEnabled,
             QuakeIntensity: ClampMin0(item.QuakeIntensity),
-                LightningTrigger: _lightningTriggerNonce,
-                QuakeTrigger: _quakeTriggerNonce);
+            QuakeSoundEnabled: item.QuakeSoundEnabled,
+            LightningTrigger: _lightningTriggerNonce,
+            QuakeTrigger: _quakeTriggerNonce);
     }
 
     private void ApplyEffectsToAssignedPortals()
@@ -330,6 +352,17 @@ public partial class MainWindowViewModel : ViewModelBase
                 portal.OverlayEffects = effects;
             }
         }
+
+        UpdateEffectsAudioMix();
+    }
+
+    private void UpdateEffectsAudioMix()
+    {
+        _effectsAudio.UpdateFromPortalEffects(
+            Portals.Select(p => new EffectsAudioService.PortalEffectsSnapshot(
+                PortalNumber: p.PortalNumber,
+                IsVisible: p.IsVisible,
+                Effects: p.OverlayEffects)));
     }
 
     [RelayCommand]
@@ -353,6 +386,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _lightningTriggerNonce++;
         ApplyEffectsToAssignedPortals();
+
+        // If there is no active visible portal for this media, still play a one-shot so
+        // the user gets feedback while testing. Otherwise thunder will come from portal flash events.
+        if (selected.LightningSoundEnabled &&
+            !Portals.Any(p => p.IsVisible &&
+                             string.Equals(p.AssignedMediaFilePath, selected.FilePath, StringComparison.OrdinalIgnoreCase)))
+        {
+            _effectsAudio.PlayLightningThunder(selected.LightningIntensity);
+        }
     }
 
     [RelayCommand]
@@ -376,6 +418,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _quakeTriggerNonce++;
         ApplyEffectsToAssignedPortals();
+
+        if (selected.QuakeSoundEnabled)
+        {
+            _effectsAudio.PlayQuakeHit(selected.QuakeIntensity);
+        }
     }
 
     [RelayCommand]
@@ -423,12 +470,23 @@ public partial class MainWindowViewModel : ViewModelBase
         };
 
         portalRow.DeleteRequested += OnDeletePortalRequested;
+        portalRow.PropertyChanged += OnPortalRowPropertyChanged;
 
         Portals.Add(portalRow);
 
         _portalHost.SetDisplayOptions(portalNumber, portalRow.ScaleMode, portalRow.Align);
 
         UpdatePortalMediaSelectionFlags();
+
+        UpdateEffectsAudioMix();
+    }
+
+    private void OnPortalRowPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(PortalRowViewModel.IsVisible) or nameof(PortalRowViewModel.OverlayEffects))
+        {
+            UpdateEffectsAudioMix();
+        }
     }
 
     private int GetNextAvailablePortalNumber()
@@ -527,6 +585,8 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.IsVideoLoop = false;
         }
         portal.IsVisible = true;
+
+        UpdateEffectsAudioMix();
     }
 
     private void OnInitiativeStateChanged()
@@ -658,6 +718,8 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         _portalHost.SetVisibility(portal.PortalNumber, plan.IsVisible);
+
+        UpdateEffectsAudioMix();
     }
 
     private void UpdatePortalMediaSelectionFlags()
@@ -699,6 +761,8 @@ public partial class MainWindowViewModel : ViewModelBase
         _portalHost.SetOverlayEffects(portal.PortalNumber, OverlayEffectsState.None);
         portal.OverlayEffects = OverlayEffectsState.None;
         UpdatePortalMediaSelectionFlags();
+
+        UpdateEffectsAudioMix();
     }
 
     private OverlayEffectsState LookupEffectsForFile(string filePath)
@@ -711,6 +775,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void Shutdown()
     {
+        _effectsAudio.Dispose();
         _portalHost.CloseAll();
     }
 
@@ -736,6 +801,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _portalHistory.Remove(portalNumber);
 
         row.DeleteRequested -= OnDeletePortalRequested;
+        row.PropertyChanged -= OnPortalRowPropertyChanged;
         try
         {
             row.Dispose();
@@ -747,5 +813,7 @@ public partial class MainWindowViewModel : ViewModelBase
         Portals.Remove(row);
 
         UpdatePortalMediaSelectionFlags();
+
+        UpdateEffectsAudioMix();
     }
 }

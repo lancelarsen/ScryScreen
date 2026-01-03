@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
+using ScryScreen.App.Services;
 
 namespace ScryScreen.App.Controls;
 
@@ -17,9 +18,18 @@ public sealed class QuakeShakeDecorator : Decorator
 	public static readonly StyledProperty<long> QuakeTriggerProperty =
 		AvaloniaProperty.Register<QuakeShakeDecorator, long>(nameof(QuakeTrigger), defaultValue: 0);
 
+	public static readonly StyledProperty<bool> EmitAudioEventsProperty =
+		AvaloniaProperty.Register<QuakeShakeDecorator, bool>(nameof(EmitAudioEvents), defaultValue: false);
+
+	public static readonly StyledProperty<int> AudioPortalNumberProperty =
+		AvaloniaProperty.Register<QuakeShakeDecorator, int>(nameof(AudioPortalNumber), defaultValue: 0);
+
 	public bool QuakeEnabled { get => GetValue(QuakeEnabledProperty); set => SetValue(QuakeEnabledProperty, value); }
 	public double QuakeIntensity { get => GetValue(QuakeIntensityProperty); set => SetValue(QuakeIntensityProperty, value); }
 	public long QuakeTrigger { get => GetValue(QuakeTriggerProperty); set => SetValue(QuakeTriggerProperty, value); }
+
+	public bool EmitAudioEvents { get => GetValue(EmitAudioEventsProperty); set => SetValue(EmitAudioEventsProperty, value); }
+	public int AudioPortalNumber { get => GetValue(AudioPortalNumberProperty); set => SetValue(AudioPortalNumberProperty, value); }
 
 	private readonly DispatcherTimer _timer;
 	private readonly Random _rng = new();
@@ -39,6 +49,7 @@ public sealed class QuakeShakeDecorator : Decorator
 	private bool _prevEnabled;
 	private double _prevIntensity;
 	private long _prevTrigger;
+	private bool _wasQuaking;
 
 	public QuakeShakeDecorator()
 	{
@@ -88,6 +99,15 @@ public sealed class QuakeShakeDecorator : Decorator
 		var density = ClampMin0(QuakeIntensity);
 		if (!QuakeEnabled || density <= 0)
 		{
+			if (_wasQuaking)
+			{
+				_wasQuaking = false;
+				if (EmitAudioEvents)
+				{
+					EffectsEventBus.RaiseQuakeEnded(AudioPortalNumber);
+				}
+			}
+
 			_prevEnabled = false;
 			_prevIntensity = 0;
 			_prevTrigger = 0;
@@ -122,6 +142,15 @@ public sealed class QuakeShakeDecorator : Decorator
 
 			// Max amplitude ~40px at intensity 5.
 			_quakeAmplitude = 3 + (15 * Math.Pow(capped, 0.60));
+
+			if (!_wasQuaking)
+			{
+				_wasQuaking = true;
+				if (EmitAudioEvents)
+				{
+					EffectsEventBus.RaiseQuakeStarted(AudioPortalNumber, capped);
+				}
+			}
 		}
 
 		// Manual trigger from UI (a nonce that increments).
@@ -176,6 +205,15 @@ public sealed class QuakeShakeDecorator : Decorator
 		}
 		else
 		{
+			if (_wasQuaking)
+			{
+				_wasQuaking = false;
+				if (EmitAudioEvents)
+				{
+					EffectsEventBus.RaiseQuakeEnded(AudioPortalNumber);
+				}
+			}
+
 			ResetTransform();
 		}
 

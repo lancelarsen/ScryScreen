@@ -94,6 +94,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool rainEnabled;
 
     [ObservableProperty]
+    private bool rainSoundEnabled;
+
+    [ObservableProperty]
     private double rainMin = 0.1;
 
     [ObservableProperty]
@@ -104,6 +107,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool snowEnabled;
+
+    [ObservableProperty]
+    private bool snowSoundEnabled;
 
     [ObservableProperty]
     private double snowMin = 0.1;
@@ -118,6 +124,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool ashEnabled;
 
     [ObservableProperty]
+    private bool ashSoundEnabled;
+
+    [ObservableProperty]
     private double ashMin = 0.1;
 
     [ObservableProperty]
@@ -128,6 +137,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool fireEnabled;
+
+    [ObservableProperty]
+    private bool fireSoundEnabled;
 
     [ObservableProperty]
     private double fireMin = 0.1;
@@ -142,6 +154,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool sandEnabled;
 
     [ObservableProperty]
+    private bool sandSoundEnabled;
+
+    [ObservableProperty]
     private double sandMin = 0.1;
 
     [ObservableProperty]
@@ -152,6 +167,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool fogEnabled;
+
+    [ObservableProperty]
+    private bool fogSoundEnabled;
 
     [ObservableProperty]
     private double fogMin = 0.5;
@@ -166,6 +184,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool smokeEnabled;
 
     [ObservableProperty]
+    private bool smokeSoundEnabled;
+
+    [ObservableProperty]
     private double smokeMin = 0.5;
 
     [ObservableProperty]
@@ -178,6 +199,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool lightningEnabled;
 
     [ObservableProperty]
+    private bool lightningSoundEnabled;
+
+    [ObservableProperty]
     private double lightningMin = 0.1;
 
     [ObservableProperty]
@@ -188,6 +212,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool quakeEnabled;
+
+    [ObservableProperty]
+    private bool quakeSoundEnabled;
 
     [ObservableProperty]
     private double quakeMin = 0.1;
