@@ -222,6 +222,15 @@
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
+  <!-- Effect toggles: use accent (yellow) icon when enabled -->
+  <Style Selector="ToggleButton.circleSmall.effectToggle">
+    <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
+  </Style>
+
+  <Style Selector="ToggleButton.circleSmall.effectToggle:checked">
+    <Setter Property="Foreground" Value="{DynamicResource ScryAccent}" />
+  </Style>
+
   <!-- For icon toggles where "checked" is not a selection (e.g., visibility), keep the neutral border -->
   <Style Selector="ToggleButton.circleSmall.noAccent:checked /template/ Border">
     <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
