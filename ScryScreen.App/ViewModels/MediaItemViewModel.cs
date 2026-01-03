@@ -121,7 +121,7 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private double sandMin = 0.1;
 
     [ObservableProperty]
-    private double sandMax = 3;
+    private double sandMax = 5;
 
     [ObservableProperty]
     private double sandIntensity = 0.5;

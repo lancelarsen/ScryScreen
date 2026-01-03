@@ -1007,8 +1007,19 @@ public sealed class OverlayEffectsLayer : Control
                 EnsureSandBandTiles();
                 RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.HighQuality);
 
-                var scaleBoost = density <= 1 ? 1 : Math.Min(density, 4);
-                var bandOpacity = (0.10 + (0.45 * intensity)) * scaleBoost;
+                // Thicken the "puffy sheets" as you push towards the max.
+                // Intensity clamps at 1.0, so we use the raw density (slider value) for overdrive above 1.
+                var cappedDensity = Math.Min(density, 5.0);
+                var overdriveDelta = Math.Max(0.0, cappedDensity - 1.0); // 0..4
+
+                // Stronger ramp toward max so higher values look noticeably thicker.
+                // Keep it smooth and bounded with an opacity clamp.
+                var overdrive = 1.0
+                               + (0.30 * overdriveDelta)
+                               + (0.10 * overdriveDelta * overdriveDelta)
+                               + (0.02 * overdriveDelta * overdriveDelta * overdriveDelta);
+
+                var bandOpacity = Math.Clamp((0.10 + (0.45 * intensity)) * overdrive, 0.0, 0.98);
 
                 using (context.PushOpacityMask(SandBandMask, new Rect(0, 0, w, h)))
                 using (context.PushOpacity(bandOpacity))
@@ -1029,7 +1040,7 @@ public sealed class OverlayEffectsLayer : Control
                         var speed = (50 + (layer * 28)) * (0.45 + (1.10 * intensity));
                         if (density > 1)
                         {
-                            speed *= 1.0 + (Math.Min(density, 4) - 1.0) * 0.65;
+                            speed *= 1.0 + (Math.Min(density, 5) - 1.0) * 0.65;
                         }
 
                         var ox = -((_timeSeconds * speed) % dstW);
