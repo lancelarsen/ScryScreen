@@ -819,7 +819,18 @@
                                 Spacing="6"
                                 VerticalAlignment="Top"
                                 IsVisible="{Binding Media.SelectedItem.IsImage}">
-                            <TextBlock Text="Effects" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" Margin="0,0,0,6" />
+                            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8" Margin="0,0,0,6">
+                                <TextBlock Grid.Column="0" Text="Effects" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+                                <ToggleButton Grid.Column="1"
+                                              Classes="circleSmall noAccent"
+                                              Width="28"
+                                              Height="28"
+                                              CornerRadius="14"
+                                              IsChecked="{Binding ShowEffectSliderBounds, Mode=TwoWay}"
+                                              ToolTip.Tip="Show slider min/max fields">
+                                    <i:Icon Value="mdi-numeric" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                </ToggleButton>
+                            </Grid>
 
                             <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6" RowDefinitions="Auto" HorizontalAlignment="Left">
                             <!-- Column 1: Rain / Lightning / Fog -->
@@ -831,11 +842,18 @@
                                     <i:Icon Value="mdi-weather-rainy" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.RainMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="160"
-                                    Minimum="0" Maximum="1"
+                                    Minimum="{Binding Media.SelectedItem.RainMin}"
+                                    Maximum="{Binding Media.SelectedItem.RainMax}"
                                     Value="{Binding Media.SelectedItem.RainIntensity, Mode=TwoWay}"
                                     VerticalAlignment="Center" />
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.RainMax, Mode=TwoWay}" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -845,11 +863,18 @@
                                     <i:Icon Value="mdi-weather-lightning" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.LightningMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="160"
-                                    Minimum="0" Maximum="1"
+                                    Minimum="{Binding Media.SelectedItem.LightningMin}"
+                                    Maximum="{Binding Media.SelectedItem.LightningMax}"
                                     Value="{Binding Media.SelectedItem.LightningIntensity, Mode=TwoWay}"
                                     VerticalAlignment="Center" />
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.LightningMax, Mode=TwoWay}" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -859,11 +884,18 @@
                                     <i:Icon Value="mdi-weather-fog" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.FogMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="160"
-                                    Minimum="0" Maximum="1"
+                                    Minimum="{Binding Media.SelectedItem.FogMin}"
+                                    Maximum="{Binding Media.SelectedItem.FogMax}"
                                     Value="{Binding Media.SelectedItem.FogIntensity, Mode=TwoWay}"
                                     VerticalAlignment="Center" />
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.FogMax, Mode=TwoWay}" />
                                 </StackPanel>
                             </StackPanel>
 
@@ -876,11 +908,18 @@
                                     <i:Icon Value="mdi-weather-snowy" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.SnowMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="160"
-                                    Minimum="0" Maximum="1"
+                                    Minimum="{Binding Media.SelectedItem.SnowMin}"
+                                    Maximum="{Binding Media.SelectedItem.SnowMax}"
                                     Value="{Binding Media.SelectedItem.SnowIntensity, Mode=TwoWay}"
                                     VerticalAlignment="Center" />
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.SnowMax, Mode=TwoWay}" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -890,11 +929,18 @@
                                     <i:Icon Value="mdi-weather-dust" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.SandMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="160"
-                                    Minimum="0" Maximum="1"
+                                    Minimum="{Binding Media.SelectedItem.SandMin}"
+                                    Maximum="{Binding Media.SelectedItem.SandMax}"
                                     Value="{Binding Media.SelectedItem.SandIntensity, Mode=TwoWay}"
                                     VerticalAlignment="Center" />
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.SandMax, Mode=TwoWay}" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -904,11 +950,18 @@
                                     <i:Icon Value="mdi-smoke" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.SmokeMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="160"
-                                    Minimum="0" Maximum="1"
+                                    Minimum="{Binding Media.SelectedItem.SmokeMin}"
+                                    Maximum="{Binding Media.SelectedItem.SmokeMax}"
                                     Value="{Binding Media.SelectedItem.SmokeIntensity, Mode=TwoWay}"
                                     VerticalAlignment="Center" />
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.SmokeMax, Mode=TwoWay}" />
                                 </StackPanel>
                             </StackPanel>
                             </Grid>

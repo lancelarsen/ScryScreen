@@ -219,6 +219,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool isAlwaysOnTop = false;
 
+    [ObservableProperty]
+    private bool showEffectSliderBounds = false;
+
     private void OnMediaPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MediaLibraryViewModel.SelectedItem))
@@ -256,12 +259,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnSelectedMediaForEffectsChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(MediaItemViewModel.RainEnabled) or nameof(MediaItemViewModel.RainIntensity) or
-            nameof(MediaItemViewModel.SnowEnabled) or nameof(MediaItemViewModel.SnowIntensity) or
-            nameof(MediaItemViewModel.SandEnabled) or nameof(MediaItemViewModel.SandIntensity) or
-            nameof(MediaItemViewModel.FogEnabled) or nameof(MediaItemViewModel.FogIntensity) or
-            nameof(MediaItemViewModel.SmokeEnabled) or nameof(MediaItemViewModel.SmokeIntensity) or
-            nameof(MediaItemViewModel.LightningEnabled) or nameof(MediaItemViewModel.LightningIntensity))
+        if (e.PropertyName is nameof(MediaItemViewModel.RainEnabled) or nameof(MediaItemViewModel.RainIntensity) or nameof(MediaItemViewModel.RainMin) or nameof(MediaItemViewModel.RainMax) or
+            nameof(MediaItemViewModel.SnowEnabled) or nameof(MediaItemViewModel.SnowIntensity) or nameof(MediaItemViewModel.SnowMin) or nameof(MediaItemViewModel.SnowMax) or
+            nameof(MediaItemViewModel.SandEnabled) or nameof(MediaItemViewModel.SandIntensity) or nameof(MediaItemViewModel.SandMin) or nameof(MediaItemViewModel.SandMax) or
+            nameof(MediaItemViewModel.FogEnabled) or nameof(MediaItemViewModel.FogIntensity) or nameof(MediaItemViewModel.FogMin) or nameof(MediaItemViewModel.FogMax) or
+            nameof(MediaItemViewModel.SmokeEnabled) or nameof(MediaItemViewModel.SmokeIntensity) or nameof(MediaItemViewModel.SmokeMin) or nameof(MediaItemViewModel.SmokeMax) or
+            nameof(MediaItemViewModel.LightningEnabled) or nameof(MediaItemViewModel.LightningIntensity) or nameof(MediaItemViewModel.LightningMin) or nameof(MediaItemViewModel.LightningMax))
         {
             ApplyEffectsToAssignedPortals();
         }
@@ -269,21 +272,29 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private static OverlayEffectsState BuildEffectsState(MediaItemViewModel item)
     {
-        static double Clamp01(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
+        static double ClampMin0(double v)
+        {
+            if (double.IsNaN(v) || double.IsInfinity(v))
+            {
+                return 0;
+            }
+
+            return v < 0 ? 0 : v;
+        }
 
         return new OverlayEffectsState(
             RainEnabled: item.RainEnabled,
-            RainIntensity: Clamp01(item.RainIntensity),
+            RainIntensity: ClampMin0(item.RainIntensity),
             SnowEnabled: item.SnowEnabled,
-            SnowIntensity: Clamp01(item.SnowIntensity),
+            SnowIntensity: ClampMin0(item.SnowIntensity),
             SandEnabled: item.SandEnabled,
-            SandIntensity: Clamp01(item.SandIntensity),
+            SandIntensity: ClampMin0(item.SandIntensity),
             FogEnabled: item.FogEnabled,
-            FogIntensity: Clamp01(item.FogIntensity),
+            FogIntensity: ClampMin0(item.FogIntensity),
             SmokeEnabled: item.SmokeEnabled,
-            SmokeIntensity: Clamp01(item.SmokeIntensity),
+            SmokeIntensity: ClampMin0(item.SmokeIntensity),
             LightningEnabled: item.LightningEnabled,
-            LightningIntensity: Clamp01(item.LightningIntensity));
+            LightningIntensity: ClampMin0(item.LightningIntensity));
     }
 
     private void ApplyEffectsToAssignedPortals()

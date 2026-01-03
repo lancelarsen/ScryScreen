@@ -93,6 +93,16 @@ public sealed class OverlayEffectsLayer : Control
 
     private static double Clamp01(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
 
+    private static double ClampMin0(double v)
+    {
+        if (double.IsNaN(v) || double.IsInfinity(v))
+        {
+            return 0;
+        }
+
+        return v < 0 ? 0 : v;
+    }
+
     private static double DensityCurveCubic(double intensity)
     {
         // Higher density at the high end without over-inflating mid/low.
@@ -179,15 +189,18 @@ public sealed class OverlayEffectsLayer : Control
 
     private void UpdateRain(double dt, double w, double h)
     {
-        var intensity = Clamp01(RainIntensity);
-        if (!RainEnabled || intensity <= 0)
+        var density = ClampMin0(RainIntensity);
+        var level = Clamp01(density);
+        if (!RainEnabled || density <= 0)
         {
             _rain.Clear();
             return;
         }
 
         // 10x baseline * 3x requested boost.
-        var target = (int)(3600 * DensityCurveCubic(intensity));
+        // For 0..1, keep the same curve behavior; above 1, scale density linearly.
+        var scale = density <= 1 ? 1 : Math.Min(density, 50);
+        var target = (int)(3600 * DensityCurveCubic(level) * scale);
         while (_rain.Count < target)
         {
             _rain.Add(new RainDrop(
@@ -219,15 +232,18 @@ public sealed class OverlayEffectsLayer : Control
 
     private void UpdateSnow(double dt, double w, double h)
     {
-        var intensity = Clamp01(SnowIntensity);
-        if (!SnowEnabled || intensity <= 0)
+        var density = ClampMin0(SnowIntensity);
+        var level = Clamp01(density);
+        if (!SnowEnabled || density <= 0)
         {
             _snow.Clear();
             return;
         }
 
         // 10x baseline * 3x requested boost.
-        var target = (int)(2700 * DensityCurveCubic(intensity));
+        // For 0..1, keep the same curve behavior; above 1, scale density linearly.
+        var scale = density <= 1 ? 1 : Math.Min(density, 50);
+        var target = (int)(2700 * DensityCurveCubic(level) * scale);
         while (_snow.Count < target)
         {
             _snow.Add(new SnowFlake(
@@ -268,8 +284,9 @@ public sealed class OverlayEffectsLayer : Control
 
     private void UpdateSand(double dt, double w, double h)
     {
-        var intensity = Clamp01(SandIntensity);
-        if (!SandEnabled || intensity <= 0)
+        var density = ClampMin0(SandIntensity);
+        var level = Clamp01(density);
+        if (!SandEnabled || density <= 0)
         {
             _sand.Clear();
             return;
@@ -278,7 +295,8 @@ public sealed class OverlayEffectsLayer : Control
         // A sand storm is a lot of small, fast streaks.
         // Keep it dense but still performant.
         // 10x baseline * 3x requested boost.
-        var target = (int)(4200 * (0.20 + (2.20 * intensity * intensity)));
+        var scale = density <= 1 ? 1 : Math.Min(density, 50);
+        var target = (int)(4200 * (0.20 + (2.20 * level * level)) * scale);
         while (_sand.Count < target)
         {
             var speed = 420 + (_rng.NextDouble() * 780);
@@ -302,7 +320,7 @@ public sealed class OverlayEffectsLayer : Control
             g.Y += g.Vy * dt;
 
             // A little gusty wobble.
-            g.Y += Math.Sin((g.X / 60.0) + i) * dt * (40 * intensity);
+            g.Y += Math.Sin((g.X / 60.0) + i) * dt * (40 * level);
 
             if (g.X + g.Len < -80 || g.Y - g.Len > h + 80)
             {
@@ -322,15 +340,18 @@ public sealed class OverlayEffectsLayer : Control
 
     private void UpdateFog(double dt, double w, double h)
     {
-        var intensity = Clamp01(FogIntensity);
-        if (!FogEnabled || intensity <= 0)
+        var density = ClampMin0(FogIntensity);
+        var level = Clamp01(density);
+        if (!FogEnabled || density <= 0)
         {
             _fog.Clear();
             return;
         }
 
         // 3x volume requested.
-        var target = 18 + (int)(30 * intensity);
+        // Above 1, add more flowing layers (cap to avoid runaway allocations).
+        var scale = density <= 1 ? 1 : Math.Min(density, 8);
+        var target = (int)((18 + (30 * level)) * scale);
         while (_fog.Count < target)
         {
             _fog.Add(HazePuff.Create(_rng, w, h, upward: false, dark: false));
@@ -360,15 +381,18 @@ public sealed class OverlayEffectsLayer : Control
 
     private void UpdateSmoke(double dt, double w, double h)
     {
-        var intensity = Clamp01(SmokeIntensity);
-        if (!SmokeEnabled || intensity <= 0)
+        var density = ClampMin0(SmokeIntensity);
+        var level = Clamp01(density);
+        if (!SmokeEnabled || density <= 0)
         {
             _smoke.Clear();
             return;
         }
 
         // 3x volume requested.
-        var target = 15 + (int)(27 * intensity);
+        // Above 1, add more wisps (cap to avoid runaway allocations).
+        var scale = density <= 1 ? 1 : Math.Min(density, 8);
+        var target = (int)((15 + (27 * level)) * scale);
         while (_smoke.Count < target)
         {
             _smoke.Add(HazePuff.Create(_rng, w, h, upward: true, dark: true));
@@ -380,7 +404,7 @@ public sealed class OverlayEffectsLayer : Control
             p.X += p.Vx * dt;
             p.Y += p.Vy * dt;
             p.R += dt * (6 + _rng.NextDouble() * 8);
-            p.Alpha = Math.Max(0, p.Alpha - dt * (0.010 + (1 - intensity) * 0.020));
+            p.Alpha = Math.Max(0, p.Alpha - dt * (0.010 + (1 - level) * 0.020));
 
             if (p.Alpha <= 0 || p.Y + p.R < -200)
             {
@@ -402,8 +426,9 @@ public sealed class OverlayEffectsLayer : Control
 
     private void UpdateLightning(double dt, double w, double h)
     {
-        var intensity = Clamp01(LightningIntensity);
-        if (!LightningEnabled || intensity <= 0)
+        var density = ClampMin0(LightningIntensity);
+        var level = Clamp01(density);
+        if (!LightningEnabled || density <= 0)
         {
             _lightningFlash = Math.Max(0, _lightningFlash - dt * 6);
             _lightningPath = null;
@@ -415,7 +440,8 @@ public sealed class OverlayEffectsLayer : Control
 
         // Trigger probability based on intensity.
         // 5x baseline * 3x requested boost.
-        var flashesPerSecond = (0.06 + (0.25 * intensity)) * 15.0;
+        var scale = density <= 1 ? 1 : Math.Min(density, 25);
+        var flashesPerSecond = (0.06 + (0.25 * level)) * 15.0 * scale;
         if (_lightningFlash <= 0 && _rng.NextDouble() < flashesPerSecond * dt)
         {
             _lightningFlash = 1.0;
@@ -459,7 +485,8 @@ public sealed class OverlayEffectsLayer : Control
         // Fog/smoke base wash first.
         if (FogEnabled)
         {
-            var intensity = Clamp01(FogIntensity);
+            var density = ClampMin0(FogIntensity);
+            var intensity = Clamp01(density);
             var a = (byte)(intensity * 55);
             if (a > 0)
             {
@@ -467,7 +494,8 @@ public sealed class OverlayEffectsLayer : Control
             }
 
             // Flowing fog: layered wavy bands (no obvious circles).
-            var bands = 3 + (int)(intensity * 6);
+            var bandScale = density <= 1 ? 1 : Math.Min(density, 6);
+            var bands = (int)((3 + (intensity * 6)) * bandScale);
             for (var i = 0; i < bands; i++)
             {
                 var t = _timeSeconds * (0.06 + (i * 0.03));
@@ -499,7 +527,8 @@ public sealed class OverlayEffectsLayer : Control
 
         if (SmokeEnabled)
         {
-            var intensity = Clamp01(SmokeIntensity);
+            var density = ClampMin0(SmokeIntensity);
+            var intensity = Clamp01(density);
             var a = (byte)(intensity * 45);
             if (a > 0)
             {
@@ -507,7 +536,8 @@ public sealed class OverlayEffectsLayer : Control
             }
 
             // Flowing smoke: vertical-ish wisps that drift upward.
-            var wisps = 3 + (int)(intensity * 6);
+            var wispScale = density <= 1 ? 1 : Math.Min(density, 6);
+            var wisps = (int)((3 + (intensity * 6)) * wispScale);
             for (var i = 0; i < wisps; i++)
             {
                 var t = _timeSeconds * (0.08 + (i * 0.04));

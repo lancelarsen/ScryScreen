@@ -308,6 +308,21 @@
     <Setter Property="MinHeight" Value="34" />
   </Style>
 
+  <!-- Small numeric boxes for showing slider bounds (0 / 1) -->
+  <Style Selector="TextBox.sliderBound">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="Background" Value="#0A0F18" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
   <!-- Tabs: tighten header sizing/spacing for the Media/Apps strip -->
   <Style Selector="TabControl.tabsTight">
     <Setter Property="Padding" Value="0" />

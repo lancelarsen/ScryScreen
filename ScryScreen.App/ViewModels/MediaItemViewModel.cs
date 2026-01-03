@@ -10,6 +10,8 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private (int Width, int Height)? _pixelSize;
     private readonly long? _fileSizeBytes;
 
+    private bool _normalizingEffectRanges;
+
     public MediaItemViewModel(string filePath, Bitmap? thumbnail, bool isVideo = false)
     {
         FilePath = filePath;
@@ -92,10 +94,22 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool rainEnabled;
 
     [ObservableProperty]
+    private double rainMin = 0;
+
+    [ObservableProperty]
+    private double rainMax = 5;
+
+    [ObservableProperty]
     private double rainIntensity = 0.5;
 
     [ObservableProperty]
     private bool snowEnabled;
+
+    [ObservableProperty]
+    private double snowMin = 0;
+
+    [ObservableProperty]
+    private double snowMax = 4;
 
     [ObservableProperty]
     private double snowIntensity = 0.5;
@@ -104,10 +118,22 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool sandEnabled;
 
     [ObservableProperty]
+    private double sandMin = 0;
+
+    [ObservableProperty]
+    private double sandMax = 1;
+
+    [ObservableProperty]
     private double sandIntensity = 0.5;
 
     [ObservableProperty]
     private bool fogEnabled;
+
+    [ObservableProperty]
+    private double fogMin = 0;
+
+    [ObservableProperty]
+    private double fogMax = 1;
 
     [ObservableProperty]
     private double fogIntensity = 0.5;
@@ -116,13 +142,108 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool smokeEnabled;
 
     [ObservableProperty]
+    private double smokeMin = 0;
+
+    [ObservableProperty]
+    private double smokeMax = 1;
+
+    [ObservableProperty]
     private double smokeIntensity = 0.5;
 
     [ObservableProperty]
     private bool lightningEnabled;
 
     [ObservableProperty]
+    private double lightningMin = 0;
+
+    [ObservableProperty]
+    private double lightningMax = 1;
+
+    [ObservableProperty]
     private double lightningIntensity = 0.35;
+
+    private static double SanitizeNonNegative(double v)
+    {
+        if (double.IsNaN(v) || double.IsInfinity(v))
+        {
+            return 0;
+        }
+
+        return v < 0 ? 0 : v;
+    }
+
+    private void NormalizeRange(
+        Func<double> getMin,
+        Action<double> setMin,
+        Func<double> getMax,
+        Action<double> setMax,
+        Func<double> getValue,
+        Action<double> setValue)
+    {
+        if (_normalizingEffectRanges)
+        {
+            return;
+        }
+
+        _normalizingEffectRanges = true;
+        try
+        {
+            var min = SanitizeNonNegative(getMin());
+            var max = SanitizeNonNegative(getMax());
+
+            if (max < min)
+            {
+                max = min;
+            }
+
+            if (min != getMin())
+            {
+                setMin(min);
+            }
+
+            if (max != getMax())
+            {
+                setMax(max);
+            }
+
+            var v = getValue();
+            if (double.IsNaN(v) || double.IsInfinity(v))
+            {
+                v = min;
+            }
+
+            if (v < min)
+            {
+                setValue(min);
+            }
+            else if (v > max)
+            {
+                setValue(max);
+            }
+        }
+        finally
+        {
+            _normalizingEffectRanges = false;
+        }
+    }
+
+    partial void OnRainMinChanged(double value) => NormalizeRange(() => RainMin, v => RainMin = v, () => RainMax, v => RainMax = v, () => RainIntensity, v => RainIntensity = v);
+    partial void OnRainMaxChanged(double value) => NormalizeRange(() => RainMin, v => RainMin = v, () => RainMax, v => RainMax = v, () => RainIntensity, v => RainIntensity = v);
+
+    partial void OnSnowMinChanged(double value) => NormalizeRange(() => SnowMin, v => SnowMin = v, () => SnowMax, v => SnowMax = v, () => SnowIntensity, v => SnowIntensity = v);
+    partial void OnSnowMaxChanged(double value) => NormalizeRange(() => SnowMin, v => SnowMin = v, () => SnowMax, v => SnowMax = v, () => SnowIntensity, v => SnowIntensity = v);
+
+    partial void OnSandMinChanged(double value) => NormalizeRange(() => SandMin, v => SandMin = v, () => SandMax, v => SandMax = v, () => SandIntensity, v => SandIntensity = v);
+    partial void OnSandMaxChanged(double value) => NormalizeRange(() => SandMin, v => SandMin = v, () => SandMax, v => SandMax = v, () => SandIntensity, v => SandIntensity = v);
+
+    partial void OnFogMinChanged(double value) => NormalizeRange(() => FogMin, v => FogMin = v, () => FogMax, v => FogMax = v, () => FogIntensity, v => FogIntensity = v);
+    partial void OnFogMaxChanged(double value) => NormalizeRange(() => FogMin, v => FogMin = v, () => FogMax, v => FogMax = v, () => FogIntensity, v => FogIntensity = v);
+
+    partial void OnSmokeMinChanged(double value) => NormalizeRange(() => SmokeMin, v => SmokeMin = v, () => SmokeMax, v => SmokeMax = v, () => SmokeIntensity, v => SmokeIntensity = v);
+    partial void OnSmokeMaxChanged(double value) => NormalizeRange(() => SmokeMin, v => SmokeMin = v, () => SmokeMax, v => SmokeMax = v, () => SmokeIntensity, v => SmokeIntensity = v);
+
+    partial void OnLightningMinChanged(double value) => NormalizeRange(() => LightningMin, v => LightningMin = v, () => LightningMax, v => LightningMax = v, () => LightningIntensity, v => LightningIntensity = v);
+    partial void OnLightningMaxChanged(double value) => NormalizeRange(() => LightningMin, v => LightningMin = v, () => LightningMax, v => LightningMax = v, () => LightningIntensity, v => LightningIntensity = v);
 
     partial void OnThumbnailChanged(Bitmap? value)
     {
