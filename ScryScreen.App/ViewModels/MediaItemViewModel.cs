@@ -101,6 +101,12 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private double snowIntensity = 0.5;
 
     [ObservableProperty]
+    private bool sandEnabled;
+
+    [ObservableProperty]
+    private double sandIntensity = 0.5;
+
+    [ObservableProperty]
     private bool fogEnabled;
 
     [ObservableProperty]

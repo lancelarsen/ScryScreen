@@ -816,90 +816,102 @@
 
                         <!-- Effects (right fill) -->
                         <StackPanel Grid.Column="3"
-                                    Spacing="6"
-                                    VerticalAlignment="Top"
-                                    IsVisible="{Binding Media.SelectedItem.IsImage}">
+                                Spacing="6"
+                                VerticalAlignment="Top"
+                                IsVisible="{Binding Media.SelectedItem.IsImage}">
                             <TextBlock Text="Effects" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" Margin="0,0,0,6" />
 
-                            <!-- Rain -->
-                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6" RowDefinitions="Auto" HorizontalAlignment="Left">
+                            <!-- Column 1: Rain / Lightning / Fog -->
+                            <StackPanel Grid.Column="0" Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                              IsChecked="{Binding Media.SelectedItem.RainEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Rain">
+                                          IsChecked="{Binding Media.SelectedItem.RainEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="Rain">
                                     <i:Icon Value="mdi-weather-rainy" FontSize="18"
-                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <Slider Classes="portalTimeline"
-                                        Width="160"
-                                        Minimum="0" Maximum="1"
-                                        Value="{Binding Media.SelectedItem.RainIntensity, Mode=TwoWay}"
-                                        IsEnabled="{Binding Media.SelectedItem.RainEnabled}"
-                                        VerticalAlignment="Center" />
-                            </StackPanel>
+                                    Width="160"
+                                    Minimum="0" Maximum="1"
+                                    Value="{Binding Media.SelectedItem.RainIntensity, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                                </StackPanel>
 
-                            <!-- Fog -->
-                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                              IsChecked="{Binding Media.SelectedItem.FogEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Fog">
-                                    <i:Icon Value="mdi-weather-fog" FontSize="18"
-                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
-                                </ToggleButton>
-                                <Slider Classes="portalTimeline"
-                                        Width="160"
-                                        Minimum="0" Maximum="1"
-                                        Value="{Binding Media.SelectedItem.FogIntensity, Mode=TwoWay}"
-                                        IsEnabled="{Binding Media.SelectedItem.FogEnabled}"
-                                        VerticalAlignment="Center" />
-                            </StackPanel>
-
-                            <!-- Smoke -->
-                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                <ToggleButton Classes="circleSmall effectToggle"
-                                              IsChecked="{Binding Media.SelectedItem.SmokeEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Smoke">
-                                    <i:Icon Value="mdi-smoke" FontSize="18"
-                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
-                                </ToggleButton>
-                                <Slider Classes="portalTimeline"
-                                        Width="160"
-                                        Minimum="0" Maximum="1"
-                                        Value="{Binding Media.SelectedItem.SmokeIntensity, Mode=TwoWay}"
-                                        IsEnabled="{Binding Media.SelectedItem.SmokeEnabled}"
-                                        VerticalAlignment="Center" />
-                            </StackPanel>
-
-                            <!-- Snow -->
-                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                <ToggleButton Classes="circleSmall effectToggle"
-                                              IsChecked="{Binding Media.SelectedItem.SnowEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Snow">
-                                    <i:Icon Value="mdi-weather-snowy" FontSize="18"
-                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
-                                </ToggleButton>
-                                <Slider Classes="portalTimeline"
-                                        Width="160"
-                                        Minimum="0" Maximum="1"
-                                        Value="{Binding Media.SelectedItem.SnowIntensity, Mode=TwoWay}"
-                                        IsEnabled="{Binding Media.SelectedItem.SnowEnabled}"
-                                        VerticalAlignment="Center" />
-                            </StackPanel>
-
-                            <!-- Lightning -->
-                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                <ToggleButton Classes="circleSmall effectToggle"
-                                              IsChecked="{Binding Media.SelectedItem.LightningEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Lightning">
+                                          IsChecked="{Binding Media.SelectedItem.LightningEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="Lightning">
                                     <i:Icon Value="mdi-weather-lightning" FontSize="18"
-                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <Slider Classes="portalTimeline"
-                                        Width="160"
-                                        Minimum="0" Maximum="1"
-                                        Value="{Binding Media.SelectedItem.LightningIntensity, Mode=TwoWay}"
-                                        IsEnabled="{Binding Media.SelectedItem.LightningEnabled}"
-                                        VerticalAlignment="Center" />
+                                    Width="160"
+                                    Minimum="0" Maximum="1"
+                                    Value="{Binding Media.SelectedItem.LightningIntensity, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleButton Classes="circleSmall effectToggle"
+                                          IsChecked="{Binding Media.SelectedItem.FogEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="Fog">
+                                    <i:Icon Value="mdi-weather-fog" FontSize="18"
+                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
+                                <Slider Classes="portalTimeline"
+                                    Width="160"
+                                    Minimum="0" Maximum="1"
+                                    Value="{Binding Media.SelectedItem.FogIntensity, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                                </StackPanel>
                             </StackPanel>
+
+                            <!-- Column 2: Snow / Sand Storm / Smoke -->
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleButton Classes="circleSmall effectToggle"
+                                          IsChecked="{Binding Media.SelectedItem.SnowEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="Snow">
+                                    <i:Icon Value="mdi-weather-snowy" FontSize="18"
+                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
+                                <Slider Classes="portalTimeline"
+                                    Width="160"
+                                    Minimum="0" Maximum="1"
+                                    Value="{Binding Media.SelectedItem.SnowIntensity, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleButton Classes="circleSmall effectToggle"
+                                          IsChecked="{Binding Media.SelectedItem.SandEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="Sand Storm">
+                                    <i:Icon Value="mdi-weather-dust" FontSize="18"
+                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
+                                <Slider Classes="portalTimeline"
+                                    Width="160"
+                                    Minimum="0" Maximum="1"
+                                    Value="{Binding Media.SelectedItem.SandIntensity, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleButton Classes="circleSmall effectToggle"
+                                          IsChecked="{Binding Media.SelectedItem.SmokeEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="Smoke">
+                                    <i:Icon Value="mdi-smoke" FontSize="18"
+                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
+                                <Slider Classes="portalTimeline"
+                                    Width="160"
+                                    Minimum="0" Maximum="1"
+                                    Value="{Binding Media.SelectedItem.SmokeIntensity, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                            </Grid>
                         </StackPanel>
                     </Grid>
                 </Border>

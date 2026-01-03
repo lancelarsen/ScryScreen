@@ -258,6 +258,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (e.PropertyName is nameof(MediaItemViewModel.RainEnabled) or nameof(MediaItemViewModel.RainIntensity) or
             nameof(MediaItemViewModel.SnowEnabled) or nameof(MediaItemViewModel.SnowIntensity) or
+            nameof(MediaItemViewModel.SandEnabled) or nameof(MediaItemViewModel.SandIntensity) or
             nameof(MediaItemViewModel.FogEnabled) or nameof(MediaItemViewModel.FogIntensity) or
             nameof(MediaItemViewModel.SmokeEnabled) or nameof(MediaItemViewModel.SmokeIntensity) or
             nameof(MediaItemViewModel.LightningEnabled) or nameof(MediaItemViewModel.LightningIntensity))
@@ -275,6 +276,8 @@ public partial class MainWindowViewModel : ViewModelBase
             RainIntensity: Clamp01(item.RainIntensity),
             SnowEnabled: item.SnowEnabled,
             SnowIntensity: Clamp01(item.SnowIntensity),
+            SandEnabled: item.SandEnabled,
+            SandIntensity: Clamp01(item.SandIntensity),
             FogEnabled: item.FogEnabled,
             FogIntensity: Clamp01(item.FogIntensity),
             SmokeEnabled: item.SmokeEnabled,
