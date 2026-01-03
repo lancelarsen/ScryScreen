@@ -313,6 +313,7 @@ public partial class MainWindowViewModel : ViewModelBase
             if (string.Equals(portal.AssignedMediaFilePath, selectedPath, StringComparison.OrdinalIgnoreCase))
             {
                 _portalHost.SetOverlayEffects(portal.PortalNumber, effects);
+                portal.OverlayEffects = effects;
             }
         }
     }
@@ -448,6 +449,7 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.IsVideoLoop = IsVideoLoop;
             _portalHost.SetContentVideo(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align, loop: IsVideoLoop);
             _portalHost.SetOverlayEffects(portal.PortalNumber, effects);
+            portal.OverlayEffects = effects;
             portal.IsVideoPlaying = false;
 
             // Start preview/paused state at ~1s to avoid blank first-frame.
@@ -460,6 +462,7 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.SetAssignedPreviewFromFile(filePath);
             _portalHost.SetContentImage(portal.PortalNumber, filePath, displayName, portal.ScaleMode, portal.Align);
             _portalHost.SetOverlayEffects(portal.PortalNumber, effects);
+            portal.OverlayEffects = effects;
             portal.IsVideoPlaying = false;
             portal.IsVideoLoop = false;
         }
@@ -568,7 +571,9 @@ public partial class MainWindowViewModel : ViewModelBase
             case PortalContentRestorationPlanner.ContentKind.Video:
                 portal.AssignedPreview = null;
                 _portalHost.SetContentVideo(portal.PortalNumber, plan.AssignedMediaFilePath!, plan.CurrentAssignment, portal.ScaleMode, portal.Align, loop: plan.IsVideoLoop);
-                _portalHost.SetOverlayEffects(portal.PortalNumber, LookupEffectsForFile(plan.AssignedMediaFilePath!));
+                var vidEffects = LookupEffectsForFile(plan.AssignedMediaFilePath!);
+                _portalHost.SetOverlayEffects(portal.PortalNumber, vidEffects);
+                portal.OverlayEffects = vidEffects;
                 portal.IsVideoPlaying = false;
                 _portalHost.SeekVideo(portal.PortalNumber, 1000);
                 _ = UpdatePortalVideoSnapshotAsync(portal, plan.AssignedMediaFilePath!);
@@ -576,7 +581,9 @@ public partial class MainWindowViewModel : ViewModelBase
             case PortalContentRestorationPlanner.ContentKind.Image:
                 portal.SetAssignedPreviewFromFile(plan.AssignedMediaFilePath!);
                 _portalHost.SetContentImage(portal.PortalNumber, plan.AssignedMediaFilePath!, plan.CurrentAssignment, portal.ScaleMode, portal.Align);
-                _portalHost.SetOverlayEffects(portal.PortalNumber, LookupEffectsForFile(plan.AssignedMediaFilePath!));
+                var imgEffects = LookupEffectsForFile(plan.AssignedMediaFilePath!);
+                _portalHost.SetOverlayEffects(portal.PortalNumber, imgEffects);
+                portal.OverlayEffects = imgEffects;
                 portal.IsVideoPlaying = false;
                 portal.IsVideoLoop = false;
                 break;
@@ -586,6 +593,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 portal.IsVideoLoop = false;
                 _portalHost.SetContentText(portal.PortalNumber, plan.CurrentAssignment);
                 _portalHost.SetOverlayEffects(portal.PortalNumber, OverlayEffectsState.None);
+                portal.OverlayEffects = OverlayEffectsState.None;
                 break;
         }
 
@@ -629,6 +637,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _portalHost.ClearContent(portal.PortalNumber);
         _portalHost.SetOverlayEffects(portal.PortalNumber, OverlayEffectsState.None);
+        portal.OverlayEffects = OverlayEffectsState.None;
         UpdatePortalMediaSelectionFlags();
     }
 

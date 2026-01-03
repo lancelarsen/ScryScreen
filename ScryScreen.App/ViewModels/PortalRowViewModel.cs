@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LibVLCSharp.Shared;
+using ScryScreen.App.Models;
 using ScryScreen.App.Services;
 using ScryScreen.Core.Utilities;
 
@@ -120,6 +121,9 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private double monitorPreviewScreenHeight;
+
+    [ObservableProperty]
+    private OverlayEffectsState overlayEffects = OverlayEffectsState.None;
 
     public bool HasMonitorPreview => SelectedScreen is not null;
 

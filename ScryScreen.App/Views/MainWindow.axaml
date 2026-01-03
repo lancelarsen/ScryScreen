@@ -225,6 +225,22 @@
 
                                                         <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
                                                                                MediaPlayer="{Binding PreviewVideoPlayer}" />
+
+                                                        <!-- Overlay effects preview (matches portal overlay) -->
+                                                        <controls:OverlayEffectsLayer
+                                                            RainEnabled="{Binding OverlayEffects.RainEnabled}"
+                                                            RainIntensity="{Binding OverlayEffects.RainIntensity}"
+                                                            SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
+                                                            SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
+                                                            SandEnabled="{Binding OverlayEffects.SandEnabled}"
+                                                            SandIntensity="{Binding OverlayEffects.SandIntensity}"
+                                                            FogEnabled="{Binding OverlayEffects.FogEnabled}"
+                                                            FogIntensity="{Binding OverlayEffects.FogIntensity}"
+                                                            SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
+                                                            SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
+                                                            LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
+                                                            LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
+                                                            IsHitTestVisible="False" />
                                                     </Grid>
                                                 </Border>
 
@@ -322,6 +338,26 @@
                                                                                            Canvas.Left="{Binding PreviewImageLeft}"
                                                                                            Canvas.Top="{Binding PreviewImageTop}"
                                                                                            MediaPlayer="{Binding PreviewVideoPlayer}" />
+
+                                                                    <!-- Overlay effects preview (matches portal overlay) -->
+                                                                    <controls:OverlayEffectsLayer
+                                                                        Width="{Binding MonitorPreviewScreenWidth}"
+                                                                        Height="{Binding MonitorPreviewScreenHeight}"
+                                                                        Canvas.Left="0"
+                                                                        Canvas.Top="0"
+                                                                        RainEnabled="{Binding OverlayEffects.RainEnabled}"
+                                                                        RainIntensity="{Binding OverlayEffects.RainIntensity}"
+                                                                        SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
+                                                                        SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
+                                                                        SandEnabled="{Binding OverlayEffects.SandEnabled}"
+                                                                        SandIntensity="{Binding OverlayEffects.SandIntensity}"
+                                                                        FogEnabled="{Binding OverlayEffects.FogEnabled}"
+                                                                        FogIntensity="{Binding OverlayEffects.FogIntensity}"
+                                                                        SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
+                                                                        SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
+                                                                        LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
+                                                                        LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
+                                                                        IsHitTestVisible="False" />
                                                                 </Canvas>
                                                             </Border>
                                                         </Grid>

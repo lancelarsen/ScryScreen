@@ -172,7 +172,17 @@ public sealed class OverlayEffectsLayer : Control
     private double _timeSeconds;
 
     private double _lightningFlash;
-    private List<Point>? _lightningPath;
+    private double _lightningTimeToNextStrike;
+    private int _lightningBurstRemaining;
+    private double _lightningTimeToNextBurstStrike;
+
+    private int _lightningPulsesRemaining;
+    private double _lightningPulseTime;
+    private double _lightningPulseDuration;
+    private double _lightningInterPulseTimer;
+
+    private bool _lightningPrevEnabled;
+    private double _lightningPrevDensity;
 
     public OverlayEffectsLayer()
     {
@@ -458,8 +468,14 @@ public sealed class OverlayEffectsLayer : Control
         if (!AnyEnabled)
         {
             // Decay flash even if toggled off.
-            _lightningFlash = Math.Max(0, _lightningFlash - dt * 6);
-            _lightningPath = null;
+            _lightningFlash = Math.Max(0, _lightningFlash - dt * 10);
+            _lightningTimeToNextStrike = 0;
+            _lightningBurstRemaining = 0;
+            _lightningTimeToNextBurstStrike = 0;
+            _lightningPulsesRemaining = 0;
+            _lightningPulseTime = 0;
+            _lightningPulseDuration = 0;
+            _lightningInterPulseTimer = 0;
 
             if (_rain.Count > 0 || _snow.Count > 0 || _fog.Count > 0 || _smoke.Count > 0)
             {
@@ -762,47 +778,164 @@ public sealed class OverlayEffectsLayer : Control
     private void UpdateLightning(double dt, double w, double h)
     {
         var density = ClampMin0(LightningIntensity);
-        var level = Clamp01(density);
         if (!LightningEnabled || density <= 0)
         {
-            _lightningFlash = Math.Max(0, _lightningFlash - dt * 6);
-            _lightningPath = null;
+            _lightningFlash = Math.Max(0, _lightningFlash - dt * 10);
+            _lightningTimeToNextStrike = 0;
+            _lightningBurstRemaining = 0;
+            _lightningTimeToNextBurstStrike = 0;
+            _lightningPulsesRemaining = 0;
+            _lightningPulseTime = 0;
+            _lightningPulseDuration = 0;
+            _lightningInterPulseTimer = 0;
+
+            _lightningPrevEnabled = false;
+            _lightningPrevDensity = 0;
             return;
         }
 
-        // Flash decays quickly.
-        _lightningFlash = Math.Max(0, _lightningFlash - dt * 6);
+        // Target behavior:
+        // - At 0.1: ~1 strike every 45–60s
+        // - As intensity rises (and can go >1): frequency increases and bursts become more common
+        var cappedDensity = Math.Min(density, 5.0);
+        var t = Clamp01((cappedDensity - 0.1) / 4.9); // 0.1..5 => 0..1
+        var ease = t * t;
 
-        // Trigger probability based on intensity.
-        // 5x baseline * 3x requested boost.
-        var scale = density <= 1 ? 1 : Math.Min(density, 25);
-        var flashesPerSecond = (0.06 + (0.25 * level)) * 15.0 * scale;
-        if (_lightningFlash <= 0 && _rng.NextDouble() < flashesPerSecond * dt)
+        double NextIntervalSeconds()
         {
+            var min = 45.0 - (42.0 * ease); // 45 -> 3
+            var max = 60.0 - (53.0 * ease); // 60 -> 7
+            if (max < min)
+            {
+                (min, max) = (max, min);
+            }
+
+            return min + (_rng.NextDouble() * (max - min));
+        }
+
+        int NextBurstCount()
+        {
+            var count = 1 + (int)Math.Floor(ease * 5.0); // 1..6
+            if (_rng.NextDouble() < (ease * 0.60))
+            {
+                count++;
+            }
+
+            return Math.Clamp(count, 1, 8);
+        }
+
+        double NextBurstGapSeconds()
+        {
+            // Time between strikes in a burst.
+            var baseGap = 0.55 - (0.37 * ease); // 0.55 -> 0.18
+            return baseGap + (_rng.NextDouble() * 0.12);
+        }
+
+        void StartStrikePulses()
+        {
+            // Flash-only: simulate lightning with a quick flicker sequence.
+            var basePulses = 2 + (int)Math.Floor(ease * 3.0); // 2..5
+            var pulses = basePulses;
+            if (_rng.NextDouble() < 0.35)
+            {
+                pulses++;
+            }
+
+            _lightningPulsesRemaining = Math.Clamp(pulses, 2, 6);
+            _lightningPulseTime = 0;
+            _lightningInterPulseTimer = 0;
+            _lightningPulseDuration = (0.06 + (_rng.NextDouble() * 0.05)) + ((1.0 - ease) * 0.03);
             _lightningFlash = 1.0;
-            _lightningPath = BuildLightningPath(w, h);
         }
-    }
 
-    private List<Point> BuildLightningPath(double w, double h)
-    {
-        var points = new List<Point>();
-        var x = _rng.NextDouble() * w;
-        var y = 0.0;
-        points.Add(new Point(x, y));
-
-        var segments = 10 + _rng.Next(10);
-        var segH = h / segments;
-
-        for (var i = 0; i < segments; i++)
+        // Prime the system so users can tell it's working:
+        // - on first enable, or when cranking intensity up, schedule the next strike soon (especially at high values)
+        // - after that, the steady-state interval rules apply
+        if (!_lightningPrevEnabled)
         {
-            x += (-w * 0.08) + (_rng.NextDouble() * w * 0.16);
-            x = Math.Clamp(x, 0, w);
-            y += segH;
-            points.Add(new Point(x, y));
+            _lightningTimeToNextStrike = cappedDensity >= 1.0
+                ? (0.5 + (_rng.NextDouble() * 1.5))
+                : 0; // keep strict low-end behavior (45–60s) once it schedules below
+        }
+        else if (cappedDensity >= 1.0 && (cappedDensity - _lightningPrevDensity) >= 0.5)
+        {
+            _lightningTimeToNextStrike = Math.Min(_lightningTimeToNextStrike, 0.5 + (_rng.NextDouble() * 1.5));
         }
 
-        return points;
+        _lightningPrevEnabled = true;
+        _lightningPrevDensity = cappedDensity;
+
+        // Update pulse state.
+        if (_lightningPulsesRemaining > 0)
+        {
+            if (_lightningInterPulseTimer > 0)
+            {
+                _lightningInterPulseTimer = Math.Max(0, _lightningInterPulseTimer - dt);
+                _lightningFlash = Math.Max(0, _lightningFlash - dt * 12);
+            }
+            else
+            {
+                _lightningPulseTime += dt;
+                var k = _lightningPulseDuration <= 0 ? 1.0 : (_lightningPulseTime / _lightningPulseDuration);
+                _lightningFlash = Math.Max(0, 1.0 - k);
+
+                if (k >= 1.0)
+                {
+                    _lightningPulsesRemaining--;
+                    _lightningPulseTime = 0;
+                    _lightningFlash = 0;
+
+                    if (_lightningPulsesRemaining > 0)
+                    {
+                        _lightningInterPulseTimer = 0.03 + (_rng.NextDouble() * 0.08);
+                        _lightningPulseDuration = (0.05 + (_rng.NextDouble() * 0.045)) + ((1.0 - ease) * 0.02);
+                    }
+                }
+            }
+        }
+        else
+        {
+            _lightningFlash = Math.Max(0, _lightningFlash - dt * 10);
+        }
+
+        // Don't start a new strike while we're in the middle of flicker pulses.
+        if (_lightningPulsesRemaining > 0)
+        {
+            return;
+        }
+
+        if (_lightningBurstRemaining > 0)
+        {
+            _lightningTimeToNextBurstStrike -= dt;
+            if (_lightningTimeToNextBurstStrike <= 0)
+            {
+                StartStrikePulses();
+                _lightningBurstRemaining--;
+
+                if (_lightningBurstRemaining > 0)
+                {
+                    _lightningTimeToNextBurstStrike = NextBurstGapSeconds();
+                }
+                else
+                {
+                    _lightningTimeToNextStrike = NextIntervalSeconds();
+                }
+            }
+
+            return;
+        }
+
+        if (_lightningTimeToNextStrike <= 0)
+        {
+            _lightningTimeToNextStrike = NextIntervalSeconds();
+        }
+
+        _lightningTimeToNextStrike -= dt;
+        if (_lightningTimeToNextStrike <= 0)
+        {
+            _lightningBurstRemaining = NextBurstCount();
+            _lightningTimeToNextBurstStrike = 0;
+        }
     }
 
     public override void Render(DrawingContext context)
@@ -1111,21 +1244,31 @@ public sealed class OverlayEffectsLayer : Control
 
         if (_lightningFlash > 0 && LightningEnabled)
         {
-            var intensity = Clamp01(LightningIntensity);
-            var flashAlpha = (byte)(Math.Clamp(_lightningFlash * intensity * 160, 0, 200));
+            var density = ClampMin0(LightningIntensity);
+            var cappedDensity = Math.Min(density, 5.0);
+            var t = Clamp01((cappedDensity - 0.1) / 4.9);
+            var strength = 0.35 + (0.65 * t);
+            var overdrive = 1.0 + (0.10 * Math.Max(0.0, cappedDensity - 1.0));
+
+            var flashAlpha = (byte)Math.Clamp(_lightningFlash * strength * overdrive * 235, 0, 235);
             if (flashAlpha > 0)
             {
-                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(flashAlpha, 255, 255, 255)), null, new Rect(0, 0, w, h));
-            }
+                var top = flashAlpha;
+                var bottom = (byte)Math.Max(0, (int)(flashAlpha * 0.55));
 
-            if (_lightningPath is { Count: > 1 })
-            {
-                var strokeAlpha = (byte)(Math.Clamp(_lightningFlash * intensity * 220, 0, 255));
-                var pen = new Pen(new SolidColorBrush(Color.FromArgb(strokeAlpha, 255, 255, 255)), 2);
-                for (var i = 0; i < _lightningPath.Count - 1; i++)
+                // Slightly cool white reads more like lightning than pure white.
+                var flashBrush = new LinearGradientBrush
                 {
-                    context.DrawLine(pen, _lightningPath[i], _lightningPath[i + 1]);
-                }
+                    StartPoint = new RelativePoint(0.5, 0.0, RelativeUnit.Relative),
+                    EndPoint = new RelativePoint(0.5, 1.0, RelativeUnit.Relative),
+                    GradientStops = new GradientStops
+                    {
+                        new GradientStop(Color.FromArgb(top, 245, 250, 255), 0.00),
+                        new GradientStop(Color.FromArgb(bottom, 245, 250, 255), 1.00),
+                    }
+                };
+
+                context.DrawRectangle(flashBrush, null, new Rect(0, 0, w, h));
             }
         }
     }

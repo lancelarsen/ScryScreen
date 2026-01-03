@@ -154,10 +154,10 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool lightningEnabled;
 
     [ObservableProperty]
-    private double lightningMin = 0;
+    private double lightningMin = 0.1;
 
     [ObservableProperty]
-    private double lightningMax = 1;
+    private double lightningMax = 5;
 
     [ObservableProperty]
     private double lightningIntensity = 0.35;
