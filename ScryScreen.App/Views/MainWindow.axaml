@@ -898,7 +898,7 @@
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.RainMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
-                                    Width="160"
+                                    Width="80"
                                     Minimum="{Binding Media.SelectedItem.RainMin}"
                                     Maximum="{Binding Media.SelectedItem.RainMax}"
                                     Value="{Binding Media.SelectedItem.RainIntensity, Mode=TwoWay}"
@@ -919,7 +919,7 @@
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.LightningMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
-                                    Width="160"
+                                    Width="80"
                                     Minimum="{Binding Media.SelectedItem.LightningMin}"
                                     Maximum="{Binding Media.SelectedItem.LightningMax}"
                                     Value="{Binding Media.SelectedItem.LightningIntensity, Mode=TwoWay}"
@@ -948,7 +948,7 @@
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.FogMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
-                                    Width="160"
+                                    Width="80"
                                     Minimum="{Binding Media.SelectedItem.FogMin}"
                                     Maximum="{Binding Media.SelectedItem.FogMax}"
                                     Value="{Binding Media.SelectedItem.FogIntensity, Mode=TwoWay}"
@@ -973,7 +973,7 @@
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.SnowMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
-                                    Width="160"
+                                    Width="80"
                                     Minimum="{Binding Media.SelectedItem.SnowMin}"
                                     Maximum="{Binding Media.SelectedItem.SnowMax}"
                                     Value="{Binding Media.SelectedItem.SnowIntensity, Mode=TwoWay}"
@@ -994,7 +994,7 @@
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.SandMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
-                                    Width="160"
+                                    Width="80"
                                     Minimum="{Binding Media.SelectedItem.SandMin}"
                                     Maximum="{Binding Media.SelectedItem.SandMax}"
                                     Value="{Binding Media.SelectedItem.SandIntensity, Mode=TwoWay}"
@@ -1015,7 +1015,7 @@
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.SmokeMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
-                                    Width="160"
+                                    Width="80"
                                     Minimum="{Binding Media.SelectedItem.SmokeMin}"
                                     Maximum="{Binding Media.SelectedItem.SmokeMax}"
                                     Value="{Binding Media.SelectedItem.SmokeIntensity, Mode=TwoWay}"
@@ -1039,7 +1039,7 @@
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.AshMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
-                                    Width="160"
+                                    Width="80"
                                     Minimum="{Binding Media.SelectedItem.AshMin}"
                                     Maximum="{Binding Media.SelectedItem.AshMax}"
                                     Value="{Binding Media.SelectedItem.AshIntensity, Mode=TwoWay}"
@@ -1060,7 +1060,7 @@
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.QuakeMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
-                                    Width="160"
+                                    Width="80"
                                     Minimum="{Binding Media.SelectedItem.QuakeMin}"
                                     Maximum="{Binding Media.SelectedItem.QuakeMax}"
                                     Value="{Binding Media.SelectedItem.QuakeIntensity, Mode=TwoWay}"
