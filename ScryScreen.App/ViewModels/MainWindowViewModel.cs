@@ -262,6 +262,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (e.PropertyName is nameof(MediaItemViewModel.RainEnabled) or nameof(MediaItemViewModel.RainIntensity) or nameof(MediaItemViewModel.RainMin) or nameof(MediaItemViewModel.RainMax) or
             nameof(MediaItemViewModel.SnowEnabled) or nameof(MediaItemViewModel.SnowIntensity) or nameof(MediaItemViewModel.SnowMin) or nameof(MediaItemViewModel.SnowMax) or
             nameof(MediaItemViewModel.AshEnabled) or nameof(MediaItemViewModel.AshIntensity) or nameof(MediaItemViewModel.AshMin) or nameof(MediaItemViewModel.AshMax) or
+            nameof(MediaItemViewModel.FireEnabled) or nameof(MediaItemViewModel.FireIntensity) or nameof(MediaItemViewModel.FireMin) or nameof(MediaItemViewModel.FireMax) or
             nameof(MediaItemViewModel.SandEnabled) or nameof(MediaItemViewModel.SandIntensity) or nameof(MediaItemViewModel.SandMin) or nameof(MediaItemViewModel.SandMax) or
             nameof(MediaItemViewModel.FogEnabled) or nameof(MediaItemViewModel.FogIntensity) or nameof(MediaItemViewModel.FogMin) or nameof(MediaItemViewModel.FogMax) or
             nameof(MediaItemViewModel.SmokeEnabled) or nameof(MediaItemViewModel.SmokeIntensity) or nameof(MediaItemViewModel.SmokeMin) or nameof(MediaItemViewModel.SmokeMax) or
@@ -294,6 +295,8 @@ public partial class MainWindowViewModel : ViewModelBase
             SnowIntensity: ClampMin0(item.SnowIntensity),
             AshEnabled: item.AshEnabled,
             AshIntensity: ClampMin0(item.AshIntensity),
+            FireEnabled: item.FireEnabled,
+            FireIntensity: ClampMin0(item.FireIntensity),
             SandEnabled: item.SandEnabled,
             SandIntensity: ClampMin0(item.SandIntensity),
             FogEnabled: item.FogEnabled,

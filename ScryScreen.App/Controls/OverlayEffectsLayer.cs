@@ -53,6 +53,21 @@ public sealed class OverlayEffectsLayer : Control
         }
     };
 
+    private static readonly RadialGradientBrush FirePuffBrush = new()
+    {
+        Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+        GradientOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+        RadiusX = new RelativeScalar(0.75, RelativeUnit.Relative),
+        RadiusY = new RelativeScalar(0.75, RelativeUnit.Relative),
+        GradientStops = new GradientStops
+        {
+            new GradientStop(Color.FromArgb(255, 255, 235, 155), 0.00),
+            new GradientStop(Color.FromArgb(210, 255, 155, 35), 0.25),
+            new GradientStop(Color.FromArgb(120, 255, 75, 10), 0.55),
+            new GradientStop(Color.FromArgb(0, 255, 75, 10), 1.00),
+        }
+    };
+
     private static readonly LinearGradientBrush SandBandMask = new()
     {
         // Repeat a few vertical bands so the sandstorm has that "blowing sheets" look.
@@ -116,6 +131,12 @@ public sealed class OverlayEffectsLayer : Control
     public static readonly StyledProperty<double> AshIntensityProperty =
         AvaloniaProperty.Register<OverlayEffectsLayer, double>(nameof(AshIntensity), defaultValue: 0.5);
 
+    public static readonly StyledProperty<bool> FireEnabledProperty =
+        AvaloniaProperty.Register<OverlayEffectsLayer, bool>(nameof(FireEnabled));
+
+    public static readonly StyledProperty<double> FireIntensityProperty =
+        AvaloniaProperty.Register<OverlayEffectsLayer, double>(nameof(FireIntensity), defaultValue: 0.35);
+
     public static readonly StyledProperty<bool> SandEnabledProperty =
         AvaloniaProperty.Register<OverlayEffectsLayer, bool>(nameof(SandEnabled));
 
@@ -152,6 +173,9 @@ public sealed class OverlayEffectsLayer : Control
     public bool AshEnabled { get => GetValue(AshEnabledProperty); set => SetValue(AshEnabledProperty, value); }
     public double AshIntensity { get => GetValue(AshIntensityProperty); set => SetValue(AshIntensityProperty, value); }
 
+    public bool FireEnabled { get => GetValue(FireEnabledProperty); set => SetValue(FireEnabledProperty, value); }
+    public double FireIntensity { get => GetValue(FireIntensityProperty); set => SetValue(FireIntensityProperty, value); }
+
     public bool SandEnabled { get => GetValue(SandEnabledProperty); set => SetValue(SandEnabledProperty, value); }
     public double SandIntensity { get => GetValue(SandIntensityProperty); set => SetValue(SandIntensityProperty, value); }
 
@@ -171,6 +195,8 @@ public sealed class OverlayEffectsLayer : Control
     private readonly List<RainDrop> _rain = new();
     private readonly List<SnowFlake> _snow = new();
     private readonly List<SnowFlake> _ash = new();
+    private readonly List<FirePuff> _fire = new();
+    private readonly List<Ember> _embers = new();
     private readonly List<SandGrain> _sand = new();
     private readonly List<HazePuff> _fog = new();
     private readonly List<HazePuff> _smoke = new();
@@ -178,6 +204,9 @@ public sealed class OverlayEffectsLayer : Control
     private readonly Pen?[] _rainPens = new Pen?[256];
     private readonly SolidColorBrush?[] _snowBrushes = new SolidColorBrush?[256];
     private readonly SolidColorBrush?[] _ashBrushes = new SolidColorBrush?[256];
+    private readonly SolidColorBrush?[] _emberHotBrushes = new SolidColorBrush?[256];
+    private readonly SolidColorBrush?[] _emberMidBrushes = new SolidColorBrush?[256];
+    private readonly SolidColorBrush?[] _emberCoolBrushes = new SolidColorBrush?[256];
     private readonly Pen?[] _sandPens = new Pen?[256];
 
     private readonly WriteableBitmap?[] _fogLayerTiles = new WriteableBitmap?[FogLayerCount];
@@ -463,7 +492,7 @@ public sealed class OverlayEffectsLayer : Control
 
 
     private bool AnyEnabled =>
-        RainEnabled || SnowEnabled || AshEnabled || SandEnabled || FogEnabled || SmokeEnabled || LightningEnabled;
+        RainEnabled || SnowEnabled || AshEnabled || FireEnabled || SandEnabled || FogEnabled || SmokeEnabled || LightningEnabled;
 
     private void Tick()
     {
@@ -511,6 +540,7 @@ public sealed class OverlayEffectsLayer : Control
         UpdateRain(dt, w, h);
         UpdateSnow(dt, w, h);
         UpdateAsh(dt, w, h);
+        UpdateFire(dt, w, h);
         UpdateSand(dt, w, h);
         UpdateFog(dt, w, h);
         UpdateSmoke(dt, w, h);
@@ -662,6 +692,106 @@ public sealed class OverlayEffectsLayer : Control
         if (_ash.Count > target)
         {
             _ash.RemoveRange(target, _ash.Count - target);
+        }
+    }
+
+    private void UpdateFire(double dt, double w, double h)
+    {
+        var density = ClampMin0(FireIntensity);
+        if (!FireEnabled || density <= 0)
+        {
+            _fire.Clear();
+            _embers.Clear();
+            return;
+        }
+
+        var cappedDensity = Math.Min(density, 5.0);
+        var t = Clamp01((cappedDensity - 0.1) / 4.9);
+        var ease = t * t;
+
+        // Keep fire lower overall, and cap max height to roughly the old look at ~0.5.
+        // Old (prior) height at density=0.5 was about ~30% of screen height.
+        var fireHeight = h * Math.Min(0.30, 0.12 + (0.18 * t)); // 12% -> 30% (cap)
+        var topLimit = h - fireHeight;
+
+        // Make flames much smaller but increase count more aggressively with intensity.
+        // Use a non-linear curve so high intensities really pack in detail.
+        var puffCurve = Math.Pow(t, 1.4);
+        var emberCurve = Math.Pow(t, 1.3);
+        var targetPuffs = (int)(18 + (420 * puffCurve));
+        var targetEmbers = (int)(80 + (650 * emberCurve));
+
+        while (_fire.Count < targetPuffs)
+        {
+            _fire.Add(FirePuff.Create(_rng, w, h, baseLevel: t));
+        }
+
+        while (_embers.Count < targetEmbers)
+        {
+            _embers.Add(Ember.Create(_rng, w, h, baseLevel: t));
+        }
+
+        // Update flame puffs.
+        for (var i = _fire.Count - 1; i >= 0; i--)
+        {
+            var p = _fire[i];
+            p.Age += dt;
+
+            // Gentle flicker + upward drift.
+            var flicker = 0.75 + (0.25 * Math.Sin((_timeSeconds * 7.5) + p.Phase));
+            p.X += p.Vx * dt;
+            p.Y += p.Vy * dt;
+            p.X += Math.Sin((p.Y / 32.0) + p.Phase) * dt * (18 + (22 * t));
+            p.R *= 0.9992; // slow shrink
+
+            // Respawn if it goes too high / too small.
+            if (p.Y + p.R < topLimit - 45 || p.R < 6)
+            {
+                _fire[i] = FirePuff.Create(_rng, w, h, baseLevel: t);
+                continue;
+            }
+
+            // Keep roughly inside width.
+            if (p.X < -p.R) p.X = w + p.R;
+            if (p.X > w + p.R) p.X = -p.R;
+
+            p.Flicker = flicker;
+            _fire[i] = p;
+        }
+
+        // Update embers.
+        for (var i = _embers.Count - 1; i >= 0; i--)
+        {
+            var e = _embers[i];
+            e.Age += dt;
+            e.X += e.Vx * dt;
+            e.Y += e.Vy * dt;
+            e.X += Math.Sin((_timeSeconds * 3.5) + e.Phase) * dt * 12;
+
+            // Cool + fade as it rises.
+            e.Heat = Math.Max(0, e.Heat - (dt * (0.18 + (0.22 * t))));
+
+            // Respawn if out of bounds / cooled out.
+            if (e.Y + 40 < topLimit || e.Y < -120 || e.Heat <= 0.02)
+            {
+                _embers[i] = Ember.Create(_rng, w, h, baseLevel: t);
+                continue;
+            }
+
+            if (e.X < -20) e.X = w + 20;
+            if (e.X > w + 20) e.X = -20;
+
+            _embers[i] = e;
+        }
+
+        if (_fire.Count > targetPuffs)
+        {
+            _fire.RemoveRange(targetPuffs, _fire.Count - targetPuffs);
+        }
+
+        if (_embers.Count > targetEmbers)
+        {
+            _embers.RemoveRange(targetEmbers, _embers.Count - targetEmbers);
         }
     }
 
@@ -1346,6 +1476,70 @@ public sealed class OverlayEffectsLayer : Control
             }
         }
 
+        if (FireEnabled)
+        {
+            var density = ClampMin0(FireIntensity);
+            var cappedDensity = Math.Min(density, 5.0);
+            var t = Clamp01((cappedDensity - 0.1) / 4.9);
+            var fireHeight = h * (0.25 + (0.65 * t));
+            var topLimit = h - fireHeight;
+
+            // Flames (soft puffs)
+            foreach (var p in _fire)
+            {
+                // Fade out above the fire region.
+                var fade = 1.0 - SmoothStep(topLimit - 40, topLimit + 110, p.Y);
+                if (fade <= 0.001)
+                {
+                    continue;
+                }
+
+                var opacity = Math.Clamp(p.Alpha * p.Flicker * fade, 0, 1);
+                if (opacity <= 0.001)
+                {
+                    continue;
+                }
+
+                using (context.PushOpacity(opacity))
+                {
+                    // Slightly taller ellipses read more like flames.
+                    context.DrawEllipse(FirePuffBrush, null, new Point(p.X, p.Y), p.R * 0.85, p.R * 1.25);
+                }
+            }
+
+            // Embers
+            foreach (var e in _embers)
+            {
+                var fade = 1.0 - SmoothStep(topLimit - 40, topLimit + 180, e.Y);
+                if (fade <= 0.001)
+                {
+                    continue;
+                }
+
+                var a = (byte)Math.Clamp((e.Alpha * fade) * 255, 0, 255);
+                if (a == 0)
+                {
+                    continue;
+                }
+
+                SolidColorBrush brush;
+                if (e.Heat > 0.66)
+                {
+                    brush = GetCachedBrush(_emberHotBrushes, a, 255, 210, 120);
+                }
+                else if (e.Heat > 0.33)
+                {
+                    brush = GetCachedBrush(_emberMidBrushes, a, 255, 160, 60);
+                }
+                else
+                {
+                    brush = GetCachedBrush(_emberCoolBrushes, a, 220, 90, 30);
+                }
+
+                context.DrawEllipse(brush, null, new Point(e.X, e.Y), e.R, e.R);
+            }
+        }
+
         if (_lightningFlash > 0 && LightningEnabled)
         {
             var density = ClampMin0(LightningIntensity);
@@ -1394,6 +1588,63 @@ public sealed class OverlayEffectsLayer : Control
         public double Vy = vy;
         public double R = r;
         public double Alpha = alpha;
+    }
+
+    private struct FirePuff(double x, double y, double vx, double vy, double r, double alpha, double phase)
+    {
+        public double X = x;
+        public double Y = y;
+        public double Vx = vx;
+        public double Vy = vy;
+        public double R = r;
+        public double Alpha = alpha;
+        public double Phase = phase;
+
+        public double Flicker;
+        public double Age;
+
+        public static FirePuff Create(Random rng, double w, double h, double baseLevel)
+        {
+            var r = 14 + (rng.NextDouble() * (26 + (16 * baseLevel)));
+            var x = rng.NextDouble() * w;
+            var y = (h - (rng.NextDouble() * (h * (0.10 + (0.12 * baseLevel))))) + (rng.NextDouble() * 35);
+
+            var vx = (-22 + rng.NextDouble() * 44);
+            var vy = -(28 + (rng.NextDouble() * (55 + (70 * baseLevel))));
+
+            var a = 0.08 + (rng.NextDouble() * (0.10 + (0.10 * baseLevel)));
+            var phase = rng.NextDouble() * Math.PI * 2.0;
+
+            return new FirePuff(x, y, vx, vy, r, a, phase) { Flicker = 1.0, Age = 0 };
+        }
+    }
+
+    private struct Ember(double x, double y, double vx, double vy, double r, double alpha, double heat, double phase)
+    {
+        public double X = x;
+        public double Y = y;
+        public double Vx = vx;
+        public double Vy = vy;
+        public double R = r;
+        public double Alpha = alpha;
+        public double Heat = heat;
+        public double Phase = phase;
+
+        public double Age;
+
+        public static Ember Create(Random rng, double w, double h, double baseLevel)
+        {
+            var x = rng.NextDouble() * w;
+            var y = h - (rng.NextDouble() * (h * (0.08 + (0.10 * baseLevel)))) + (rng.NextDouble() * 30);
+            var vx = (-30 + rng.NextDouble() * 60);
+            var vy = -(55 + (rng.NextDouble() * (90 + (140 * baseLevel))));
+            var r = 0.7 + (rng.NextDouble() * (1.2 + (0.6 * baseLevel)));
+            var a = 0.10 + (rng.NextDouble() * (0.22 + (0.16 * baseLevel)));
+            var heat = 0.55 + (rng.NextDouble() * 0.45);
+            var phase = rng.NextDouble() * Math.PI * 2.0;
+
+            return new Ember(x, y, vx, vy, r, a, heat, phase) { Age = 0 };
+        }
     }
 
     private struct SandGrain(double x, double y, double vx, double vy, double len, double alpha)

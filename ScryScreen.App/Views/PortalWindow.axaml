@@ -87,6 +87,8 @@
           SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
           AshEnabled="{Binding OverlayEffects.AshEnabled}"
           AshIntensity="{Binding OverlayEffects.AshIntensity}"
+          FireEnabled="{Binding OverlayEffects.FireEnabled}"
+          FireIntensity="{Binding OverlayEffects.FireIntensity}"
           SandEnabled="{Binding OverlayEffects.SandEnabled}"
           SandIntensity="{Binding OverlayEffects.SandIntensity}"
           FogEnabled="{Binding OverlayEffects.FogEnabled}"

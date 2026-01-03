@@ -127,6 +127,18 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private double ashIntensity = 0.5;
 
     [ObservableProperty]
+    private bool fireEnabled;
+
+    [ObservableProperty]
+    private double fireMin = 0.1;
+
+    [ObservableProperty]
+    private double fireMax = 5;
+
+    [ObservableProperty]
+    private double fireIntensity = 0.35;
+
+    [ObservableProperty]
     private bool sandEnabled;
 
     [ObservableProperty]
@@ -259,6 +271,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     partial void OnAshMinChanged(double value) => NormalizeRange(() => AshMin, v => AshMin = v, () => AshMax, v => AshMax = v, () => AshIntensity, v => AshIntensity = v);
     partial void OnAshMaxChanged(double value) => NormalizeRange(() => AshMin, v => AshMin = v, () => AshMax, v => AshMax = v, () => AshIntensity, v => AshIntensity = v);
+
+    partial void OnFireMinChanged(double value) => NormalizeRange(() => FireMin, v => FireMin = v, () => FireMax, v => FireMax = v, () => FireIntensity, v => FireIntensity = v);
+    partial void OnFireMaxChanged(double value) => NormalizeRange(() => FireMin, v => FireMin = v, () => FireMax, v => FireMax = v, () => FireIntensity, v => FireIntensity = v);
 
     partial void OnSandMinChanged(double value) => NormalizeRange(() => SandMin, v => SandMin = v, () => SandMax, v => SandMax = v, () => SandIntensity, v => SandIntensity = v);
     partial void OnSandMaxChanged(double value) => NormalizeRange(() => SandMin, v => SandMin = v, () => SandMax, v => SandMax = v, () => SandIntensity, v => SandIntensity = v);

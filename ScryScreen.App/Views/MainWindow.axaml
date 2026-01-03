@@ -238,6 +238,8 @@
                                                                 SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
                                                                 AshEnabled="{Binding OverlayEffects.AshEnabled}"
                                                                 AshIntensity="{Binding OverlayEffects.AshIntensity}"
+                                                                FireEnabled="{Binding OverlayEffects.FireEnabled}"
+                                                                FireIntensity="{Binding OverlayEffects.FireIntensity}"
                                                                 SandEnabled="{Binding OverlayEffects.SandEnabled}"
                                                                 SandIntensity="{Binding OverlayEffects.SandIntensity}"
                                                                 FogEnabled="{Binding OverlayEffects.FogEnabled}"
@@ -363,6 +365,8 @@
                                                                         SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
                                                                         AshEnabled="{Binding OverlayEffects.AshEnabled}"
                                                                         AshIntensity="{Binding OverlayEffects.AshIntensity}"
+                                                                        FireEnabled="{Binding OverlayEffects.FireEnabled}"
+                                                                        FireIntensity="{Binding OverlayEffects.FireIntensity}"
                                                                         SandEnabled="{Binding OverlayEffects.SandEnabled}"
                                                                         SandIntensity="{Binding OverlayEffects.SandIntensity}"
                                                                         FogEnabled="{Binding OverlayEffects.FogEnabled}"
@@ -1076,6 +1080,27 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.QuakeMax, Mode=TwoWay}" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleButton Classes="circleSmall effectToggle"
+                                          IsChecked="{Binding Media.SelectedItem.FireEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="Fire">
+                                    <i:Icon Value="mdi-fire" FontSize="18"
+                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.FireMin, Mode=TwoWay}" />
+                                <Slider Classes="portalTimeline"
+                                    Width="80"
+                                    Minimum="{Binding Media.SelectedItem.FireMin}"
+                                    Maximum="{Binding Media.SelectedItem.FireMax}"
+                                    Value="{Binding Media.SelectedItem.FireIntensity, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.FireMax, Mode=TwoWay}" />
                                 </StackPanel>
                             </StackPanel>
                             </Grid>
