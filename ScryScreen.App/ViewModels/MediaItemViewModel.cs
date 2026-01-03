@@ -121,7 +121,7 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private double sandMin = 0.1;
 
     [ObservableProperty]
-    private double sandMax = 1;
+    private double sandMax = 3;
 
     [ObservableProperty]
     private double sandIntensity = 0.5;
@@ -142,10 +142,10 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool smokeEnabled;
 
     [ObservableProperty]
-    private double smokeMin = 0;
+    private double smokeMin = 0.5;
 
     [ObservableProperty]
-    private double smokeMax = 1;
+    private double smokeMax = 2;
 
     [ObservableProperty]
     private double smokeIntensity = 0.5;

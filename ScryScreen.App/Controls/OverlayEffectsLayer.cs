@@ -979,8 +979,10 @@ public sealed class OverlayEffectsLayer : Control
                 EnsureSandBandTiles();
                 RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.HighQuality);
 
-                var scaleBoost = density <= 1 ? 1 : Math.Min(density, 4);
-                var bandOpacity = (0.10 + (0.45 * intensity)) * scaleBoost;
+                // Make the "puffy sheets" show up faster at low values, and ramp harder above 1.0.
+                var basePuff = 0.04 + (0.32 * Math.Pow(intensity, 0.85));
+                var overdrive = density <= 1 ? 1.0 : (1.0 + ((Math.Min(density, 3.0) - 1.0) * 1.20));
+                var bandOpacity = basePuff * overdrive;
 
                 // Make bands more obvious as intensity increases.
                 using (context.PushOpacityMask(SandBandMask, new Rect(0, 0, w, h)))
@@ -1002,7 +1004,7 @@ public sealed class OverlayEffectsLayer : Control
                         var speed = (50 + (layer * 28)) * (0.45 + (1.10 * intensity));
                         if (density > 1)
                         {
-                            speed *= 1.0 + (Math.Min(density, 4) - 1.0) * 0.65;
+                            speed *= 1.0 + (Math.Min(density, 3) - 1.0) * 0.90;
                         }
 
                         var ox = -((_timeSeconds * speed) % dstW);
