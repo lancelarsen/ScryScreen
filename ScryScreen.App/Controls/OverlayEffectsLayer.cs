@@ -110,6 +110,12 @@ public sealed class OverlayEffectsLayer : Control
     public static readonly StyledProperty<double> SnowIntensityProperty =
         AvaloniaProperty.Register<OverlayEffectsLayer, double>(nameof(SnowIntensity), defaultValue: 0.5);
 
+    public static readonly StyledProperty<bool> AshEnabledProperty =
+        AvaloniaProperty.Register<OverlayEffectsLayer, bool>(nameof(AshEnabled));
+
+    public static readonly StyledProperty<double> AshIntensityProperty =
+        AvaloniaProperty.Register<OverlayEffectsLayer, double>(nameof(AshIntensity), defaultValue: 0.5);
+
     public static readonly StyledProperty<bool> SandEnabledProperty =
         AvaloniaProperty.Register<OverlayEffectsLayer, bool>(nameof(SandEnabled));
 
@@ -134,11 +140,17 @@ public sealed class OverlayEffectsLayer : Control
     public static readonly StyledProperty<double> LightningIntensityProperty =
         AvaloniaProperty.Register<OverlayEffectsLayer, double>(nameof(LightningIntensity), defaultValue: 0.35);
 
+    public static readonly StyledProperty<long> LightningTriggerProperty =
+        AvaloniaProperty.Register<OverlayEffectsLayer, long>(nameof(LightningTrigger), defaultValue: 0);
+
     public bool RainEnabled { get => GetValue(RainEnabledProperty); set => SetValue(RainEnabledProperty, value); }
     public double RainIntensity { get => GetValue(RainIntensityProperty); set => SetValue(RainIntensityProperty, value); }
 
     public bool SnowEnabled { get => GetValue(SnowEnabledProperty); set => SetValue(SnowEnabledProperty, value); }
     public double SnowIntensity { get => GetValue(SnowIntensityProperty); set => SetValue(SnowIntensityProperty, value); }
+
+    public bool AshEnabled { get => GetValue(AshEnabledProperty); set => SetValue(AshEnabledProperty, value); }
+    public double AshIntensity { get => GetValue(AshIntensityProperty); set => SetValue(AshIntensityProperty, value); }
 
     public bool SandEnabled { get => GetValue(SandEnabledProperty); set => SetValue(SandEnabledProperty, value); }
     public double SandIntensity { get => GetValue(SandIntensityProperty); set => SetValue(SandIntensityProperty, value); }
@@ -151,18 +163,21 @@ public sealed class OverlayEffectsLayer : Control
 
     public bool LightningEnabled { get => GetValue(LightningEnabledProperty); set => SetValue(LightningEnabledProperty, value); }
     public double LightningIntensity { get => GetValue(LightningIntensityProperty); set => SetValue(LightningIntensityProperty, value); }
+    public long LightningTrigger { get => GetValue(LightningTriggerProperty); set => SetValue(LightningTriggerProperty, value); }
 
     private readonly DispatcherTimer _timer;
     private readonly Random _rng = new();
 
     private readonly List<RainDrop> _rain = new();
     private readonly List<SnowFlake> _snow = new();
+    private readonly List<SnowFlake> _ash = new();
     private readonly List<SandGrain> _sand = new();
     private readonly List<HazePuff> _fog = new();
     private readonly List<HazePuff> _smoke = new();
 
     private readonly Pen?[] _rainPens = new Pen?[256];
     private readonly SolidColorBrush?[] _snowBrushes = new SolidColorBrush?[256];
+    private readonly SolidColorBrush?[] _ashBrushes = new SolidColorBrush?[256];
     private readonly Pen?[] _sandPens = new Pen?[256];
 
     private readonly WriteableBitmap?[] _fogLayerTiles = new WriteableBitmap?[FogLayerCount];
@@ -183,6 +198,7 @@ public sealed class OverlayEffectsLayer : Control
 
     private bool _lightningPrevEnabled;
     private double _lightningPrevDensity;
+    private long _lightningPrevTrigger;
 
     public OverlayEffectsLayer()
     {
@@ -447,7 +463,7 @@ public sealed class OverlayEffectsLayer : Control
 
 
     private bool AnyEnabled =>
-        RainEnabled || SnowEnabled || SandEnabled || FogEnabled || SmokeEnabled || LightningEnabled;
+        RainEnabled || SnowEnabled || AshEnabled || SandEnabled || FogEnabled || SmokeEnabled || LightningEnabled;
 
     private void Tick()
     {
@@ -494,6 +510,7 @@ public sealed class OverlayEffectsLayer : Control
 
         UpdateRain(dt, w, h);
         UpdateSnow(dt, w, h);
+        UpdateAsh(dt, w, h);
         UpdateSand(dt, w, h);
         UpdateFog(dt, w, h);
         UpdateSmoke(dt, w, h);
@@ -594,6 +611,57 @@ public sealed class OverlayEffectsLayer : Control
         if (_snow.Count > target)
         {
             _snow.RemoveRange(target, _snow.Count - target);
+        }
+    }
+
+    private void UpdateAsh(double dt, double w, double h)
+    {
+        var density = ClampMin0(AshIntensity);
+        var level = Clamp01(density);
+        if (!AshEnabled || density <= 0)
+        {
+            _ash.Clear();
+            return;
+        }
+
+        // Similar to snow, but slightly slower and smaller flakes.
+        var scale = density <= 1 ? 1 : Math.Min(density, 50);
+        var target = (int)(2200 * DensityCurveCubic(level) * scale);
+        while (_ash.Count < target)
+        {
+            _ash.Add(new SnowFlake(
+                x: _rng.NextDouble() * w,
+                y: _rng.NextDouble() * h,
+                vx: -18 + _rng.NextDouble() * 36,
+                vy: 25 + _rng.NextDouble() * 65,
+                r: 0.9 + _rng.NextDouble() * 1.8,
+                alpha: 0.10 + _rng.NextDouble() * 0.18));
+        }
+
+        for (var i = _ash.Count - 1; i >= 0; i--)
+        {
+            var f = _ash[i];
+            f.X += f.Vx * dt;
+            f.Y += f.Vy * dt;
+
+            // Gentle wobble.
+            f.X += Math.Sin((f.Y / 28.0) + i) * dt * 10;
+
+            if (f.Y - f.R > h)
+            {
+                f.Y = -_rng.NextDouble() * 80;
+                f.X = _rng.NextDouble() * w;
+            }
+
+            if (f.X < -20) f.X = w + 20;
+            if (f.X > w + 20) f.X = -20;
+
+            _ash[i] = f;
+        }
+
+        if (_ash.Count > target)
+        {
+            _ash.RemoveRange(target, _ash.Count - target);
         }
     }
 
@@ -791,6 +859,7 @@ public sealed class OverlayEffectsLayer : Control
 
             _lightningPrevEnabled = false;
             _lightningPrevDensity = 0;
+            _lightningPrevTrigger = 0;
             return;
         }
 
@@ -815,13 +884,22 @@ public sealed class OverlayEffectsLayer : Control
 
         int NextBurstCount()
         {
-            var count = 1 + (int)Math.Floor(ease * 5.0); // 1..6
-            if (_rng.NextDouble() < (ease * 0.60))
+            // 1 is most common, 2 less common, 3 rare.
+            // As intensity increases, 2/3 become more likely.
+            var p3 = 0.02 + (0.16 * ease);
+            var p2 = 0.08 + (0.30 * ease);
+            var r = _rng.NextDouble();
+            if (r < p3)
             {
-                count++;
+                return 3;
             }
 
-            return Math.Clamp(count, 1, 8);
+            if (r < p3 + p2)
+            {
+                return 2;
+            }
+
+            return 1;
         }
 
         double NextBurstGapSeconds()
@@ -846,6 +924,16 @@ public sealed class OverlayEffectsLayer : Control
             _lightningInterPulseTimer = 0;
             _lightningPulseDuration = (0.06 + (_rng.NextDouble() * 0.05)) + ((1.0 - ease) * 0.03);
             _lightningFlash = 1.0;
+        }
+
+        // Manual trigger from UI (a nonce that increments).
+        if (LightningTrigger != _lightningPrevTrigger)
+        {
+            _lightningPrevTrigger = LightningTrigger;
+            _lightningBurstRemaining = 0;
+            _lightningTimeToNextBurstStrike = 0;
+            _lightningTimeToNextStrike = 0;
+            StartStrikePulses();
         }
 
         // Prime the system so users can tell it's working:
@@ -1238,6 +1326,22 @@ public sealed class OverlayEffectsLayer : Control
                 }
 
                 var brush = GetCachedBrush(_snowBrushes, alpha, 235, 245, 255);
+                context.DrawEllipse(brush, null, new Point(f.X, f.Y), f.R, f.R);
+            }
+        }
+
+        if (AshEnabled)
+        {
+            foreach (var f in _ash)
+            {
+                var alpha = (byte)Math.Clamp(f.Alpha * 255, 0, 255);
+                if (alpha == 0)
+                {
+                    continue;
+                }
+
+                // Black/charcoal flakes.
+                var brush = GetCachedBrush(_ashBrushes, alpha, 20, 20, 22);
                 context.DrawEllipse(brush, null, new Point(f.X, f.Y), f.R, f.R);
             }
         }

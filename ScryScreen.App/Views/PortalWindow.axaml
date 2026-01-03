@@ -18,8 +18,12 @@
         WindowStartupLocation="Manual">
 
   <Border Background="Black">
-    <!-- All portal output (hidden => true blackout) -->
-    <Grid IsVisible="{Binding IsContentVisible}">
+    <controls:QuakeShakeDecorator
+        QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
+        QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
+        QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}">
+      <!-- All portal output (hidden => true blackout) -->
+      <Grid IsVisible="{Binding IsContentVisible}">
       <!-- Assigned image (after setup) -->
       <Border x:Name="ImageHost"
           IsVisible="{Binding IsShowingImage}"
@@ -75,12 +79,14 @@
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center" />
 
-        <!-- Overlay effects (rain/fog/smoke/snow/sand/lightning) -->
+        <!-- Overlay effects (rain/fog/smoke/snow/ash/sand/lightning) -->
       <controls:OverlayEffectsLayer
           RainEnabled="{Binding OverlayEffects.RainEnabled}"
           RainIntensity="{Binding OverlayEffects.RainIntensity}"
           SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
           SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
+          AshEnabled="{Binding OverlayEffects.AshEnabled}"
+          AshIntensity="{Binding OverlayEffects.AshIntensity}"
           SandEnabled="{Binding OverlayEffects.SandEnabled}"
           SandIntensity="{Binding OverlayEffects.SandIntensity}"
           FogEnabled="{Binding OverlayEffects.FogEnabled}"
@@ -89,6 +95,7 @@
           SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
           LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
           LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
+          LightningTrigger="{Binding OverlayEffects.LightningTrigger}"
           IsHitTestVisible="False" />
 
       <!-- Identify overlay -->
@@ -101,6 +108,7 @@
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center" />
       </Border>
-    </Grid>
+      </Grid>
+    </controls:QuakeShakeDecorator>
   </Border>
 </Window>

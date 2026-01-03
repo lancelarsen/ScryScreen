@@ -5,6 +5,8 @@ public sealed record OverlayEffectsState(
     double RainIntensity,
     bool SnowEnabled,
     double SnowIntensity,
+    bool AshEnabled,
+    double AshIntensity,
     bool SandEnabled,
     double SandIntensity,
     bool FogEnabled,
@@ -12,13 +14,19 @@ public sealed record OverlayEffectsState(
     bool SmokeEnabled,
     double SmokeIntensity,
     bool LightningEnabled,
-    double LightningIntensity)
+    double LightningIntensity,
+    bool QuakeEnabled,
+    double QuakeIntensity,
+    long LightningTrigger,
+    long QuakeTrigger)
 {
     public static readonly OverlayEffectsState None = new(
         RainEnabled: false,
         RainIntensity: 0,
         SnowEnabled: false,
         SnowIntensity: 0,
+        AshEnabled: false,
+        AshIntensity: 0,
         SandEnabled: false,
         SandIntensity: 0,
         FogEnabled: false,
@@ -26,5 +34,9 @@ public sealed record OverlayEffectsState(
         SmokeEnabled: false,
         SmokeIntensity: 0,
         LightningEnabled: false,
-        LightningIntensity: 0);
+        LightningIntensity: 0,
+        QuakeEnabled: false,
+        QuakeIntensity: 0,
+        LightningTrigger: 0,
+        QuakeTrigger: 0);
 }

@@ -261,16 +261,21 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (e.PropertyName is nameof(MediaItemViewModel.RainEnabled) or nameof(MediaItemViewModel.RainIntensity) or nameof(MediaItemViewModel.RainMin) or nameof(MediaItemViewModel.RainMax) or
             nameof(MediaItemViewModel.SnowEnabled) or nameof(MediaItemViewModel.SnowIntensity) or nameof(MediaItemViewModel.SnowMin) or nameof(MediaItemViewModel.SnowMax) or
+            nameof(MediaItemViewModel.AshEnabled) or nameof(MediaItemViewModel.AshIntensity) or nameof(MediaItemViewModel.AshMin) or nameof(MediaItemViewModel.AshMax) or
             nameof(MediaItemViewModel.SandEnabled) or nameof(MediaItemViewModel.SandIntensity) or nameof(MediaItemViewModel.SandMin) or nameof(MediaItemViewModel.SandMax) or
             nameof(MediaItemViewModel.FogEnabled) or nameof(MediaItemViewModel.FogIntensity) or nameof(MediaItemViewModel.FogMin) or nameof(MediaItemViewModel.FogMax) or
             nameof(MediaItemViewModel.SmokeEnabled) or nameof(MediaItemViewModel.SmokeIntensity) or nameof(MediaItemViewModel.SmokeMin) or nameof(MediaItemViewModel.SmokeMax) or
-            nameof(MediaItemViewModel.LightningEnabled) or nameof(MediaItemViewModel.LightningIntensity) or nameof(MediaItemViewModel.LightningMin) or nameof(MediaItemViewModel.LightningMax))
+            nameof(MediaItemViewModel.LightningEnabled) or nameof(MediaItemViewModel.LightningIntensity) or nameof(MediaItemViewModel.LightningMin) or nameof(MediaItemViewModel.LightningMax) or
+            nameof(MediaItemViewModel.QuakeEnabled) or nameof(MediaItemViewModel.QuakeIntensity) or nameof(MediaItemViewModel.QuakeMin) or nameof(MediaItemViewModel.QuakeMax))
         {
             ApplyEffectsToAssignedPortals();
         }
     }
 
-    private static OverlayEffectsState BuildEffectsState(MediaItemViewModel item)
+    private long _lightningTriggerNonce;
+    private long _quakeTriggerNonce;
+
+    private OverlayEffectsState BuildEffectsState(MediaItemViewModel item)
     {
         static double ClampMin0(double v)
         {
@@ -287,6 +292,8 @@ public partial class MainWindowViewModel : ViewModelBase
             RainIntensity: ClampMin0(item.RainIntensity),
             SnowEnabled: item.SnowEnabled,
             SnowIntensity: ClampMin0(item.SnowIntensity),
+            AshEnabled: item.AshEnabled,
+            AshIntensity: ClampMin0(item.AshIntensity),
             SandEnabled: item.SandEnabled,
             SandIntensity: ClampMin0(item.SandIntensity),
             FogEnabled: item.FogEnabled,
@@ -294,7 +301,11 @@ public partial class MainWindowViewModel : ViewModelBase
             SmokeEnabled: item.SmokeEnabled,
             SmokeIntensity: ClampMin0(item.SmokeIntensity),
             LightningEnabled: item.LightningEnabled,
-            LightningIntensity: ClampMin0(item.LightningIntensity));
+            LightningIntensity: ClampMin0(item.LightningIntensity),
+            QuakeEnabled: item.QuakeEnabled,
+            QuakeIntensity: ClampMin0(item.QuakeIntensity),
+                LightningTrigger: _lightningTriggerNonce,
+                QuakeTrigger: _quakeTriggerNonce);
     }
 
     private void ApplyEffectsToAssignedPortals()
@@ -316,6 +327,52 @@ public partial class MainWindowViewModel : ViewModelBase
                 portal.OverlayEffects = effects;
             }
         }
+    }
+
+    [RelayCommand]
+    private void TriggerLightning()
+    {
+        var selected = Media.SelectedItem;
+        if (selected is null)
+        {
+            return;
+        }
+
+        if (!selected.LightningEnabled)
+        {
+            selected.LightningEnabled = true;
+        }
+
+        if (selected.LightningIntensity < selected.LightningMin)
+        {
+            selected.LightningIntensity = selected.LightningMin;
+        }
+
+        _lightningTriggerNonce++;
+        ApplyEffectsToAssignedPortals();
+    }
+
+    [RelayCommand]
+    private void TriggerQuake()
+    {
+        var selected = Media.SelectedItem;
+        if (selected is null)
+        {
+            return;
+        }
+
+        if (!selected.QuakeEnabled)
+        {
+            selected.QuakeEnabled = true;
+        }
+
+        if (selected.QuakeIntensity < selected.QuakeMin)
+        {
+            selected.QuakeIntensity = selected.QuakeMin;
+        }
+
+        _quakeTriggerNonce++;
+        ApplyEffectsToAssignedPortals();
     }
 
     [RelayCommand]

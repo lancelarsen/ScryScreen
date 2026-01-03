@@ -207,41 +207,49 @@
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center"
                                                         ClipToBounds="True">
-                                                    <Grid>
-                                                        <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
-                                                               IsVisible="{Binding !HasMediaPreview}"
-                                                               Width="40"
-                                                               Height="40"
-                                                               Opacity="0.8"
-                                                               HorizontalAlignment="Center"
-                                                               VerticalAlignment="Center" />
+                                                    <controls:QuakeShakeDecorator
+                                                        QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
+                                                        QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
+                                                        QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}">
+                                                        <Grid>
+                                                            <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
+                                                                   IsVisible="{Binding !HasMediaPreview}"
+                                                                   Width="40"
+                                                                   Height="40"
+                                                                   Opacity="0.8"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center" />
 
-                                                            <Image Source="{Binding AssignedPreview}"
-                                                                    IsVisible="{Binding HasMediaPreview}"
-                                                                    Stretch="UniformToFill"
-                                                                    StretchDirection="Both"
-                                                                    HorizontalAlignment="Stretch"
-                                                                    VerticalAlignment="Stretch" />
+                                                                <Image Source="{Binding AssignedPreview}"
+                                                                        IsVisible="{Binding HasMediaPreview}"
+                                                                        Stretch="UniformToFill"
+                                                                        StretchDirection="Both"
+                                                                        HorizontalAlignment="Stretch"
+                                                                        VerticalAlignment="Stretch" />
 
-                                                        <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
-                                                                               MediaPlayer="{Binding PreviewVideoPlayer}" />
+                                                            <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
+                                                                                   MediaPlayer="{Binding PreviewVideoPlayer}" />
 
-                                                        <!-- Overlay effects preview (matches portal overlay) -->
-                                                        <controls:OverlayEffectsLayer
-                                                            RainEnabled="{Binding OverlayEffects.RainEnabled}"
-                                                            RainIntensity="{Binding OverlayEffects.RainIntensity}"
-                                                            SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
-                                                            SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
-                                                            SandEnabled="{Binding OverlayEffects.SandEnabled}"
-                                                            SandIntensity="{Binding OverlayEffects.SandIntensity}"
-                                                            FogEnabled="{Binding OverlayEffects.FogEnabled}"
-                                                            FogIntensity="{Binding OverlayEffects.FogIntensity}"
-                                                            SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
-                                                            SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
-                                                            LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
-                                                            LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
-                                                            IsHitTestVisible="False" />
-                                                    </Grid>
+                                                            <!-- Overlay effects preview (matches portal overlay) -->
+                                                            <controls:OverlayEffectsLayer
+                                                                RainEnabled="{Binding OverlayEffects.RainEnabled}"
+                                                                RainIntensity="{Binding OverlayEffects.RainIntensity}"
+                                                                SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
+                                                                SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
+                                                                AshEnabled="{Binding OverlayEffects.AshEnabled}"
+                                                                AshIntensity="{Binding OverlayEffects.AshIntensity}"
+                                                                SandEnabled="{Binding OverlayEffects.SandEnabled}"
+                                                                SandIntensity="{Binding OverlayEffects.SandIntensity}"
+                                                                FogEnabled="{Binding OverlayEffects.FogEnabled}"
+                                                                FogIntensity="{Binding OverlayEffects.FogIntensity}"
+                                                                SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
+                                                                SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
+                                                                LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
+                                                                LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
+                                                                LightningTrigger="{Binding OverlayEffects.LightningTrigger}"
+                                                                IsHitTestVisible="False" />
+                                                        </Grid>
+                                                    </controls:QuakeShakeDecorator>
                                                 </Border>
 
                                                 <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
@@ -310,6 +318,10 @@
                                                              StretchDirection="Both"
                                                              HorizontalAlignment="Stretch"
                                                              VerticalAlignment="Stretch">
+                                                        <controls:QuakeShakeDecorator
+                                                            QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
+                                                            QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
+                                                            QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}">
                                                         <Grid Width="{Binding MonitorPreviewScreenWidth}"
                                                               Height="{Binding MonitorPreviewScreenHeight}">
                                                             <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
@@ -349,6 +361,8 @@
                                                                         RainIntensity="{Binding OverlayEffects.RainIntensity}"
                                                                         SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
                                                                         SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
+                                                                        AshEnabled="{Binding OverlayEffects.AshEnabled}"
+                                                                        AshIntensity="{Binding OverlayEffects.AshIntensity}"
                                                                         SandEnabled="{Binding OverlayEffects.SandEnabled}"
                                                                         SandIntensity="{Binding OverlayEffects.SandIntensity}"
                                                                         FogEnabled="{Binding OverlayEffects.FogEnabled}"
@@ -357,10 +371,12 @@
                                                                         SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
                                                                         LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
                                                                         LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
+                                                                        LightningTrigger="{Binding OverlayEffects.LightningTrigger}"
                                                                         IsHitTestVisible="False" />
                                                                 </Canvas>
                                                             </Border>
                                                         </Grid>
+                                                        </controls:QuakeShakeDecorator>
                                                     </Viewbox>
                                                     </Grid>
                                                     </Border>
@@ -868,7 +884,7 @@
                                 </ToggleButton>
                             </Grid>
 
-                            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6" RowDefinitions="Auto" HorizontalAlignment="Left">
+                            <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="6" RowDefinitions="Auto" HorizontalAlignment="Left">
                             <!-- Column 1: Rain / Lightning / Fog -->
                             <StackPanel Grid.Column="0" Spacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -908,6 +924,14 @@
                                     Maximum="{Binding Media.SelectedItem.LightningMax}"
                                     Value="{Binding Media.SelectedItem.LightningIntensity, Mode=TwoWay}"
                                     VerticalAlignment="Center" />
+                                <Button Classes="circleSmall noAccent"
+                                        Width="28"
+                                        Height="28"
+                                        CornerRadius="14"
+                                        Command="{Binding TriggerLightningCommand}"
+                                        ToolTip.Tip="Trigger lightning flash">
+                                    <i:Icon Value="mdi-flash" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                </Button>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.LightningMax, Mode=TwoWay}" />
@@ -999,6 +1023,59 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Media.SelectedItem.SmokeMax, Mode=TwoWay}" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Column 3: Ash Rain / Quake -->
+                            <StackPanel Grid.Column="2" Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleButton Classes="circleSmall effectToggle"
+                                          IsChecked="{Binding Media.SelectedItem.AshEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="Ash Rain">
+                                    <i:Icon Value="mdi-weather-snowy" FontSize="18"
+                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.AshMin, Mode=TwoWay}" />
+                                <Slider Classes="portalTimeline"
+                                    Width="160"
+                                    Minimum="{Binding Media.SelectedItem.AshMin}"
+                                    Maximum="{Binding Media.SelectedItem.AshMax}"
+                                    Value="{Binding Media.SelectedItem.AshIntensity, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.AshMax, Mode=TwoWay}" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleButton Classes="circleSmall effectToggle"
+                                          IsChecked="{Binding Media.SelectedItem.QuakeEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="Quake">
+                                    <i:Icon Value="mdi-vibrate" FontSize="18"
+                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.QuakeMin, Mode=TwoWay}" />
+                                <Slider Classes="portalTimeline"
+                                    Width="160"
+                                    Minimum="{Binding Media.SelectedItem.QuakeMin}"
+                                    Maximum="{Binding Media.SelectedItem.QuakeMax}"
+                                    Value="{Binding Media.SelectedItem.QuakeIntensity, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                                <Button Classes="circleSmall noAccent"
+                                        Width="28"
+                                        Height="28"
+                                        CornerRadius="14"
+                                        Command="{Binding TriggerQuakeCommand}"
+                                        ToolTip.Tip="Trigger quake">
+                                    <i:Icon Value="mdi-vibrate" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                </Button>
+                                <TextBox Classes="sliderBound"
+                                         IsVisible="{Binding ShowEffectSliderBounds}"
+                                         Text="{Binding Media.SelectedItem.QuakeMax, Mode=TwoWay}" />
                                 </StackPanel>
                             </StackPanel>
                             </Grid>

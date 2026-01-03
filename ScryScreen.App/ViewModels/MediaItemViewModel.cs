@@ -115,6 +115,18 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private double snowIntensity = 0.5;
 
     [ObservableProperty]
+    private bool ashEnabled;
+
+    [ObservableProperty]
+    private double ashMin = 0.1;
+
+    [ObservableProperty]
+    private double ashMax = 4;
+
+    [ObservableProperty]
+    private double ashIntensity = 0.5;
+
+    [ObservableProperty]
     private bool sandEnabled;
 
     [ObservableProperty]
@@ -161,6 +173,18 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private double lightningIntensity = 0.35;
+
+    [ObservableProperty]
+    private bool quakeEnabled;
+
+    [ObservableProperty]
+    private double quakeMin = 0.1;
+
+    [ObservableProperty]
+    private double quakeMax = 5;
+
+    [ObservableProperty]
+    private double quakeIntensity = 0.35;
 
     private static double SanitizeNonNegative(double v)
     {
@@ -233,6 +257,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     partial void OnSnowMinChanged(double value) => NormalizeRange(() => SnowMin, v => SnowMin = v, () => SnowMax, v => SnowMax = v, () => SnowIntensity, v => SnowIntensity = v);
     partial void OnSnowMaxChanged(double value) => NormalizeRange(() => SnowMin, v => SnowMin = v, () => SnowMax, v => SnowMax = v, () => SnowIntensity, v => SnowIntensity = v);
 
+    partial void OnAshMinChanged(double value) => NormalizeRange(() => AshMin, v => AshMin = v, () => AshMax, v => AshMax = v, () => AshIntensity, v => AshIntensity = v);
+    partial void OnAshMaxChanged(double value) => NormalizeRange(() => AshMin, v => AshMin = v, () => AshMax, v => AshMax = v, () => AshIntensity, v => AshIntensity = v);
+
     partial void OnSandMinChanged(double value) => NormalizeRange(() => SandMin, v => SandMin = v, () => SandMax, v => SandMax = v, () => SandIntensity, v => SandIntensity = v);
     partial void OnSandMaxChanged(double value) => NormalizeRange(() => SandMin, v => SandMin = v, () => SandMax, v => SandMax = v, () => SandIntensity, v => SandIntensity = v);
 
@@ -244,6 +271,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     partial void OnLightningMinChanged(double value) => NormalizeRange(() => LightningMin, v => LightningMin = v, () => LightningMax, v => LightningMax = v, () => LightningIntensity, v => LightningIntensity = v);
     partial void OnLightningMaxChanged(double value) => NormalizeRange(() => LightningMin, v => LightningMin = v, () => LightningMax, v => LightningMax = v, () => LightningIntensity, v => LightningIntensity = v);
+
+    partial void OnQuakeMinChanged(double value) => NormalizeRange(() => QuakeMin, v => QuakeMin = v, () => QuakeMax, v => QuakeMax = v, () => QuakeIntensity, v => QuakeIntensity = v);
+    partial void OnQuakeMaxChanged(double value) => NormalizeRange(() => QuakeMin, v => QuakeMin = v, () => QuakeMax, v => QuakeMax = v, () => QuakeIntensity, v => QuakeIntensity = v);
 
     partial void OnThumbnailChanged(Bitmap? value)
     {
