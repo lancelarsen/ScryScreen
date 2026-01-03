@@ -61,10 +61,38 @@ public sealed class OverlayEffectsLayer : Control
         SpreadMethod = GradientSpreadMethod.Repeat,
         GradientStops = new GradientStops
         {
+            // More bands = better full-height coverage.
+            // Keep soft shoulders so the sheets feel puffy rather than like hard stripes.
             new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.00),
-            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.18),
-            new GradientStop(Color.FromArgb(255, 255, 255, 255), 0.34),
-            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.52),
+
+            // Band 1
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.06),
+            new GradientStop(Color.FromArgb(170, 255, 255, 255), 0.10),
+            new GradientStop(Color.FromArgb(255, 255, 255, 255), 0.14),
+            new GradientStop(Color.FromArgb(120, 255, 255, 255), 0.18),
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.22),
+
+            // Band 2
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.30),
+            new GradientStop(Color.FromArgb(155, 255, 255, 255), 0.34),
+            new GradientStop(Color.FromArgb(245, 255, 255, 255), 0.39),
+            new GradientStop(Color.FromArgb(110, 255, 255, 255), 0.44),
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.48),
+
+            // Band 3
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.56),
+            new GradientStop(Color.FromArgb(165, 255, 255, 255), 0.60),
+            new GradientStop(Color.FromArgb(255, 255, 255, 255), 0.65),
+            new GradientStop(Color.FromArgb(125, 255, 255, 255), 0.70),
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.74),
+
+            // Band 4
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.80),
+            new GradientStop(Color.FromArgb(150, 255, 255, 255), 0.84),
+            new GradientStop(Color.FromArgb(235, 255, 255, 255), 0.89),
+            new GradientStop(Color.FromArgb(100, 255, 255, 255), 0.93),
+            new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.97),
+
             new GradientStop(Color.FromArgb(0, 255, 255, 255), 1.00),
         }
     };
