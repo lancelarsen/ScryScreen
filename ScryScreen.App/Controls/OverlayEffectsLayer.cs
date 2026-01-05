@@ -258,14 +258,16 @@ public sealed class OverlayEffectsLayer : Control
 
     private static double FireRegionHeight(double h, double density)
     {
-        // Density is allowed to exceed 1.0 (overdrive up to ~5). We map 0.1..5 => 0..1,
-        // and use a curve that grows the flame region substantially as intensity rises.
+        // Density is allowed to exceed 1.0 (overdrive up to ~5). We map 0.1..5 => 0..1.
+        // IMPORTANT: Fire should read as bottom-anchored "flashes" rather than filling the
+        // entire portal at higher values. Keep the region relatively shallow and make higher
+        // intensities feel stronger via motion + particle count, not height.
         var cappedDensity = Math.Min(ClampMin0(density), 5.0);
         var t = Clamp01((cappedDensity - 0.1) / 4.9);
 
-        // 10%..92% of portal height; slightly favor the high end.
-        var frac = 0.10 + (0.82 * Math.Pow(t, 0.85));
-        return h * Math.Clamp(frac, 0.10, 0.92);
+        // 12%..30% of portal height; slight growth at high intensity.
+        var frac = 0.12 + (0.18 * Math.Pow(t, 0.90));
+        return h * Math.Clamp(frac, 0.12, 0.30);
     }
 
     private static double ClampMin0(double v)
@@ -842,22 +844,45 @@ public sealed class OverlayEffectsLayer : Control
 
         var cappedDensity = Math.Min(density, 5.0);
         var t = Clamp01((cappedDensity - 0.1) / 4.9);
-        var ease = t * t;
 
-        // Keep the base pinned to the bottom, but allow the fire to grow much taller.
+        // Keep the base pinned to the bottom.
         var fireHeight = FireRegionHeight(h, density);
         var topLimit = h - fireHeight;
 
-        // Make flames much smaller but increase count more aggressively with intensity.
-        // Use a non-linear curve so high intensities really pack in detail.
-        var puffCurve = Math.Pow(t, 1.4);
-        var emberCurve = Math.Pow(t, 1.3);
-        var targetPuffs = (int)(18 + (420 * puffCurve));
-        var targetEmbers = (int)(80 + (650 * emberCurve));
+        // Always keep a dense "base" band of flames near the bottom; as intensity rises,
+        // add more puffs that reach higher (within the fire region) rather than lifting the base.
+        var baseTopLimit = h - (fireHeight * 0.60);
 
-        while (_fire.Count < targetPuffs)
+        // Keep the region shallow; drive perceived intensity through volume + motion.
+        // Use a non-linear curve so high intensities really pack in detail.
+        var puffCurve = Math.Pow(t, 1.35);
+        var emberCurve = Math.Pow(t, 1.25);
+        var targetPuffs = (int)(28 + (720 * puffCurve));
+        var targetEmbers = (int)(120 + (1100 * emberCurve));
+
+        // Upper-layer puffs increase as the fire height grows; base puffs remain dense.
+        var upperFrac = Math.Clamp(0.20 + (0.55 * t), 0.20, 0.80);
+        var targetUpperPuffs = (int)Math.Round(targetPuffs * upperFrac);
+        var targetBasePuffs = Math.Max(0, targetPuffs - targetUpperPuffs);
+
+        var baseCount = 0;
+        var upperCount = 0;
+        for (var i = 0; i < _fire.Count; i++)
         {
-            _fire.Add(FirePuff.Create(_rng, w, h, baseLevel: t));
+            if (_fire[i].IsBaseLayer) baseCount++;
+            else upperCount++;
+        }
+
+        while (baseCount < targetBasePuffs)
+        {
+            _fire.Add(FirePuff.Create(_rng, w, h, baseLevel: t, baseLayer: true));
+            baseCount++;
+        }
+
+        while (upperCount < targetUpperPuffs)
+        {
+            _fire.Add(FirePuff.Create(_rng, w, h, baseLevel: t, baseLayer: false));
+            upperCount++;
         }
 
         while (_embers.Count < targetEmbers)
@@ -871,17 +896,20 @@ public sealed class OverlayEffectsLayer : Control
             var p = _fire[i];
             p.Age += dt;
 
-            // Gentle flicker + upward drift.
-            var flicker = 0.75 + (0.25 * Math.Sin((_timeSeconds * 7.5) + p.Phase));
+            // More vigorous flicker as intensity rises.
+            var flickerFreq = 8.5 + (6.5 * t);
+            var flicker = 0.65 + (0.35 * Math.Sin((_timeSeconds * flickerFreq) + p.Phase));
             p.X += p.Vx * dt;
             p.Y += p.Vy * dt;
-            p.X += Math.Sin((p.Y / 32.0) + p.Phase) * dt * (18 + (22 * t));
-            p.R *= 0.9992; // slow shrink
+            p.X += Math.Sin((p.Y / 30.0) + p.Phase) * dt * (22 + (42 * t));
+            p.R *= 0.9990; // slow shrink
 
-            // Respawn if it goes too high / too small.
-            if (p.Y + p.R < topLimit - 45 || p.R < 6)
+            var layerTopLimit = p.IsBaseLayer ? baseTopLimit : topLimit;
+
+            // Respawn if it goes above its layer / too small.
+            if (p.Y + p.R < layerTopLimit - 20 || p.R < 6)
             {
-                _fire[i] = FirePuff.Create(_rng, w, h, baseLevel: t);
+                _fire[i] = FirePuff.Create(_rng, w, h, baseLevel: t, baseLayer: p.IsBaseLayer);
                 continue;
             }
 
@@ -893,7 +921,10 @@ public sealed class OverlayEffectsLayer : Control
             _fire[i] = p;
         }
 
-        // Update embers.
+        // Update embers. Embers should rise ~2x the fire height.
+        var emberHeight = Math.Min(h, fireHeight * 2.0);
+        var emberTopLimit = h - emberHeight;
+
         for (var i = _embers.Count - 1; i >= 0; i--)
         {
             var e = _embers[i];
@@ -905,8 +936,8 @@ public sealed class OverlayEffectsLayer : Control
             // Cool + fade as it rises.
             e.Heat = Math.Max(0, e.Heat - (dt * (0.18 + (0.22 * t))));
 
-            // Respawn if out of bounds / cooled out.
-            if (e.Y + 40 < topLimit || e.Y < -120 || e.Heat <= 0.02)
+            // Respawn if it rises above the ember region / cooled out.
+            if (e.Y + 40 < emberTopLimit - 20 || e.Y < -120 || e.Heat <= 0.02)
             {
                 _embers[i] = Ember.Create(_rng, w, h, baseLevel: t);
                 continue;
@@ -918,6 +949,7 @@ public sealed class OverlayEffectsLayer : Control
             _embers[i] = e;
         }
 
+        // Trim any extras (in case of large target swings).
         if (_fire.Count > targetPuffs)
         {
             _fire.RemoveRange(targetPuffs, _fire.Count - targetPuffs);
@@ -1623,6 +1655,8 @@ public sealed class OverlayEffectsLayer : Control
             // Must match UpdateFire() so flames don't get faded out due to a mismatched topLimit.
             var fireHeight = FireRegionHeight(h, density);
             var topLimit = h - fireHeight;
+            var emberHeight = Math.Min(h, fireHeight * 2.0);
+            var emberTopLimit = h - emberHeight;
 
             // Subtle bottom-anchored glow so the fire reads as "pinned" even at low intensity.
             // This also ramps intensity in a way that feels more responsive to the slider.
@@ -1674,7 +1708,7 @@ public sealed class OverlayEffectsLayer : Control
             // Embers
             foreach (var e in _embers)
             {
-                var fade = 1.0 - SmoothStep(topLimit - 55, topLimit + 220, e.Y);
+                var fade = 1.0 - SmoothStep(emberTopLimit - 55, emberTopLimit + 220, e.Y);
                 if (fade <= 0.001)
                 {
                     continue;
@@ -1765,25 +1799,32 @@ public sealed class OverlayEffectsLayer : Control
         public double Alpha = alpha;
         public double Phase = phase;
 
+        public bool IsBaseLayer;
+
         public double Flicker;
         public double Age;
 
-        public static FirePuff Create(Random rng, double w, double h, double baseLevel)
+        public static FirePuff Create(Random rng, double w, double h, double baseLevel, bool baseLayer)
         {
-            var r = 14 + (rng.NextDouble() * (26 + (16 * baseLevel)));
+            var r = 12 + (rng.NextDouble() * (22 + (18 * baseLevel)));
             var x = rng.NextDouble() * w;
             // Always spawn from the bottom edge. Intensity should only make the fire taller,
             // not shift its base upward.
-            var baseBand = h * 0.10; // constant spawn thickness near the bottom
-            var y = (h - (rng.NextDouble() * baseBand)) + (rng.NextDouble() * 35);
+            var baseBand = h * 0.09; // constant spawn thickness near the bottom
+            var y = (h - (rng.NextDouble() * baseBand)) + (rng.NextDouble() * 28);
 
-            var vx = (-22 + rng.NextDouble() * 44);
-            var vy = -(28 + (rng.NextDouble() * (55 + (70 * baseLevel))));
+            var vigor = 0.85 + (0.95 * baseLevel);
+            var vx = (-28 + rng.NextDouble() * 56) * vigor * (baseLayer ? 0.85 : 1.05);
 
-            var a = 0.08 + (rng.NextDouble() * (0.10 + (0.10 * baseLevel)));
+            // Base layer stays lower; upper layer reaches higher (within the fire region).
+            var vy = baseLayer
+                ? -(34 + (rng.NextDouble() * (55 + (95 * baseLevel))))
+                : -(50 + (rng.NextDouble() * (95 + (180 * baseLevel))));
+
+            var a = 0.07 + (rng.NextDouble() * (0.11 + (0.12 * baseLevel)));
             var phase = rng.NextDouble() * Math.PI * 2.0;
 
-            return new FirePuff(x, y, vx, vy, r, a, phase) { Flicker = 1.0, Age = 0 };
+            return new FirePuff(x, y, vx, vy, r, a, phase) { Flicker = 1.0, Age = 0, IsBaseLayer = baseLayer };
         }
     }
 
@@ -1806,10 +1847,10 @@ public sealed class OverlayEffectsLayer : Control
             // Always originate from the bottom edge.
             var baseBand = h * 0.08;
             var y = h - (rng.NextDouble() * baseBand) + (rng.NextDouble() * 30);
-            var vx = (-30 + rng.NextDouble() * 60);
-            var vy = -(55 + (rng.NextDouble() * (90 + (140 * baseLevel))));
-            var r = 0.7 + (rng.NextDouble() * (1.2 + (0.6 * baseLevel)));
-            var a = 0.10 + (rng.NextDouble() * (0.22 + (0.16 * baseLevel)));
+            var vx = (-36 + rng.NextDouble() * 72) * (0.90 + (0.60 * baseLevel));
+            var vy = -(65 + (rng.NextDouble() * (120 + (170 * baseLevel))));
+            var r = 0.65 + (rng.NextDouble() * (1.15 + (0.75 * baseLevel)));
+            var a = 0.09 + (rng.NextDouble() * (0.22 + (0.20 * baseLevel)));
             var heat = 0.55 + (rng.NextDouble() * 0.45);
             var phase = rng.NextDouble() * Math.PI * 2.0;
 
