@@ -29,8 +29,10 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     private int _videoPixelH;
     private bool _isUpdatingFromPlayer;
 
-    private const double MonitorPreviewOuterW = 120;
-    private const double MonitorPreviewOuterH = 60;
+    // Matches the fixed monitor preview tile area in MainWindow.axaml:
+    // 170x100 with Padding=6 => inner ~158x88.
+    private const double MonitorPreviewOuterW = 158;
+    private const double MonitorPreviewOuterH = 88;
 
     public event Action<int>? DeleteRequested;
 

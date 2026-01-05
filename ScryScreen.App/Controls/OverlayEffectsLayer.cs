@@ -13,6 +13,10 @@ namespace ScryScreen.App.Controls;
 
 public sealed class OverlayEffectsLayer : Control
 {
+    private const double ReferenceViewportWidth = 1920.0;
+    private const double ReferenceViewportHeight = 1080.0;
+    private const double ReferenceViewportArea = ReferenceViewportWidth * ReferenceViewportHeight;
+
     // Larger tiles reduce visible repetition and help hide any residual tiling artifacts.
     private const int FogTileSize = 512;
     private const int FogLayerCount = 4;
@@ -255,6 +259,32 @@ public sealed class OverlayEffectsLayer : Control
     }
 
     private static double Clamp01(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
+
+    private static double ParticleCountScale(double w, double h)
+    {
+        // Effects were tuned for a ~1080p portal. When rendered in small UI previews,
+        // fixed particle targets become massively denser and can visually “fill” the portal.
+        // Scale targets by viewport area so previews match the full portal look.
+        var area = Math.Max(1.0, w) * Math.Max(1.0, h);
+        var s = area / ReferenceViewportArea;
+
+        // Allow tiny scales for thumbnails; cap large scales to avoid runaway allocations.
+        return Math.Clamp(s, 0.0025, 4.0);
+    }
+
+    private static double ViewportScale(double w, double h)
+    {
+        // Scale lengths/speeds so particle sizes feel consistent across vastly different
+        // viewports (full portal vs tiny tile preview). Clamp to avoid growing particles
+        // on very large portals; we only want to shrink for previews.
+        var wr = Math.Max(1.0, w) / ReferenceViewportWidth;
+        var hr = Math.Max(1.0, h) / ReferenceViewportHeight;
+        var ratio = Math.Min(wr, hr);
+
+        // Slightly soften the shrink so the smallest previews still read clearly.
+        var s = Math.Pow(ratio, 0.85);
+        return Math.Clamp(s, 0.05, 1.0);
+    }
 
     private static double FireRegionHeight(double h, double density)
     {
@@ -698,15 +728,16 @@ public sealed class OverlayEffectsLayer : Control
 
         // 10x baseline * 3x requested boost.
         // For 0..1, keep the same curve behavior; above 1, scale density linearly.
+        var sizeScale = ViewportScale(w, h);
         var scale = density <= 1 ? 1 : Math.Min(density, 50);
-        var target = (int)(3600 * DensityCurveCubic(level) * scale);
+        var target = (int)(3600 * DensityCurveCubic(level) * scale * ParticleCountScale(w, h));
         while (_rain.Count < target)
         {
             _rain.Add(new RainDrop(
                 x: _rng.NextDouble() * w,
                 y: _rng.NextDouble() * h,
-                vy: 900 + (_rng.NextDouble() * 700),
-                len: 10 + (_rng.NextDouble() * 18),
+            vy: (900 + (_rng.NextDouble() * 700)) * sizeScale,
+            len: Math.Max(2.0, (10 + (_rng.NextDouble() * 18)) * sizeScale),
                 alpha: 0.10 + (_rng.NextDouble() * 0.18)));
         }
 
@@ -741,16 +772,17 @@ public sealed class OverlayEffectsLayer : Control
 
         // 10x baseline * 3x requested boost.
         // For 0..1, keep the same curve behavior; above 1, scale density linearly.
+        var sizeScale = ViewportScale(w, h);
         var scale = density <= 1 ? 1 : Math.Min(density, 50);
-        var target = (int)(2700 * DensityCurveCubic(level) * scale);
+        var target = (int)(2700 * DensityCurveCubic(level) * scale * ParticleCountScale(w, h));
         while (_snow.Count < target)
         {
             _snow.Add(new SnowFlake(
                 x: _rng.NextDouble() * w,
                 y: _rng.NextDouble() * h,
-                vx: -25 + _rng.NextDouble() * 50,
-                vy: 35 + _rng.NextDouble() * 80,
-                r: 1.0 + _rng.NextDouble() * 2.2,
+            vx: (-25 + _rng.NextDouble() * 50) * sizeScale,
+            vy: (35 + _rng.NextDouble() * 80) * sizeScale,
+            r: Math.Max(0.6, (1.0 + _rng.NextDouble() * 2.2) * sizeScale),
                 alpha: 0.10 + _rng.NextDouble() * 0.18));
         }
 
@@ -761,7 +793,7 @@ public sealed class OverlayEffectsLayer : Control
             f.Y += f.Vy * dt;
 
             // slight wobble
-            f.X += Math.Sin((f.Y / 25.0) + i) * dt * 12;
+            f.X += Math.Sin((f.Y / 25.0) + i) * dt * (12 * sizeScale);
 
             if (f.Y - f.R > h)
             {
@@ -792,16 +824,17 @@ public sealed class OverlayEffectsLayer : Control
         }
 
         // Similar to snow, but slightly slower and smaller flakes.
+        var sizeScale = ViewportScale(w, h);
         var scale = density <= 1 ? 1 : Math.Min(density, 50);
-        var target = (int)(2200 * DensityCurveCubic(level) * scale);
+        var target = (int)(2200 * DensityCurveCubic(level) * scale * ParticleCountScale(w, h));
         while (_ash.Count < target)
         {
             _ash.Add(new SnowFlake(
                 x: _rng.NextDouble() * w,
                 y: _rng.NextDouble() * h,
-                vx: -18 + _rng.NextDouble() * 36,
-                vy: 25 + _rng.NextDouble() * 65,
-                r: 0.9 + _rng.NextDouble() * 1.8,
+            vx: (-18 + _rng.NextDouble() * 36) * sizeScale,
+            vy: (25 + _rng.NextDouble() * 65) * sizeScale,
+            r: Math.Max(0.55, (0.9 + _rng.NextDouble() * 1.8) * sizeScale),
                 alpha: 0.10 + _rng.NextDouble() * 0.18));
         }
 
@@ -812,7 +845,7 @@ public sealed class OverlayEffectsLayer : Control
             f.Y += f.Vy * dt;
 
             // Gentle wobble.
-            f.X += Math.Sin((f.Y / 28.0) + i) * dt * 10;
+            f.X += Math.Sin((f.Y / 28.0) + i) * dt * (10 * sizeScale);
 
             if (f.Y - f.R > h)
             {
@@ -845,6 +878,8 @@ public sealed class OverlayEffectsLayer : Control
         var cappedDensity = Math.Min(density, 5.0);
         var t = Clamp01((cappedDensity - 0.1) / 4.9);
 
+        var sizeScale = ViewportScale(w, h);
+
         // Movement should start at 0 (no drift) and increase as intensity rises.
         // This keeps the flame base visually anchored while still letting high intensities feel alive.
         var motion = Math.Pow(t, 1.15);
@@ -862,10 +897,17 @@ public sealed class OverlayEffectsLayer : Control
         // Use a non-linear curve so high intensities really pack in detail.
         var puffCurve = Math.Pow(t, 1.35);
         var emberCurve = Math.Pow(t, 1.25);
+        var particleScale = ParticleCountScale(w, h);
+
         // Tripled intensity-driven density so high values feel much fuller.
-        var targetPuffs = (int)(28 + (2160 * puffCurve));
-            // Embers need to read clearly through the puffs; keep them substantially more numerous.
-            var targetEmbers = (int)(180 + (3200 * emberCurve));
+        var targetPuffs = (int)((28 + (2160 * puffCurve)) * particleScale);
+
+        // Embers need to read clearly through the puffs; keep them substantially more numerous.
+        var targetEmbers = (int)((180 + (3200 * emberCurve)) * particleScale);
+
+        // Avoid a completely dead look in tiny previews.
+        targetPuffs = Math.Max(targetPuffs, (int)Math.Round(4 + (18 * Math.Sqrt(t))));
+        targetEmbers = Math.Max(targetEmbers, (int)Math.Round(12 + (80 * Math.Sqrt(t))));
 
         // Upper-layer puffs increase as intensity rises, but keep a strong base presence
         // so the flames always originate at the bottom.
@@ -891,19 +933,19 @@ public sealed class OverlayEffectsLayer : Control
 
         while (baseCount < targetBasePuffs)
         {
-            _fire.Add(FirePuff.Create(_rng, w, h, baseLevel: t, baseLayer: true));
+            _fire.Add(FirePuff.Create(_rng, w, h, sizeScale, baseLevel: t, baseLayer: true));
             baseCount++;
         }
 
         while (upperCount < targetUpperPuffs)
         {
-            _fire.Add(FirePuff.Create(_rng, w, h, baseLevel: t, baseLayer: false));
+            _fire.Add(FirePuff.Create(_rng, w, h, sizeScale, baseLevel: t, baseLayer: false));
             upperCount++;
         }
 
         while (_embers.Count < targetEmbers)
         {
-            _embers.Add(Ember.Create(_rng, w, h, baseLevel: t));
+            _embers.Add(Ember.Create(_rng, w, h, sizeScale, baseLevel: t));
         }
 
         // Update flame puffs.
@@ -918,7 +960,7 @@ public sealed class OverlayEffectsLayer : Control
 
             p.X += p.Vx * dt * motion;
             p.Y += p.Vy * dt * motion;
-            p.X += Math.Sin((p.Y / 30.0) + p.Phase) * dt * (22 + (42 * t)) * motion;
+            p.X += Math.Sin((p.Y / 30.0) + p.Phase) * dt * ((22 + (42 * t)) * sizeScale) * motion;
             p.R *= 0.9990; // slow shrink
 
             var layerTopLimit = p.IsBaseLayer ? baseTopLimit : topLimit;
@@ -926,7 +968,7 @@ public sealed class OverlayEffectsLayer : Control
             // Respawn if it goes above its layer / too small.
             if (p.Y + p.R < layerTopLimit - 20 || p.R < 6)
             {
-                _fire[i] = FirePuff.Create(_rng, w, h, baseLevel: t, baseLayer: p.IsBaseLayer);
+                _fire[i] = FirePuff.Create(_rng, w, h, sizeScale, baseLevel: t, baseLayer: p.IsBaseLayer);
                 continue;
             }
 
@@ -948,7 +990,7 @@ public sealed class OverlayEffectsLayer : Control
             e.Age += dt;
             e.X += e.Vx * dt * motion;
             e.Y += e.Vy * dt * motion;
-            e.X += Math.Sin((_timeSeconds * 3.5) + e.Phase) * dt * 12 * motion;
+            e.X += Math.Sin((_timeSeconds * 3.5) + e.Phase) * dt * (12 * sizeScale) * motion;
 
             // Cool + fade as it rises.
             e.Heat = Math.Max(0, e.Heat - (dt * (0.18 + (0.22 * t)) * motion));
@@ -956,7 +998,7 @@ public sealed class OverlayEffectsLayer : Control
             // Respawn if it rises above the ember region / cooled out.
             if (e.Y + 40 < emberTopLimit - 20 || e.Y < -120 || e.Heat <= 0.02)
             {
-                _embers[i] = Ember.Create(_rng, w, h, baseLevel: t);
+                _embers[i] = Ember.Create(_rng, w, h, sizeScale, baseLevel: t);
                 continue;
             }
 
@@ -991,11 +1033,12 @@ public sealed class OverlayEffectsLayer : Control
         // A sand storm is a lot of small, fast streaks.
         // Keep it dense but still performant.
         // 10x baseline * 3x requested boost.
+        var sizeScale = ViewportScale(w, h);
         var scale = density <= 1 ? 1 : Math.Min(density, 50);
-        var target = (int)(4200 * (0.20 + (2.20 * level * level)) * scale);
+        var target = (int)(4200 * (0.20 + (2.20 * level * level)) * scale * ParticleCountScale(w, h));
         while (_sand.Count < target)
         {
-            var speed = 420 + (_rng.NextDouble() * 780);
+            var speed = (420 + (_rng.NextDouble() * 780)) * sizeScale;
             // Mostly right-to-left with a slight downward component.
             var vx = -(speed * (0.85 + _rng.NextDouble() * 0.25));
             var vy = speed * (0.05 + _rng.NextDouble() * 0.20);
@@ -1005,7 +1048,7 @@ public sealed class OverlayEffectsLayer : Control
                 y: _rng.NextDouble() * h,
                 vx: vx,
                 vy: vy,
-                len: 6 + (_rng.NextDouble() * 16),
+                len: Math.Max(2.0, (6 + (_rng.NextDouble() * 16)) * sizeScale),
                 alpha: 0.06 + (_rng.NextDouble() * 0.16)));
         }
 
@@ -1016,7 +1059,7 @@ public sealed class OverlayEffectsLayer : Control
             g.Y += g.Vy * dt;
 
             // A little gusty wobble.
-            g.Y += Math.Sin((g.X / 60.0) + i) * dt * (40 * level);
+            g.Y += Math.Sin((g.X / 60.0) + i) * dt * ((40 * level) * sizeScale);
 
             if (g.X + g.Len < -80 || g.Y - g.Len > h + 80)
             {
@@ -1044,13 +1087,15 @@ public sealed class OverlayEffectsLayer : Control
             return;
         }
 
+        var sizeScale = ViewportScale(w, h);
+
         // 3x volume requested.
         // Above 1, add more flowing layers (cap to avoid runaway allocations).
         var scale = density <= 1 ? 1 : Math.Min(density, 8);
         var target = (int)((18 + (30 * level)) * scale);
         while (_fog.Count < target)
         {
-            _fog.Add(HazePuff.Create(_rng, w, h, upward: false, dark: false));
+            _fog.Add(HazePuff.Create(_rng, w, h, sizeScale, upward: false, dark: false));
         }
 
         // Movement scales with intensity; above 1.0, increase speed/flow noticeably.
@@ -1066,15 +1111,15 @@ public sealed class OverlayEffectsLayer : Control
 
             // Add a bit of swirly drift so it doesn't read as straight translation.
             var t = _timeSeconds;
-            var swirl = Math.Sin((t * 0.45) + (i * 0.37)) * (10 + (40 * level));
-            var swirl2 = Math.Cos((t * 0.32) + (i * 0.51)) * (8 + (30 * level));
+            var swirl = Math.Sin((t * 0.45) + (i * 0.37)) * ((10 + (40 * level)) * sizeScale);
+            var swirl2 = Math.Cos((t * 0.32) + (i * 0.51)) * ((8 + (30 * level)) * sizeScale);
 
             p.X += ((p.Vx * speedScale) + swirl) * dt;
             p.Y += ((p.Vy * speedScale) + (swirl2 * 0.35)) * dt;
 
             // Wrap with generous margins so there are always puffs partly off-screen.
-            var mx = p.R + 260;
-            var my = p.R + 280;
+            var mx = p.R + (260 * sizeScale);
+            var my = p.R + (280 * sizeScale);
             if (p.X < -mx) p.X = w + mx;
             if (p.X > w + mx) p.X = -mx;
             if (p.Y < -my) p.Y = h + my;
@@ -1099,12 +1144,14 @@ public sealed class OverlayEffectsLayer : Control
             return;
         }
 
+        var sizeScale = ViewportScale(w, h);
+
         // Above 1, add more puffs (cap to avoid runaway allocations).
         var scale = density <= 1 ? 1 : Math.Min(density, 6);
         var target = (int)((12 + (20 * level)) * scale);
         while (_smoke.Count < target)
         {
-            var p = HazePuff.Create(_rng, w, h, upward: true, dark: true);
+            var p = HazePuff.Create(_rng, w, h, sizeScale, upward: true, dark: true);
             var pad = p.R * 0.70;
             p.X = (-pad) + (_rng.NextDouble() * (w + (pad * 2)));
             p.Y = h + (_rng.NextDouble() * (h * 0.25)) + pad;
@@ -1122,20 +1169,20 @@ public sealed class OverlayEffectsLayer : Control
             var p = _smoke[i];
 
             var t = _timeSeconds;
-            var swirl = Math.Sin((t * 0.55) + (i * 0.41)) * (10 + (55 * level));
-            var swirl2 = Math.Cos((t * 0.38) + (i * 0.57)) * (9 + (45 * level));
+            var swirl = Math.Sin((t * 0.55) + (i * 0.41)) * ((10 + (55 * level)) * sizeScale);
+            var swirl2 = Math.Cos((t * 0.38) + (i * 0.57)) * ((9 + (45 * level)) * sizeScale);
 
             // Upward drift + sideways billow.
             p.X += ((p.Vx * 0.70 * speedScale) + (swirl * 0.75)) * dt;
             p.Y += ((p.Vy * 1.15 * speedScale) - (Math.Abs(swirl2) * 0.55)) * dt;
 
             // Billow/expand as it rises and gradually thin.
-            p.R += dt * ((10 + (_rng.NextDouble() * 18)) * (0.65 + (0.85 * level)));
+            p.R += dt * (((10 + (_rng.NextDouble() * 18)) * sizeScale) * (0.65 + (0.85 * level)));
             p.Alpha = Math.Max(0, p.Alpha - dt * (0.008 + ((1 - level) * 0.018)));
 
-            if (p.Alpha <= 0 || p.Y + p.R < -240)
+            if (p.Alpha <= 0 || p.Y + p.R < (-240 * sizeScale))
             {
-                var np = HazePuff.Create(_rng, w, h, upward: true, dark: true);
+                var np = HazePuff.Create(_rng, w, h, sizeScale, upward: true, dark: true);
                 var pad = np.R * 0.70;
                 np.X = (-pad) + (_rng.NextDouble() * (w + (pad * 2)));
                 np.Y = h + (_rng.NextDouble() * (h * 0.25)) + pad;
@@ -1143,7 +1190,7 @@ public sealed class OverlayEffectsLayer : Control
                 continue;
             }
 
-            var mx = p.R + 220;
+            var mx = p.R + (220 * sizeScale);
             if (p.X < -mx) p.X = w + mx;
             if (p.X > w + mx) p.X = -mx;
 
@@ -1803,9 +1850,9 @@ public sealed class OverlayEffectsLayer : Control
         public double Flicker;
         public double Age;
 
-        public static FirePuff Create(Random rng, double w, double h, double baseLevel, bool baseLayer)
+        public static FirePuff Create(Random rng, double w, double h, double sizeScale, double baseLevel, bool baseLayer)
         {
-            var r = 12 + (rng.NextDouble() * (22 + (18 * baseLevel)));
+            var r = Math.Max(2.0, (12 + (rng.NextDouble() * (22 + (18 * baseLevel)))) * sizeScale);
             var x = rng.NextDouble() * w;
 
             // Always spawn from the bottom edge.
@@ -1815,12 +1862,14 @@ public sealed class OverlayEffectsLayer : Control
             var y = h + (ry * (0.05 + (rng.NextDouble() * 0.25)));
 
             var vigor = 0.85 + (0.95 * baseLevel);
-            var vx = (-28 + rng.NextDouble() * 56) * vigor * (baseLayer ? 0.85 : 1.05);
+            var vx = ((-28 + rng.NextDouble() * 56) * vigor * (baseLayer ? 0.85 : 1.05)) * sizeScale;
 
             // Base layer stays lower; upper layer reaches higher (within the fire region).
             var vy = baseLayer
-                ? -(24 + (rng.NextDouble() * (42 + (78 * baseLevel))))
-                : -(38 + (rng.NextDouble() * (80 + (150 * baseLevel))));
+                ? -((24 + (rng.NextDouble() * (42 + (78 * baseLevel)))))
+                : -((38 + (rng.NextDouble() * (80 + (150 * baseLevel)))));
+
+            vy *= sizeScale;
 
             var a = 0.07 + (rng.NextDouble() * (0.11 + (0.12 * baseLevel)));
             var phase = rng.NextDouble() * Math.PI * 2.0;
@@ -1842,12 +1891,12 @@ public sealed class OverlayEffectsLayer : Control
 
         public double Age;
 
-        public static Ember Create(Random rng, double w, double h, double baseLevel)
+        public static Ember Create(Random rng, double w, double h, double sizeScale, double baseLevel)
         {
             var x = rng.NextDouble() * w;
-            var vx = (-36 + rng.NextDouble() * 72) * (0.90 + (0.60 * baseLevel));
-            var vy = -(65 + (rng.NextDouble() * (120 + (170 * baseLevel))));
-            var r = 0.65 + (rng.NextDouble() * (1.15 + (0.75 * baseLevel)));
+            var vx = ((-36 + rng.NextDouble() * 72) * (0.90 + (0.60 * baseLevel))) * sizeScale;
+            var vy = (-(65 + (rng.NextDouble() * (120 + (170 * baseLevel))))) * sizeScale;
+            var r = Math.Max(0.7, (0.65 + (rng.NextDouble() * (1.15 + (0.75 * baseLevel)))) * sizeScale);
 
             // Always originate at the bottom edge (spawn slightly below so dots don't float above the border).
             var y = h + (r * (0.10 + (rng.NextDouble() * 0.90)));
@@ -1878,9 +1927,9 @@ public sealed class OverlayEffectsLayer : Control
         public double R = r;
         public double Alpha = alpha;
 
-        public static HazePuff Create(Random rng, double w, double h, bool upward, bool dark)
+        public static HazePuff Create(Random rng, double w, double h, double sizeScale, bool upward, bool dark)
         {
-            var baseR = 120 + rng.NextDouble() * 260;
+            var baseR = Math.Max(18.0, (120 + rng.NextDouble() * 260) * sizeScale);
 
             // Spawn slightly outside the visible bounds so cropped puffs soften the portal edges.
             var pad = baseR * 0.80;
@@ -1888,8 +1937,8 @@ public sealed class OverlayEffectsLayer : Control
             var y = (-pad) + (rng.NextDouble() * (h + (pad * 2)));
 
             // Fog drifts horizontally; smoke drifts upward.
-            var vx = (upward ? (-25 + rng.NextDouble() * 50) : (-20 + rng.NextDouble() * 40));
-            var vy = upward ? (-(15 + rng.NextDouble() * 25)) : (-3 + rng.NextDouble() * 6);
+            var vx = (upward ? (-25 + rng.NextDouble() * 50) : (-20 + rng.NextDouble() * 40)) * sizeScale;
+            var vy = (upward ? (-(15 + rng.NextDouble() * 25)) : (-3 + rng.NextDouble() * 6)) * sizeScale;
 
             var a = dark
                 ? (0.05 + rng.NextDouble() * 0.10)

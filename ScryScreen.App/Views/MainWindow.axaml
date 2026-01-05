@@ -314,18 +314,16 @@
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center" />
 
-                                                    <!-- Scale-to-fill monitor preview inside the fixed 170x100 tile preview box -->
-                                                    <Viewbox IsVisible="{Binding HasMonitorRenderablePreview}"
-                                                             Stretch="UniformToFill"
-                                                             StretchDirection="Both"
-                                                             HorizontalAlignment="Stretch"
-                                                             VerticalAlignment="Stretch">
-                                                        <controls:QuakeShakeDecorator
-                                                            QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
-                                                            QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
-                                                            QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}">
+                                                    <!-- Monitor preview (same crop/align as the portal display) -->
+                                                    <controls:QuakeShakeDecorator
+                                                        IsVisible="{Binding HasMonitorRenderablePreview}"
+                                                        QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
+                                                        QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
+                                                        QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}">
                                                         <Grid Width="{Binding MonitorPreviewScreenWidth}"
-                                                              Height="{Binding MonitorPreviewScreenHeight}">
+                                                              Height="{Binding MonitorPreviewScreenHeight}"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center">
                                                             <!-- Screen fill + clip host (no border; border is drawn as overlay) -->
                                                             <Border Background="#05070B"
                                                                     CornerRadius="0"
@@ -380,8 +378,7 @@
                                                                 </Canvas>
                                                             </Border>
                                                         </Grid>
-                                                        </controls:QuakeShakeDecorator>
-                                                    </Viewbox>
+                                                    </controls:QuakeShakeDecorator>
                                                     </Grid>
                                                     </Border>
 
