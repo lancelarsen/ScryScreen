@@ -225,6 +225,9 @@ public sealed class OverlayEffectsLayer : Control
     private DateTime _lastTickUtc = DateTime.UtcNow;
     private double _timeSeconds;
 
+    private double _lastBoundsW = double.NaN;
+    private double _lastBoundsH = double.NaN;
+
     private double _lightningFlash;
     private double _lightningTimeToNextStrike;
     private int _lightningBurstRemaining;
@@ -252,6 +255,18 @@ public sealed class OverlayEffectsLayer : Control
     }
 
     private static double Clamp01(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
+
+    private static double FireRegionHeight(double h, double density)
+    {
+        // Density is allowed to exceed 1.0 (overdrive up to ~5). We map 0.1..5 => 0..1,
+        // and use a curve that grows the flame region substantially as intensity rises.
+        var cappedDensity = Math.Min(ClampMin0(density), 5.0);
+        var t = Clamp01((cappedDensity - 0.1) / 4.9);
+
+        // 10%..92% of portal height; slightly favor the high end.
+        var frac = 0.10 + (0.82 * Math.Pow(t, 0.85));
+        return h * Math.Clamp(frac, 0.10, 0.92);
+    }
 
     private static double ClampMin0(double v)
     {
@@ -504,6 +519,111 @@ public sealed class OverlayEffectsLayer : Control
     private bool AnyEnabled =>
         RainEnabled || SnowEnabled || AshEnabled || FireEnabled || SandEnabled || FogEnabled || SmokeEnabled || LightningEnabled;
 
+    private void RescaleParticlesForNewBounds(double w, double h)
+    {
+        if (double.IsNaN(_lastBoundsW) || double.IsNaN(_lastBoundsH) || _lastBoundsW <= 0 || _lastBoundsH <= 0)
+        {
+            _lastBoundsW = w;
+            _lastBoundsH = h;
+            return;
+        }
+
+        if (Math.Abs(_lastBoundsW - w) < 0.5 && Math.Abs(_lastBoundsH - h) < 0.5)
+        {
+            return;
+        }
+
+        var sx = w / _lastBoundsW;
+        var sy = h / _lastBoundsH;
+
+        if (double.IsNaN(sx) || double.IsInfinity(sx) || sx <= 0 || double.IsNaN(sy) || double.IsInfinity(sy) || sy <= 0)
+        {
+            _lastBoundsW = w;
+            _lastBoundsH = h;
+            return;
+        }
+
+        for (var i = 0; i < _rain.Count; i++)
+        {
+            var d = _rain[i];
+            d.X *= sx;
+            d.Y *= sy;
+            d.Vy *= sy;
+            d.Len *= sy;
+            _rain[i] = d;
+        }
+
+        void RescaleFlakes(List<SnowFlake> flakes)
+        {
+            for (var i = 0; i < flakes.Count; i++)
+            {
+                var f = flakes[i];
+                f.X *= sx;
+                f.Y *= sy;
+                f.Vx *= sx;
+                f.Vy *= sy;
+                f.R *= Math.Sqrt(sx * sy);
+                flakes[i] = f;
+            }
+        }
+
+        RescaleFlakes(_snow);
+        RescaleFlakes(_ash);
+
+        for (var i = 0; i < _fire.Count; i++)
+        {
+            var p = _fire[i];
+            p.X *= sx;
+            p.Y *= sy;
+            p.Vx *= sx;
+            p.Vy *= sy;
+            p.R *= Math.Sqrt(sx * sy);
+            _fire[i] = p;
+        }
+
+        for (var i = 0; i < _embers.Count; i++)
+        {
+            var e = _embers[i];
+            e.X *= sx;
+            e.Y *= sy;
+            e.Vx *= sx;
+            e.Vy *= sy;
+            e.R *= Math.Sqrt(sx * sy);
+            _embers[i] = e;
+        }
+
+        for (var i = 0; i < _sand.Count; i++)
+        {
+            var g = _sand[i];
+            g.X *= sx;
+            g.Y *= sy;
+            g.Vx *= sx;
+            g.Vy *= sy;
+            g.Len *= Math.Sqrt(sx * sy);
+            _sand[i] = g;
+        }
+
+        void RescalePuffs(List<HazePuff> puffs)
+        {
+            for (var i = 0; i < puffs.Count; i++)
+            {
+                var p = puffs[i];
+                p.X *= sx;
+                p.Y *= sy;
+                p.Vx *= sx;
+                p.Vy *= sy;
+                p.R *= Math.Sqrt(sx * sy);
+                puffs[i] = p;
+            }
+        }
+
+        RescalePuffs(_fog);
+        RescalePuffs(_smoke);
+
+        _lastBoundsW = w;
+        _lastBoundsH = h;
+    }
+
     private void Tick()
     {
         if (!IsVisible)
@@ -546,6 +666,11 @@ public sealed class OverlayEffectsLayer : Control
 
         var w = Math.Max(1, Bounds.Width);
         var h = Math.Max(1, Bounds.Height);
+
+        // When the portal/preview size changes (DPI, fullscreen transition, viewbox scaling, etc.),
+        // keep existing particles anchored to the same relative location. Otherwise effects can
+        // appear shifted while masks/brightness update immediately.
+        RescaleParticlesForNewBounds(w, h);
 
         UpdateRain(dt, w, h);
         UpdateSnow(dt, w, h);
@@ -719,9 +844,8 @@ public sealed class OverlayEffectsLayer : Control
         var t = Clamp01((cappedDensity - 0.1) / 4.9);
         var ease = t * t;
 
-        // Keep fire lower overall, and cap max height to roughly the old look at ~0.5.
-        // Old (prior) height at density=0.5 was about ~30% of screen height.
-        var fireHeight = h * Math.Min(0.30, 0.12 + (0.18 * t)); // 12% -> 30% (cap)
+        // Keep the base pinned to the bottom, but allow the fire to grow much taller.
+        var fireHeight = FireRegionHeight(h, density);
         var topLimit = h - fireHeight;
 
         // Make flames much smaller but increase count more aggressively with intensity.
@@ -1496,20 +1620,45 @@ public sealed class OverlayEffectsLayer : Control
             var density = ClampMin0(FireIntensity);
             var cappedDensity = Math.Min(density, 5.0);
             var t = Clamp01((cappedDensity - 0.1) / 4.9);
-            var fireHeight = h * (0.25 + (0.65 * t));
+            // Must match UpdateFire() so flames don't get faded out due to a mismatched topLimit.
+            var fireHeight = FireRegionHeight(h, density);
             var topLimit = h - fireHeight;
+
+            // Subtle bottom-anchored glow so the fire reads as "pinned" even at low intensity.
+            // This also ramps intensity in a way that feels more responsive to the slider.
+            var glowHeight = Math.Max(70.0, fireHeight * 0.85);
+            var glowStrength = Math.Clamp(0.10 + (0.55 * Math.Pow(t, 0.75)), 0.0, 0.75);
+            if (glowStrength > 0.001)
+            {
+                var a0 = (byte)Math.Clamp(glowStrength * 210, 0, 210);
+                var a1 = (byte)Math.Clamp(glowStrength * 140, 0, 140);
+                var glow = new LinearGradientBrush
+                {
+                    StartPoint = new RelativePoint(0.5, 1.0, RelativeUnit.Relative),
+                    EndPoint = new RelativePoint(0.5, 0.0, RelativeUnit.Relative),
+                    GradientStops = new GradientStops
+                    {
+                        new GradientStop(Color.FromArgb(a0, 255, 120, 20), 0.00),
+                        new GradientStop(Color.FromArgb(a1, 255, 170, 60), 0.35),
+                        new GradientStop(Color.FromArgb(0, 255, 170, 60), 1.00),
+                    }
+                };
+
+                context.DrawRectangle(glow, null, new Rect(0, h - glowHeight, w, glowHeight));
+            }
 
             // Flames (soft puffs)
             foreach (var p in _fire)
             {
                 // Fade out above the fire region.
-                var fade = 1.0 - SmoothStep(topLimit - 40, topLimit + 110, p.Y);
+                var fade = 1.0 - SmoothStep(topLimit - 55, topLimit + 140, p.Y);
                 if (fade <= 0.001)
                 {
                     continue;
                 }
 
-                var opacity = Math.Clamp(p.Alpha * p.Flicker * fade, 0, 1);
+                var intensityBoost = 0.85 + (0.90 * t);
+                var opacity = Math.Clamp(p.Alpha * p.Flicker * fade * intensityBoost, 0, 1);
                 if (opacity <= 0.001)
                 {
                     continue;
@@ -1525,13 +1674,14 @@ public sealed class OverlayEffectsLayer : Control
             // Embers
             foreach (var e in _embers)
             {
-                var fade = 1.0 - SmoothStep(topLimit - 40, topLimit + 180, e.Y);
+                var fade = 1.0 - SmoothStep(topLimit - 55, topLimit + 220, e.Y);
                 if (fade <= 0.001)
                 {
                     continue;
                 }
 
-                var a = (byte)Math.Clamp((e.Alpha * fade) * 255, 0, 255);
+                var emberBoost = 0.80 + (1.00 * t);
+                var a = (byte)Math.Clamp((e.Alpha * fade * emberBoost) * 255, 0, 255);
                 if (a == 0)
                 {
                     continue;
@@ -1622,7 +1772,10 @@ public sealed class OverlayEffectsLayer : Control
         {
             var r = 14 + (rng.NextDouble() * (26 + (16 * baseLevel)));
             var x = rng.NextDouble() * w;
-            var y = (h - (rng.NextDouble() * (h * (0.10 + (0.12 * baseLevel))))) + (rng.NextDouble() * 35);
+            // Always spawn from the bottom edge. Intensity should only make the fire taller,
+            // not shift its base upward.
+            var baseBand = h * 0.10; // constant spawn thickness near the bottom
+            var y = (h - (rng.NextDouble() * baseBand)) + (rng.NextDouble() * 35);
 
             var vx = (-22 + rng.NextDouble() * 44);
             var vy = -(28 + (rng.NextDouble() * (55 + (70 * baseLevel))));
@@ -1650,7 +1803,9 @@ public sealed class OverlayEffectsLayer : Control
         public static Ember Create(Random rng, double w, double h, double baseLevel)
         {
             var x = rng.NextDouble() * w;
-            var y = h - (rng.NextDouble() * (h * (0.08 + (0.10 * baseLevel)))) + (rng.NextDouble() * 30);
+            // Always originate from the bottom edge.
+            var baseBand = h * 0.08;
+            var y = h - (rng.NextDouble() * baseBand) + (rng.NextDouble() * 30);
             var vx = (-30 + rng.NextDouble() * 60);
             var vy = -(55 + (rng.NextDouble() * (90 + (140 * baseLevel))));
             var r = 0.7 + (rng.NextDouble() * (1.2 + (0.6 * baseLevel)));
