@@ -8,6 +8,7 @@ using Avalonia;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Text;
 using ScryScreen.App.Services;
 
 namespace ScryScreen.App.Views;
@@ -254,6 +255,107 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             ErrorReporter.Report(ex, "Load Initiative Config");
+        }
+    }
+
+    private async void OnSaveEffectsConfig(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not MainWindowViewModel vm)
+            {
+                return;
+            }
+
+            if (StorageProvider is null)
+            {
+                return;
+            }
+
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Save Effects Config",
+                SuggestedFileName = "effects.json",
+                DefaultExtension = "json",
+                FileTypeChoices = new[]
+                {
+                    new FilePickerFileType("JSON")
+                    {
+                        Patterns = new[] { "*.json" },
+                    },
+                },
+            });
+
+            if (file is null)
+            {
+                return;
+            }
+
+            var path = file.TryGetLocalPath();
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            var json = vm.ExportSelectedEffectsConfigJson(indented: true);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return;
+            }
+
+            await File.WriteAllTextAsync(path, json, Encoding.UTF8);
+        }
+        catch (Exception ex)
+        {
+            ErrorReporter.Report(ex, "Save Effects Config");
+        }
+    }
+
+    private async void OnLoadEffectsConfig(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not MainWindowViewModel vm)
+            {
+                return;
+            }
+
+            if (StorageProvider is null)
+            {
+                return;
+            }
+
+            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                AllowMultiple = false,
+                Title = "Load Effects Config",
+                FileTypeFilter = new[]
+                {
+                    new FilePickerFileType("JSON")
+                    {
+                        Patterns = new[] { "*.json" },
+                    },
+                },
+            });
+
+            var file = files.FirstOrDefault();
+            if (file is null)
+            {
+                return;
+            }
+
+            var path = file.TryGetLocalPath();
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return;
+            }
+
+            var json = await File.ReadAllTextAsync(path, Encoding.UTF8);
+            vm.ImportSelectedEffectsConfigJson(json);
+        }
+        catch (Exception ex)
+        {
+            ErrorReporter.Report(ex, "Load Effects Config");
         }
     }
 }

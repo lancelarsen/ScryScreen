@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -265,6 +266,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (e.PropertyName is nameof(MediaItemViewModel.RainEnabled) or nameof(MediaItemViewModel.RainIntensity) or nameof(MediaItemViewModel.RainMin) or nameof(MediaItemViewModel.RainMax) or
             nameof(MediaItemViewModel.RainSoundEnabled) or
+            nameof(MediaItemViewModel.EffectsVolume) or
             nameof(MediaItemViewModel.SnowEnabled) or nameof(MediaItemViewModel.SnowIntensity) or nameof(MediaItemViewModel.SnowMin) or nameof(MediaItemViewModel.SnowMax) or
             nameof(MediaItemViewModel.SnowSoundEnabled) or
             nameof(MediaItemViewModel.AshEnabled) or nameof(MediaItemViewModel.AshIntensity) or nameof(MediaItemViewModel.AshMin) or nameof(MediaItemViewModel.AshMax) or
@@ -329,8 +331,57 @@ public partial class MainWindowViewModel : ViewModelBase
             QuakeEnabled: item.QuakeEnabled,
             QuakeIntensity: ClampMin0(item.QuakeIntensity),
             QuakeSoundEnabled: item.QuakeSoundEnabled,
+            EffectsVolume: ClampMin0(item.EffectsVolume),
             LightningTrigger: _lightningTriggerNonce,
             QuakeTrigger: _quakeTriggerNonce);
+    }
+
+    public string ExportSelectedEffectsConfigJson(bool indented)
+    {
+        var selected = Media.SelectedItem;
+        if (selected is null)
+        {
+            return string.Empty;
+        }
+
+        var config = selected.ExportEffectsConfig();
+        return JsonSerializer.Serialize(config, new JsonSerializerOptions
+        {
+            WriteIndented = indented,
+        });
+    }
+
+    public void ImportSelectedEffectsConfigJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return;
+        }
+
+        var selected = Media.SelectedItem;
+        if (selected is null)
+        {
+            return;
+        }
+
+        var config = JsonSerializer.Deserialize<EffectsConfig>(json);
+        if (config is null)
+        {
+            return;
+        }
+
+        // Apply as a batch to avoid spamming portal updates while importing.
+        AttachSelectedMediaEffects(null);
+        try
+        {
+            selected.ImportEffectsConfig(config);
+        }
+        finally
+        {
+            AttachSelectedMediaEffects(selected);
+        }
+
+        ApplyEffectsToAssignedPortals();
     }
 
     private void ApplyEffectsToAssignedPortals()

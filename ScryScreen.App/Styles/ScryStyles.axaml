@@ -389,10 +389,28 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
+  <!-- Vertical volume slider for effects -->
+  <Style Selector="Slider.effectVolume">
+    <Setter Property="Width" Value="12" />
+    <Setter Property="MinWidth" Value="12" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+
   <!-- Make the thumb a tiny accent bar instead of a big knob -->
   <Style Selector="Slider.portalTimeline /template/ Thumb">
     <Setter Property="Width" Value="10" />
     <Setter Property="Height" Value="6" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{DynamicResource ScryAccent}"
+                CornerRadius="2" />
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="Slider.effectVolume /template/ Thumb">
+    <Setter Property="Width" Value="10" />
+    <Setter Property="Height" Value="8" />
     <Setter Property="Template">
       <ControlTemplate>
         <Border Background="{DynamicResource ScryAccent}"

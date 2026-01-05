@@ -28,6 +28,7 @@ public sealed record OverlayEffectsState(
     bool QuakeEnabled,
     double QuakeIntensity,
     bool QuakeSoundEnabled,
+    double EffectsVolume,
     long LightningTrigger,
     long QuakeTrigger)
 {
@@ -59,6 +60,7 @@ public sealed record OverlayEffectsState(
         QuakeEnabled: false,
         QuakeIntensity: 0,
         QuakeSoundEnabled: false,
+        EffectsVolume: 1.0,
         LightningTrigger: 0,
         QuakeTrigger: 0);
 }

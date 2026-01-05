@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using ScryScreen.App.Models;
 
 namespace ScryScreen.App.ViewModels;
 
@@ -11,6 +12,7 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private readonly long? _fileSizeBytes;
 
     private bool _normalizingEffectRanges;
+    private bool _normalizingEffectsVolume;
 
     public MediaItemViewModel(string filePath, Bitmap? thumbnail, bool isVideo = false)
     {
@@ -92,6 +94,10 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     // Overlay effects (per-media). Multiple can be enabled at once.
     [ObservableProperty]
     private bool rainEnabled;
+
+    // Global multiplier for effect audio (0..2 recommended).
+    [ObservableProperty]
+    private double effectsVolume = 1.0;
 
     [ObservableProperty]
     private bool rainSoundEnabled;
@@ -224,6 +230,163 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private double quakeIntensity = 0.35;
+
+    partial void OnEffectsVolumeChanged(double value)
+    {
+        if (_normalizingEffectsVolume)
+        {
+            return;
+        }
+
+        _normalizingEffectsVolume = true;
+        try
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                EffectsVolume = 1.0;
+                return;
+            }
+
+            if (value < 0)
+            {
+                EffectsVolume = 0;
+                return;
+            }
+
+            if (value > 2)
+            {
+                EffectsVolume = 2;
+            }
+        }
+        finally
+        {
+            _normalizingEffectsVolume = false;
+        }
+    }
+
+    public EffectsConfig ExportEffectsConfig()
+        => new()
+        {
+            EffectsVolume = EffectsVolume,
+
+            RainEnabled = RainEnabled,
+            RainSoundEnabled = RainSoundEnabled,
+            RainMin = RainMin,
+            RainMax = RainMax,
+            RainIntensity = RainIntensity,
+
+            SnowEnabled = SnowEnabled,
+            SnowSoundEnabled = SnowSoundEnabled,
+            SnowMin = SnowMin,
+            SnowMax = SnowMax,
+            SnowIntensity = SnowIntensity,
+
+            AshEnabled = AshEnabled,
+            AshSoundEnabled = AshSoundEnabled,
+            AshMin = AshMin,
+            AshMax = AshMax,
+            AshIntensity = AshIntensity,
+
+            FireEnabled = FireEnabled,
+            FireSoundEnabled = FireSoundEnabled,
+            FireMin = FireMin,
+            FireMax = FireMax,
+            FireIntensity = FireIntensity,
+
+            SandEnabled = SandEnabled,
+            SandSoundEnabled = SandSoundEnabled,
+            SandMin = SandMin,
+            SandMax = SandMax,
+            SandIntensity = SandIntensity,
+
+            FogEnabled = FogEnabled,
+            FogSoundEnabled = FogSoundEnabled,
+            FogMin = FogMin,
+            FogMax = FogMax,
+            FogIntensity = FogIntensity,
+
+            SmokeEnabled = SmokeEnabled,
+            SmokeSoundEnabled = SmokeSoundEnabled,
+            SmokeMin = SmokeMin,
+            SmokeMax = SmokeMax,
+            SmokeIntensity = SmokeIntensity,
+
+            LightningEnabled = LightningEnabled,
+            LightningSoundEnabled = LightningSoundEnabled,
+            LightningMin = LightningMin,
+            LightningMax = LightningMax,
+            LightningIntensity = LightningIntensity,
+
+            QuakeEnabled = QuakeEnabled,
+            QuakeSoundEnabled = QuakeSoundEnabled,
+            QuakeMin = QuakeMin,
+            QuakeMax = QuakeMax,
+            QuakeIntensity = QuakeIntensity,
+        };
+
+    public void ImportEffectsConfig(EffectsConfig config)
+    {
+        if (config is null)
+        {
+            return;
+        }
+
+        EffectsVolume = config.EffectsVolume;
+
+        RainEnabled = config.RainEnabled;
+        RainSoundEnabled = config.RainSoundEnabled;
+        RainMin = config.RainMin;
+        RainMax = config.RainMax;
+        RainIntensity = config.RainIntensity;
+
+        SnowEnabled = config.SnowEnabled;
+        SnowSoundEnabled = config.SnowSoundEnabled;
+        SnowMin = config.SnowMin;
+        SnowMax = config.SnowMax;
+        SnowIntensity = config.SnowIntensity;
+
+        AshEnabled = config.AshEnabled;
+        AshSoundEnabled = config.AshSoundEnabled;
+        AshMin = config.AshMin;
+        AshMax = config.AshMax;
+        AshIntensity = config.AshIntensity;
+
+        FireEnabled = config.FireEnabled;
+        FireSoundEnabled = config.FireSoundEnabled;
+        FireMin = config.FireMin;
+        FireMax = config.FireMax;
+        FireIntensity = config.FireIntensity;
+
+        SandEnabled = config.SandEnabled;
+        SandSoundEnabled = config.SandSoundEnabled;
+        SandMin = config.SandMin;
+        SandMax = config.SandMax;
+        SandIntensity = config.SandIntensity;
+
+        FogEnabled = config.FogEnabled;
+        FogSoundEnabled = config.FogSoundEnabled;
+        FogMin = config.FogMin;
+        FogMax = config.FogMax;
+        FogIntensity = config.FogIntensity;
+
+        SmokeEnabled = config.SmokeEnabled;
+        SmokeSoundEnabled = config.SmokeSoundEnabled;
+        SmokeMin = config.SmokeMin;
+        SmokeMax = config.SmokeMax;
+        SmokeIntensity = config.SmokeIntensity;
+
+        LightningEnabled = config.LightningEnabled;
+        LightningSoundEnabled = config.LightningSoundEnabled;
+        LightningMin = config.LightningMin;
+        LightningMax = config.LightningMax;
+        LightningIntensity = config.LightningIntensity;
+
+        QuakeEnabled = config.QuakeEnabled;
+        QuakeSoundEnabled = config.QuakeSoundEnabled;
+        QuakeMin = config.QuakeMin;
+        QuakeMax = config.QuakeMax;
+        QuakeIntensity = config.QuakeIntensity;
+    }
 
     private static double SanitizeNonNegative(double v)
     {

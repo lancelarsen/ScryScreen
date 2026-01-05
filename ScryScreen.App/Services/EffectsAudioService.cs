@@ -75,9 +75,9 @@ internal sealed class EffectsAudioService : IDisposable
         }
 
         // Loops
-        SetLoop("rain", "rain_loop", VolumeForLoop(MaxIntensity(list, s => s.RainEnabled && s.RainSoundEnabled, s => s.RainIntensity), maxVolume: 0.55));
-        SetLoop("sand", "sand_wind_loop", VolumeForLoop(MaxIntensity(list, s => s.SandEnabled && s.SandSoundEnabled, s => s.SandIntensity), maxVolume: 0.55));
-        SetLoop("fire", "fire_crackle_loop", VolumeForLoop(MaxIntensity(list, s => s.FireEnabled && s.FireSoundEnabled, s => s.FireIntensity), maxVolume: 0.70));
+        SetLoop("rain", "rain_loop", VolumeForLoop(MaxIntensity(list, s => s.RainEnabled && s.RainSoundEnabled, s => s.RainIntensity * s.EffectsVolume), maxVolume: 0.55));
+        SetLoop("sand", "sand_wind_loop", VolumeForLoop(MaxIntensity(list, s => s.SandEnabled && s.SandSoundEnabled, s => s.SandIntensity * s.EffectsVolume), maxVolume: 0.55));
+        SetLoop("fire", "fire_crackle_loop", VolumeForLoop(MaxIntensity(list, s => s.FireEnabled && s.FireSoundEnabled, s => s.FireIntensity * s.EffectsVolume), maxVolume: 0.70));
     }
 
     public void PlayLightningThunder(double intensity)
@@ -110,7 +110,7 @@ internal sealed class EffectsAudioService : IDisposable
         }
 
         _lastThunderUtc = now;
-        PlayLightningThunder(Math.Max(intensity, snap.Effects.LightningIntensity));
+        PlayLightningThunder(Math.Max(intensity, snap.Effects.LightningIntensity) * snap.Effects.EffectsVolume);
     }
 
     private void OnQuakeStarted(int portalNumber, double intensity)
@@ -126,7 +126,7 @@ internal sealed class EffectsAudioService : IDisposable
         }
 
         // Only a single hit sound is desired (no continuous rumble loop).
-        PlayQuakeHit(Math.Max(intensity, snap.Effects.QuakeIntensity));
+        PlayQuakeHit(Math.Max(intensity, snap.Effects.QuakeIntensity) * snap.Effects.EffectsVolume);
     }
 
     private static double MaxIntensity(
