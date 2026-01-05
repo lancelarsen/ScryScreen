@@ -142,13 +142,13 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private bool fireSoundEnabled;
 
     [ObservableProperty]
-    private double fireMin = 0.1;
+    private double fireMin = 1;
 
     [ObservableProperty]
     private double fireMax = 5;
 
     [ObservableProperty]
-    private double fireIntensity = 0.35;
+    private double fireIntensity = 1;
 
     [ObservableProperty]
     private bool sandEnabled;
