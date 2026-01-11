@@ -5,7 +5,8 @@
         x:Class="ScryScreen.App.Views.AboutWindow"
   x:DataType="views:AboutWindow"
   Title="About ScryScreen"
-        Background="{DynamicResource ScryBg0}"
+  Background="Transparent"
+  TransparencyLevelHint="Transparent"
         SizeToContent="WidthAndHeight"
         CanResize="False"
   WindowStartupLocation="CenterScreen"
@@ -16,13 +17,12 @@
           BorderThickness="1"
           CornerRadius="12"
           Padding="16">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" Width="520">
+    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10" Width="520">
       <!-- Header -->
       <Grid RowDefinitions="Auto" ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <StackPanel Spacing="2">
           <TextBlock Text="ScryScreen" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Text="ScryMaster" Foreground="{DynamicResource ScryTextMuted}" />
-          <TextBlock Text="{Binding VersionText}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
+          <TextBlock Text="{Binding VersionText, StringFormat='Version: {0}'}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
         </StackPanel>
 
         <Button Grid.Column="1" Classes="circleSmall" ToolTip.Tip="Close" Click="OnClose">
@@ -75,18 +75,6 @@
           Use it to run battle maps, scene art, ambient loops, and dramatic overlays (rain, fog, lightning, etc.) across your monitors with minimal fuss.
         </TextBlock>
       </Border>
-
-      <!-- Footer -->
-      <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-        <Button Background="#0A0F18"
-                BorderBrush="{DynamicResource ScryBorder}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Padding="12,6"
-                Click="OnClose">
-          <TextBlock Text="OK" Foreground="{DynamicResource ScryTextMuted}" />
-        </Button>
-      </StackPanel>
     </Grid>
   </Border>
 </Window>

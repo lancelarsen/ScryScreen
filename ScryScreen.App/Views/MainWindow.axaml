@@ -11,7 +11,7 @@
         x:Class="ScryScreen.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-    Title="ScryScreen — ScryMaster"
+    Title="ScryScreen"
     Topmost="{Binding IsAlwaysOnTop}"
     Background="{DynamicResource ScryBg0}"
     WindowStartupLocation="Manual"
@@ -87,9 +87,13 @@
                         </Grid>
                     </ToggleButton>
 
-                    <Button Classes="circle" i:Attached.Icon="mdi-information-outline" ToolTip.Tip="About ScryScreen" Click="OnShowAbout" />
+                    <Button Classes="circle" ToolTip.Tip="About ScryScreen" Click="OnShowAbout">
+                        <i:Icon Value="mdi-information-outline" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                    </Button>
 
-                    <Button Classes="circle" i:Attached.Icon="mdi-close" ToolTip.Tip="Close ScryScreen" Click="OnCloseApp" />
+                    <Button Classes="circle" ToolTip.Tip="Close ScryScreen" Click="OnCloseApp">
+                        <i:Icon Value="mdi-close" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

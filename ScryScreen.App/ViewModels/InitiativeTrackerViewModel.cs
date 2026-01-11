@@ -258,6 +258,19 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void RollInitiative(InitiativeEntryViewModel? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        var mod = ParseIntOrZero(entry.Mod);
+        var roll = Random.Shared.Next(1, 21);
+        entry.Initiative = (mod + roll).ToString();
+    }
+
+    [RelayCommand]
     private void ClearAll()
     {
         Entries.Clear();
@@ -433,16 +446,6 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     private void RebuildStateFromEntries(bool sort, Guid? activeIdOverride = null)
     {
-        static int ParseIntOrZero(string? text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return 0;
-            }
-
-            return int.TryParse(text, out var value) ? value : 0;
-        }
-
         var entries = Entries.Select(vm => new InitiativeEntry(
                 Id: vm.Id,
                 Name: vm.Name,
@@ -467,6 +470,16 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         Round = _state.Round;
         UpdateActiveFlags();
         RaisePortalTextChanged();
+    }
+
+    private static int ParseIntOrZero(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return 0;
+        }
+
+        return int.TryParse(text, out var value) ? value : 0;
     }
 
     private static InitiativeEntryViewModel CreateBlankEntry()

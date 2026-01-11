@@ -25,11 +25,24 @@ public partial class AboutWindow : Window
         var informational = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         if (!string.IsNullOrWhiteSpace(informational))
         {
-            return $"Version: {informational}";
+            // Keep SemVer without build metadata (e.g. strip "+<gitsha>").
+            var shortInformational = informational.Split('+')[0];
+            return shortInformational;
         }
 
-        var version = asm.GetName().Version?.ToString();
-        return string.IsNullOrWhiteSpace(version) ? "Version: (unknown)" : $"Version: {version}";
+        var version = asm.GetName().Version;
+        if (version is null)
+        {
+            return "(unknown)";
+        }
+
+        // Prefer Major.Minor.Build (omit Revision).
+        if (version.Build >= 0)
+        {
+            return $"{version.Major}.{version.Minor}.{version.Build}";
+        }
+
+        return $"{version.Major}.{version.Minor}";
     }
 
     private void OnClose(object? sender, RoutedEventArgs e)

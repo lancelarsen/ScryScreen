@@ -47,7 +47,7 @@
         <ItemsControl ItemsSource="{Binding Entries}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:InitiativeEntryViewModel" x:CompileBindings="False">
-                    <Grid ColumnDefinitions="24,Auto,Auto,3*,7*,36,36,36" ColumnSpacing="4" Margin="0,0,0,4" VerticalAlignment="Center">
+                    <Grid ColumnDefinitions="24,36,Auto,Auto,3*,7*,36,36,36" ColumnSpacing="4" Margin="0,0,0,4" VerticalAlignment="Center">
               <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
                 Width="20"
                 Height="20"
@@ -56,7 +56,15 @@
                 HorizontalAlignment="Center"
                 IsVisible="{Binding IsActive}" />
 
-              <TextBox Grid.Column="1" Width="42"
+              <Button Grid.Column="1"
+                      Classes="circleSmall"
+                      ToolTip.Tip="Roll d20 + Mod"
+                      Command="{Binding DataContext.RollInitiativeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      CommandParameter="{Binding .}">
+                <i:Icon Value="mdi-dice-d20" FontSize="18" Foreground="{DynamicResource ScryAccent}" />
+              </Button>
+
+              <TextBox Grid.Column="2" Width="42"
                        HorizontalAlignment="Center"
                        TextAlignment="Center"
                        HorizontalContentAlignment="Center"
@@ -65,7 +73,7 @@
                        beh:SelectAllOnFocusBehavior.IsEnabled="True"
                        Text="{Binding Initiative, Mode=TwoWay}" />
 
-              <TextBox Grid.Column="2"
+              <TextBox Grid.Column="3"
                        Width="42"
                        HorizontalAlignment="Center"
                        TextAlignment="Center"
@@ -75,18 +83,18 @@
                        beh:SelectAllOnFocusBehavior.IsEnabled="True"
                        Text="{Binding Mod, Mode=TwoWay}" />
 
-              <TextBox Grid.Column="3" Watermark="Name" Text="{Binding Name, Mode=TwoWay}" />
+              <TextBox Grid.Column="4" Watermark="Name" Text="{Binding Name, Mode=TwoWay}" />
 
-              <TextBox Grid.Column="4" Watermark="GM Notes" Text="{Binding Notes, Mode=TwoWay}" />
+              <TextBox Grid.Column="5" Watermark="GM Notes" Text="{Binding Notes, Mode=TwoWay}" />
 
-              <ToggleButton Grid.Column="5" Classes="circleSmall noAccent" IsChecked="{Binding IsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
+              <ToggleButton Grid.Column="6" Classes="circleSmall noAccent" IsChecked="{Binding IsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
                 <Grid>
                   <i:Icon IsVisible="{Binding !IsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
                   <i:Icon IsVisible="{Binding IsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
                 </Grid>
               </ToggleButton>
 
-              <Button Grid.Column="6"
+              <Button Grid.Column="7"
                       Classes="circleSmall"
                       ToolTip.Tip="Delete"
                       Command="{Binding DataContext.RemoveEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -94,7 +102,7 @@
                 <i:Icon Value="mdi-delete" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
               </Button>
 
-              <Button Grid.Column="7"
+              <Button Grid.Column="8"
                       Classes="circleSmall"
                       IsVisible="{Binding IsLast}"
                       ToolTip.Tip="Add Row"
