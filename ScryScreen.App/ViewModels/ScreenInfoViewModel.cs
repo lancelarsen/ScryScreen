@@ -20,6 +20,8 @@ public sealed class ScreenInfoViewModel
 
     public bool IsPrimary => _screen.IsPrimary;
 
+    public string PlatformDisplayName => _screen.DisplayName ?? string.Empty;
+
     public string DisplayName
     {
         get

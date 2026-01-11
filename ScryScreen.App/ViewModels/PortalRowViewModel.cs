@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
@@ -28,6 +29,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     private int _videoPixelW;
     private int _videoPixelH;
     private bool _isUpdatingFromPlayer;
+    private bool _isRestoringScreenSelection;
 
     // Matches the fixed monitor preview tile area in MainWindow.axaml:
     // 170x100 with Padding=6 => inner ~158x88.
@@ -307,8 +309,33 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
     partial void OnSelectedScreenChanged(ScreenInfoViewModel? value)
     {
+        // The monitor dropdown is TwoWay-bound. During a screens refresh, the ComboBox can
+        // temporarily clear SelectedItem because the old item instance is no longer present
+        // in ItemsSource. Prevent a persistent "unassigned" state by snapping back to a
+        // valid screen when possible.
         if (value is null)
         {
+            if (_isRestoringScreenSelection)
+            {
+                return;
+            }
+
+            var fallback = AvailableScreens.FirstOrDefault(s => s.IsPrimary) ?? AvailableScreens.FirstOrDefault();
+            if (fallback is null)
+            {
+                return;
+            }
+
+            _isRestoringScreenSelection = true;
+            try
+            {
+                SelectedScreen = fallback;
+            }
+            finally
+            {
+                _isRestoringScreenSelection = false;
+            }
+
             return;
         }
 

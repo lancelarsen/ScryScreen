@@ -62,6 +62,12 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        // IMPORTANT: Rebuilding the ItemsSource can cause the ComboBox to temporarily clear
+        // SelectedItem (because the old item is no longer present), and with TwoWay binding
+        // that null can flow back into the VM. Snapshot the previous selection per portal so
+        // we can restore it after the list is repopulated.
+        var previousSelections = Portals.ToDictionary(p => p.PortalNumber, p => p.SelectedScreen);
+
         var refreshed = _portalHost.GetScreens().ToList();
 
         _screens.Clear();
@@ -80,40 +86,135 @@ public partial class MainWindowViewModel : ViewModelBase
 
         foreach (var portal in Portals)
         {
-            if (portal.SelectedScreen is null)
+            previousSelections.TryGetValue(portal.PortalNumber, out var previous);
+            if (previous is null)
             {
+                // Preserve intentionally-unassigned portals.
                 continue;
             }
 
-            var match = FindBestScreenMatch(portal.SelectedScreen, _screens);
+            var match = FindBestScreenMatch(previous, _screens);
             portal.SelectedScreen = match ?? primary;
         }
     }
 
     private static ScreenInfoViewModel? FindBestScreenMatch(ScreenInfoViewModel previous, System.Collections.Generic.IReadOnlyList<ScreenInfoViewModel> candidates)
     {
-        // Prefer exact bounds match (most stable across refreshes).
+        if (candidates.Count == 0)
+        {
+            return null;
+        }
+
+        static bool NearlyEqual(double a, double b, double epsilon = 0.01)
+        {
+            if (double.IsNaN(a) || double.IsNaN(b) || double.IsInfinity(a) || double.IsInfinity(b))
+            {
+                return false;
+            }
+
+            return Math.Abs(a - b) <= epsilon;
+        }
+
+        // 1) Prefer matching the underlying platform display name when available.
+        // This is often more stable than Avalonia's screen ordering.
+        var prevPlatformName = previous.PlatformDisplayName;
+        if (!string.IsNullOrWhiteSpace(prevPlatformName))
+        {
+            var byName = candidates
+                .Where(s => string.Equals(s.PlatformDisplayName, prevPlatformName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (byName.Count == 1)
+            {
+                return byName[0];
+            }
+
+            if (byName.Count > 1)
+            {
+                var namePrimary = byName.FirstOrDefault(s => s.IsPrimary == previous.IsPrimary);
+                if (namePrimary is not null)
+                {
+                    return namePrimary;
+                }
+            }
+        }
+
+        // 2) Exact virtual-bounds match.
         var bounds = previous.Bounds;
-
-        var exact = candidates.FirstOrDefault(s => s.Bounds.Equals(bounds) && s.IsPrimary == previous.IsPrimary);
-        if (exact is not null)
+        var byBounds = candidates.Where(s => s.Bounds.Equals(bounds)).ToList();
+        if (byBounds.Count == 1)
         {
-            return exact;
+            return byBounds[0];
         }
 
-        exact = candidates.FirstOrDefault(s => s.Bounds.Equals(bounds));
-        if (exact is not null)
+        if (byBounds.Count > 1)
         {
-            return exact;
+            var boundsPrimary = byBounds.FirstOrDefault(s => s.IsPrimary == previous.IsPrimary);
+            if (boundsPrimary is not null)
+            {
+                return boundsPrimary;
+            }
+
+            var boundsScaling = byBounds.FirstOrDefault(s => NearlyEqual(s.Scaling, previous.Scaling));
+            if (boundsScaling is not null)
+            {
+                return boundsScaling;
+            }
         }
 
-        // If the previous selection was primary, keep primary.
+        // 3) Resolution + scaling match (helps when Windows shifts virtual coordinates on plug/unplug).
+        var byResolution = candidates
+            .Where(s => s.WidthPx == previous.WidthPx && s.HeightPx == previous.HeightPx && NearlyEqual(s.Scaling, previous.Scaling))
+            .ToList();
+
+        if (byResolution.Count == 1)
+        {
+            return byResolution[0];
+        }
+
+        if (byResolution.Count > 1)
+        {
+            var resPrimary = byResolution.FirstOrDefault(s => s.IsPrimary == previous.IsPrimary);
+            if (resPrimary is not null)
+            {
+                return resPrimary;
+            }
+        }
+
+        // 4) Nearest-by-position (best-effort heuristic when multiple displays share resolution).
+        var prevCx = bounds.X + (bounds.Width / 2.0);
+        var prevCy = bounds.Y + (bounds.Height / 2.0);
+
+        ScreenInfoViewModel? best = null;
+        double bestScore = double.PositiveInfinity;
+
+        foreach (var candidate in candidates)
+        {
+            var cb = candidate.Bounds;
+            var cx = cb.X + (cb.Width / 2.0);
+            var cy = cb.Y + (cb.Height / 2.0);
+            var dx = cx - prevCx;
+            var dy = cy - prevCy;
+            var dist2 = (dx * dx) + (dy * dy);
+
+            // Penalize scaling mismatch a bit so a same-DPI monitor wins in ties.
+            var scalingPenalty = NearlyEqual(candidate.Scaling, previous.Scaling) ? 0 : 1000;
+            var score = dist2 + scalingPenalty;
+
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = candidate;
+            }
+        }
+
+        // If the previous selection was primary, keep primary if it exists.
         if (previous.IsPrimary)
         {
-            return candidates.FirstOrDefault(s => s.IsPrimary);
+            return candidates.FirstOrDefault(s => s.IsPrimary) ?? best;
         }
 
-        return null;
+        return best;
     }
 
     public ObservableCollection<PortalRowViewModel> Portals { get; }
