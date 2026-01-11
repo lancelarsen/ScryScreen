@@ -17,7 +17,8 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly PortalHostService _portalHost;
     private readonly EffectsAudioService _effectsAudio;
-    private readonly ReadOnlyCollection<ScreenInfoViewModel> _screens;
+    private readonly ObservableCollection<ScreenInfoViewModel> _screens;
+    private readonly ReadOnlyObservableCollection<ScreenInfoViewModel> _screensReadOnly;
     private string? _lastSelectedMediaPath;
 
     private readonly InitiativeTrackerViewModel _initiativeTracker;
@@ -30,7 +31,8 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _portalHost = portalHost ?? throw new ArgumentNullException(nameof(portalHost));
         _effectsAudio = new EffectsAudioService();
-        _screens = new ReadOnlyCollection<ScreenInfoViewModel>(_portalHost.GetScreens().ToList());
+        _screens = new ObservableCollection<ScreenInfoViewModel>(_portalHost.GetScreens().ToList());
+        _screensReadOnly = new ReadOnlyObservableCollection<ScreenInfoViewModel>(_screens);
         Portals = new ObservableCollection<PortalRowViewModel>();
         Media = new MediaLibraryViewModel();
 
@@ -50,7 +52,69 @@ public partial class MainWindowViewModel : ViewModelBase
         AddPortal();
     }
 
-    public ReadOnlyCollection<ScreenInfoViewModel> Screens => _screens;
+    public ReadOnlyObservableCollection<ScreenInfoViewModel> Screens => _screensReadOnly;
+
+    public void RefreshScreens()
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(RefreshScreens);
+            return;
+        }
+
+        var refreshed = _portalHost.GetScreens().ToList();
+
+        _screens.Clear();
+        foreach (var screen in refreshed)
+        {
+            _screens.Add(screen);
+        }
+
+        if (_screens.Count == 0)
+        {
+            // Nothing to select; keep portals as-is.
+            return;
+        }
+
+        var primary = _screens.FirstOrDefault(s => s.IsPrimary) ?? _screens[0];
+
+        foreach (var portal in Portals)
+        {
+            if (portal.SelectedScreen is null)
+            {
+                continue;
+            }
+
+            var match = FindBestScreenMatch(portal.SelectedScreen, _screens);
+            portal.SelectedScreen = match ?? primary;
+        }
+    }
+
+    private static ScreenInfoViewModel? FindBestScreenMatch(ScreenInfoViewModel previous, System.Collections.Generic.IReadOnlyList<ScreenInfoViewModel> candidates)
+    {
+        // Prefer exact bounds match (most stable across refreshes).
+        var bounds = previous.Bounds;
+
+        var exact = candidates.FirstOrDefault(s => s.Bounds.Equals(bounds) && s.IsPrimary == previous.IsPrimary);
+        if (exact is not null)
+        {
+            return exact;
+        }
+
+        exact = candidates.FirstOrDefault(s => s.Bounds.Equals(bounds));
+        if (exact is not null)
+        {
+            return exact;
+        }
+
+        // If the previous selection was primary, keep primary.
+        if (previous.IsPrimary)
+        {
+            return candidates.FirstOrDefault(s => s.IsPrimary);
+        }
+
+        return null;
+    }
 
     public ObservableCollection<PortalRowViewModel> Portals { get; }
 

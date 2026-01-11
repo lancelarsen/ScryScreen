@@ -10,6 +10,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Text;
 using ScryScreen.App.Services;
+using Avalonia.Threading;
 
 namespace ScryScreen.App.Views;
 
@@ -17,15 +18,48 @@ public partial class MainWindow : Window
 {
     private bool _pinning;
     private MainWindowViewModel? _vm;
+    private bool _screensChangedHooked;
 
     public MainWindow()
     {
         InitializeComponent();
         Closing += OnClosing;
+        Closed += OnClosed;
+
+        TryHookScreensChanged();
 
         Opened += (_, _) => DockToTopFullWidth();
         DataContextChanged += (_, _) => HookViewModel();
         HookViewModel();
+    }
+
+    private void TryHookScreensChanged()
+    {
+        if (_screensChangedHooked)
+        {
+            return;
+        }
+
+        var screens = Screens;
+        if (screens is null)
+        {
+            return;
+        }
+
+        screens.Changed += OnScreensChanged;
+        _screensChangedHooked = true;
+    }
+
+    private void OnScreensChanged(object? sender, EventArgs e)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnScreensChanged(sender, e));
+            return;
+        }
+
+        _vm?.RefreshScreens();
+        DockToTopFullWidth();
     }
 
     private void HookViewModel()
@@ -121,6 +155,15 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm)
         {
             vm.Shutdown();
+        }
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        if (_screensChangedHooked && Screens is not null)
+        {
+            Screens.Changed -= OnScreensChanged;
+            _screensChangedHooked = false;
         }
     }
 
