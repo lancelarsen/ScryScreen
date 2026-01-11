@@ -116,9 +116,6 @@ public static class LastSessionPersistence
         {
             using var _ = vm.SuppressAutoSave();
 
-            // Clear any previous status so startup info is obvious.
-            vm.EffectsConfigStatusText = string.Empty;
-
             var statePath = GetStatePath();
             var hasStateFile = File.Exists(statePath);
             LastSessionState? state = null;

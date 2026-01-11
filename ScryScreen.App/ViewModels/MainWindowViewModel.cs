@@ -53,9 +53,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public EffectsSettingsViewModel Effects { get; }
 
-    [ObservableProperty]
-    private string effectsConfigStatusText = string.Empty;
-
     private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentRestorationPlanner.Snapshot>> _portalHistory = new();
 
     public MainWindowViewModel(PortalHostService portalHost)

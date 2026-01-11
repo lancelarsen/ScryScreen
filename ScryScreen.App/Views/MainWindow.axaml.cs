@@ -368,7 +368,6 @@ public partial class MainWindow : Window
             var path = await PickEffectsSavePathAsync(vm, savesFolder);
             if (string.IsNullOrWhiteSpace(path))
             {
-                vm.EffectsConfigStatusText = string.Empty;
                 return;
             }
 
@@ -381,13 +380,10 @@ public partial class MainWindow : Window
             var json = vm.ExportBestEffectsConfigJson(indented: true);
             if (string.IsNullOrWhiteSpace(json))
             {
-                vm.EffectsConfigStatusText = string.Empty;
                 return;
             }
 
             await File.WriteAllTextAsync(path, json, Encoding.UTF8);
-
-            vm.EffectsConfigStatusText = "Effects saved.";
         }
         catch (Exception ex)
         {
@@ -428,14 +424,12 @@ public partial class MainWindow : Window
             var file = files.FirstOrDefault();
             if (file is null)
             {
-                vm.EffectsConfigStatusText = string.Empty;
                 return;
             }
 
             var path = file.TryGetLocalPath();
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                vm.EffectsConfigStatusText = string.Empty;
                 return;
             }
 
@@ -447,8 +441,6 @@ public partial class MainWindow : Window
 
             vm.LastEffectsConfigSaveFileName = Path.GetFileName(path);
             vm.LastEffectsConfigSavePath = path;
-
-            vm.EffectsConfigStatusText = "Effects loaded.";
         }
         catch (Exception ex)
         {
