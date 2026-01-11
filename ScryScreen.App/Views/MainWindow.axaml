@@ -87,6 +87,8 @@
                         </Grid>
                     </ToggleButton>
 
+                    <Button Classes="circle" i:Attached.Icon="mdi-information-outline" ToolTip.Tip="About ScryScreen" Click="OnShowAbout" />
+
                     <Button Classes="circle" i:Attached.Icon="mdi-close" ToolTip.Tip="Close ScryScreen" Click="OnCloseApp" />
                 </StackPanel>
             </Grid>

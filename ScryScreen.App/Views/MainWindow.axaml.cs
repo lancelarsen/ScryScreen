@@ -222,6 +222,20 @@ public partial class MainWindow : Window
         Close();
     }
 
+    private async void OnShowAbout(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var about = new AboutWindow();
+
+            await about.ShowDialog(this);
+        }
+        catch (Exception ex)
+        {
+            ErrorReporter.Report(ex, "Show About");
+        }
+    }
+
     private async void OnImportMediaFolder(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm)
