@@ -198,12 +198,6 @@ public static class LastSessionPersistence
                 var json = File.ReadAllText(effectsLoadPath);
                 vm.ImportSelectedEffectsConfigJson(json);
             }
-
-            var effectsExists = !string.IsNullOrWhiteSpace(effectsLoadPath) && File.Exists(effectsLoadPath);
-            vm.EffectsConfigStatusText =
-                $"Startup effects load: {(effectsExists ? effectsLoadPath : "(missing)")}. " +
-                $"Auto-save target: {vm.LastEffectsConfigSavePath ?? "(none)"}. " +
-                $"AshEnabled={vm.Effects.AshEnabled}, AshIntensity={vm.Effects.AshIntensity:0.###}.";
         }
         catch (Exception ex)
         {

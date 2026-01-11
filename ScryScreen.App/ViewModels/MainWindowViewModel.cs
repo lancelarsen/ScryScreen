@@ -93,7 +93,36 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Any effects setting change updates portals + auto-save.
         ApplyEffectsToAllPortals();
-        NotifyEffectsChangedForAutoSave();
+
+        // Enabled/sound toggles are intentionally NOT persisted.
+        if (IsPersistableEffectsProperty(e.PropertyName))
+        {
+            NotifyEffectsChangedForAutoSave();
+        }
+    }
+
+    private static bool IsPersistableEffectsProperty(string? propertyName)
+    {
+        // Persist numeric/range changes; do NOT persist enabled toggles or sound toggles.
+        if (string.IsNullOrWhiteSpace(propertyName))
+        {
+            return true;
+        }
+
+        if (propertyName == nameof(EffectsSettingsViewModel.EffectsVolume))
+        {
+            return true;
+        }
+
+        if (propertyName.EndsWith("Enabled", StringComparison.Ordinal) ||
+            propertyName.EndsWith("SoundEnabled", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return propertyName.EndsWith("Min", StringComparison.Ordinal) ||
+               propertyName.EndsWith("Max", StringComparison.Ordinal) ||
+               propertyName.EndsWith("Intensity", StringComparison.Ordinal);
     }
 
     public ReadOnlyObservableCollection<ScreenInfoViewModel> Screens => _screensReadOnly;
@@ -598,7 +627,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public string ExportSelectedEffectsConfigJson(bool indented)
     {
-        var config = Effects.ExportEffectsConfig();
+        var config = Effects.ExportEffectsConfigForPersistence();
         return JsonSerializer.Serialize(config, new JsonSerializerOptions(EffectsJsonOptions)
         {
             WriteIndented = indented,
@@ -681,7 +710,7 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        Effects.ImportEffectsConfig(config);
+        Effects.ImportEffectsConfigForPersistence(config);
         ApplyEffectsToAllPortals();
     }
 

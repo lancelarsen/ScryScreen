@@ -242,6 +242,34 @@ public sealed partial class EffectsSettingsViewModel : ViewModelBase
             QuakeIntensity = QuakeIntensity,
         };
 
+    public EffectsConfig ExportEffectsConfigForPersistence()
+    {
+        var config = ExportEffectsConfig();
+
+        // Per user preference: enabled/sound toggles are not persisted.
+        // Always start effects + audio OFF.
+        config.RainEnabled = false;
+        config.RainSoundEnabled = false;
+        config.SnowEnabled = false;
+        config.SnowSoundEnabled = false;
+        config.AshEnabled = false;
+        config.AshSoundEnabled = false;
+        config.FireEnabled = false;
+        config.FireSoundEnabled = false;
+        config.SandEnabled = false;
+        config.SandSoundEnabled = false;
+        config.FogEnabled = false;
+        config.FogSoundEnabled = false;
+        config.SmokeEnabled = false;
+        config.SmokeSoundEnabled = false;
+        config.LightningEnabled = false;
+        config.LightningSoundEnabled = false;
+        config.QuakeEnabled = false;
+        config.QuakeSoundEnabled = false;
+
+        return config;
+    }
+
     public void ImportEffectsConfig(EffectsConfig config)
     {
         if (config is null)
@@ -304,6 +332,73 @@ public sealed partial class EffectsSettingsViewModel : ViewModelBase
         QuakeMin = config.QuakeMin;
         QuakeMax = config.QuakeMax;
         QuakeIntensity = config.QuakeIntensity;
+    }
+
+    public void ImportEffectsConfigForPersistence(EffectsConfig config)
+    {
+        if (config is null)
+        {
+            return;
+        }
+
+        // Apply numeric/range values...
+        EffectsVolume = config.EffectsVolume;
+
+        RainMin = config.RainMin;
+        RainMax = config.RainMax;
+        RainIntensity = config.RainIntensity;
+
+        SnowMin = config.SnowMin;
+        SnowMax = config.SnowMax;
+        SnowIntensity = config.SnowIntensity;
+
+        AshMin = config.AshMin;
+        AshMax = config.AshMax;
+        AshIntensity = config.AshIntensity;
+
+        FireMin = config.FireMin;
+        FireMax = config.FireMax;
+        FireIntensity = config.FireIntensity;
+
+        SandMin = config.SandMin;
+        SandMax = config.SandMax;
+        SandIntensity = config.SandIntensity;
+
+        FogMin = config.FogMin;
+        FogMax = config.FogMax;
+        FogIntensity = config.FogIntensity;
+
+        SmokeMin = config.SmokeMin;
+        SmokeMax = config.SmokeMax;
+        SmokeIntensity = config.SmokeIntensity;
+
+        LightningMin = config.LightningMin;
+        LightningMax = config.LightningMax;
+        LightningIntensity = config.LightningIntensity;
+
+        QuakeMin = config.QuakeMin;
+        QuakeMax = config.QuakeMax;
+        QuakeIntensity = config.QuakeIntensity;
+
+        // ...but do NOT restore enabled/sound flags.
+        RainEnabled = false;
+        RainSoundEnabled = false;
+        SnowEnabled = false;
+        SnowSoundEnabled = false;
+        AshEnabled = false;
+        AshSoundEnabled = false;
+        FireEnabled = false;
+        FireSoundEnabled = false;
+        SandEnabled = false;
+        SandSoundEnabled = false;
+        FogEnabled = false;
+        FogSoundEnabled = false;
+        SmokeEnabled = false;
+        SmokeSoundEnabled = false;
+        LightningEnabled = false;
+        LightningSoundEnabled = false;
+        QuakeEnabled = false;
+        QuakeSoundEnabled = false;
     }
 
     private static double SanitizeNonNegative(double v)

@@ -368,7 +368,7 @@ public partial class MainWindow : Window
             var path = await PickEffectsSavePathAsync(vm, savesFolder);
             if (string.IsNullOrWhiteSpace(path))
             {
-                vm.EffectsConfigStatusText = "Save Effects: cancelled.";
+                vm.EffectsConfigStatusText = string.Empty;
                 return;
             }
 
@@ -378,35 +378,16 @@ public partial class MainWindow : Window
             vm.LastEffectsConfigSaveFileName = Path.GetFileName(path);
             vm.LastEffectsConfigSavePath = path;
 
-            var beforeAshEnabled = vm.Effects.AshEnabled;
-            var beforeAshIntensity = vm.Effects.AshIntensity;
-
             var json = vm.ExportBestEffectsConfigJson(indented: true);
             if (string.IsNullOrWhiteSpace(json))
             {
-                vm.EffectsConfigStatusText = "Save Effects: nothing to save.";
+                vm.EffectsConfigStatusText = string.Empty;
                 return;
             }
 
             await File.WriteAllTextAsync(path, json, Encoding.UTF8);
 
-            double? fileAshIntensity = null;
-            try
-            {
-                var persistedJson = await File.ReadAllTextAsync(path, Encoding.UTF8);
-                using var doc = JsonDocument.Parse(persistedJson);
-                if (doc.RootElement.TryGetProperty("AshIntensity", out var prop) && prop.TryGetDouble(out var v))
-                {
-                    fileAshIntensity = v;
-                }
-            }
-            catch
-            {
-                fileAshIntensity = null;
-            }
-
-            vm.EffectsConfigStatusText =
-                $"Saved effects to: {path} (AshEnabled={beforeAshEnabled}, AshIntensity={beforeAshIntensity:0.###}, FileAshIntensity={(fileAshIntensity.HasValue ? fileAshIntensity.Value.ToString("0.###") : "?")})";
+            vm.EffectsConfigStatusText = "Effects saved.";
         }
         catch (Exception ex)
         {
@@ -447,14 +428,14 @@ public partial class MainWindow : Window
             var file = files.FirstOrDefault();
             if (file is null)
             {
-                vm.EffectsConfigStatusText = "Load Effects: cancelled.";
+                vm.EffectsConfigStatusText = string.Empty;
                 return;
             }
 
             var path = file.TryGetLocalPath();
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                vm.EffectsConfigStatusText = "Load Effects: file not found.";
+                vm.EffectsConfigStatusText = string.Empty;
                 return;
             }
 
@@ -467,8 +448,7 @@ public partial class MainWindow : Window
             vm.LastEffectsConfigSaveFileName = Path.GetFileName(path);
             vm.LastEffectsConfigSavePath = path;
 
-            vm.EffectsConfigStatusText =
-                $"Loaded effects from: {path} (AshEnabled={vm.Effects.AshEnabled}, AshIntensity={vm.Effects.AshIntensity:0.###})";
+            vm.EffectsConfigStatusText = "Effects loaded.";
         }
         catch (Exception ex)
         {

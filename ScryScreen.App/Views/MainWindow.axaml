@@ -878,7 +878,7 @@
                                               Height="28"
                                               CornerRadius="14"
                                               IsChecked="{Binding ShowEffectSliderBounds, Mode=TwoWay}"
-                                              ToolTip.Tip="Show slider min/max fields">
+                                              ToolTip.Tip="Show Slider Min/Max Fields">
                                     <i:Icon Value="mdi-numeric" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                 </ToggleButton>
 
@@ -889,7 +889,7 @@
                                         CornerRadius="8"
                                         Padding="10,6"
                                         Click="OnLoadEffectsConfig"
-                                        ToolTip.Tip="Load Effects JSON">
+                                        ToolTip.Tip="Load Effects Settings">
                                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <i:Icon Value="mdi-folder-open" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                         <TextBlock Text="Load" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
@@ -903,7 +903,7 @@
                                         CornerRadius="8"
                                         Padding="10,6"
                                         Click="OnSaveEffectsConfig"
-                                        ToolTip.Tip="Save Effects JSON">
+                                        ToolTip.Tip="Save Effects Settings">
                                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <i:Icon Value="mdi-content-save" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                         <TextBlock Text="Save" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
@@ -915,7 +915,7 @@
                                               IsChecked="{Binding AutoSaveEffectsEnabled, Mode=TwoWay}"
                                               Checked="OnAutoSaveEffectsChecked"
                                               Unchecked="OnAutoSaveEffectsUnchecked"
-                                              ToolTip.Tip="Auto-save Effects JSON to last file">
+                                              ToolTip.Tip="Auto-Save to Last Save File">
                                     <i:Icon Value="mdi-autorenew" FontSize="18"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
@@ -1259,7 +1259,7 @@
                                         CornerRadius="8"
                                         Padding="12,6"
                                         Click="OnLoadInitiativeConfig"
-                                        ToolTip.Tip="Load Initiative JSON">
+                                        ToolTip.Tip="Load Initiative Settings">
                                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <i:Icon Value="mdi-folder-open" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                         <TextBlock Text="Load" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
@@ -1272,7 +1272,7 @@
                                         CornerRadius="8"
                                         Padding="12,6"
                                         Click="OnSaveInitiativeConfig"
-                                        ToolTip.Tip="Save Initiative JSON">
+                                        ToolTip.Tip="Save Initiative Settings">
                                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <i:Icon Value="mdi-content-save" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                         <TextBlock Text="Save" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
@@ -1283,7 +1283,7 @@
                                               IsChecked="{Binding AutoSaveInitiativeEnabled, Mode=TwoWay}"
                                               Checked="OnAutoSaveInitiativeChecked"
                                               Unchecked="OnAutoSaveInitiativeUnchecked"
-                                              ToolTip.Tip="Auto-save Initiative JSON to last file">
+                                              ToolTip.Tip="Auto-Save to Last Save File">
                                     <i:Icon Value="mdi-autorenew" FontSize="18"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
