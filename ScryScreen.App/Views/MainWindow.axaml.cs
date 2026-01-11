@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using System.Linq;
@@ -9,6 +11,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Text;
+using System.Text.Json;
 using ScryScreen.App.Services;
 using Avalonia.Threading;
 
@@ -19,6 +22,7 @@ public partial class MainWindow : Window
     private bool _pinning;
     private MainWindowViewModel? _vm;
     private bool _screensChangedHooked;
+    private bool _handlingAutoSaveToggle;
 
     private static Uri ToFileUri(string path)
     {
@@ -270,27 +274,8 @@ public partial class MainWindow : Window
 
             var savesFolder = await TryGetSavesFolderAsync();
 
-            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-            {
-                Title = "Save Initiative Config",
-                SuggestedFileName = vm.LastInitiativeConfigSaveFileName ?? "initiative.json",
-                DefaultExtension = "json",
-                SuggestedStartLocation = savesFolder,
-                FileTypeChoices = new[]
-                {
-                    new FilePickerFileType("JSON")
-                    {
-                        Patterns = new[] { "*.json" },
-                    },
-                },
-            });
+            var path = await PickInitiativeSavePathAsync(vm, savesFolder);
 
-            if (file is null)
-            {
-                return;
-            }
-
-            var path = file.TryGetLocalPath();
             if (string.IsNullOrWhiteSpace(path))
             {
                 return;
@@ -299,6 +284,7 @@ public partial class MainWindow : Window
             var json = vm.InitiativeTracker.ExportConfigJson(indented: true);
             await File.WriteAllTextAsync(path, json);
             vm.LastInitiativeConfigSaveFileName = Path.GetFileName(path);
+            vm.LastInitiativeConfigSavePath = path;
         }
         catch (Exception ex)
         {
@@ -349,7 +335,13 @@ public partial class MainWindow : Window
             }
 
             var json = await File.ReadAllTextAsync(path);
-            vm.InitiativeTracker.ImportConfigJson(json);
+            using (vm.SuppressAutoSave())
+            {
+                vm.InitiativeTracker.ImportConfigJson(json);
+            }
+
+            vm.LastInitiativeConfigSaveFileName = Path.GetFileName(path);
+            vm.LastInitiativeConfigSavePath = path;
         }
         catch (Exception ex)
         {
@@ -373,40 +365,48 @@ public partial class MainWindow : Window
 
             var savesFolder = await TryGetSavesFolderAsync();
 
-            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-            {
-                Title = "Save Effects Config",
-                SuggestedFileName = vm.LastEffectsConfigSaveFileName ?? "effects.json",
-                DefaultExtension = "json",
-                SuggestedStartLocation = savesFolder,
-                FileTypeChoices = new[]
-                {
-                    new FilePickerFileType("JSON")
-                    {
-                        Patterns = new[] { "*.json" },
-                    },
-                },
-            });
-
-            if (file is null)
-            {
-                return;
-            }
-
-            var path = file.TryGetLocalPath();
+            var path = await PickEffectsSavePathAsync(vm, savesFolder);
             if (string.IsNullOrWhiteSpace(path))
             {
+                vm.EffectsConfigStatusText = "Save Effects: cancelled.";
                 return;
             }
 
-            var json = vm.ExportSelectedEffectsConfigJson(indented: true);
+            // Ensure any pending binding updates (e.g., slider Value) are applied before we serialize.
+            await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+
+            vm.LastEffectsConfigSaveFileName = Path.GetFileName(path);
+            vm.LastEffectsConfigSavePath = path;
+
+            var beforeAshEnabled = vm.Effects.AshEnabled;
+            var beforeAshIntensity = vm.Effects.AshIntensity;
+
+            var json = vm.ExportBestEffectsConfigJson(indented: true);
             if (string.IsNullOrWhiteSpace(json))
             {
+                vm.EffectsConfigStatusText = "Save Effects: nothing to save.";
                 return;
             }
 
             await File.WriteAllTextAsync(path, json, Encoding.UTF8);
-            vm.LastEffectsConfigSaveFileName = Path.GetFileName(path);
+
+            double? fileAshIntensity = null;
+            try
+            {
+                var persistedJson = await File.ReadAllTextAsync(path, Encoding.UTF8);
+                using var doc = JsonDocument.Parse(persistedJson);
+                if (doc.RootElement.TryGetProperty("AshIntensity", out var prop) && prop.TryGetDouble(out var v))
+                {
+                    fileAshIntensity = v;
+                }
+            }
+            catch
+            {
+                fileAshIntensity = null;
+            }
+
+            vm.EffectsConfigStatusText =
+                $"Saved effects to: {path} (AshEnabled={beforeAshEnabled}, AshIntensity={beforeAshIntensity:0.###}, FileAshIntensity={(fileAshIntensity.HasValue ? fileAshIntensity.Value.ToString("0.###") : "?")})";
         }
         catch (Exception ex)
         {
@@ -447,21 +447,227 @@ public partial class MainWindow : Window
             var file = files.FirstOrDefault();
             if (file is null)
             {
+                vm.EffectsConfigStatusText = "Load Effects: cancelled.";
                 return;
             }
 
             var path = file.TryGetLocalPath();
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
+                vm.EffectsConfigStatusText = "Load Effects: file not found.";
                 return;
             }
 
             var json = await File.ReadAllTextAsync(path, Encoding.UTF8);
-            vm.ImportSelectedEffectsConfigJson(json);
+            using (vm.SuppressAutoSave())
+            {
+                vm.ImportSelectedEffectsConfigJson(json);
+            }
+
+            vm.LastEffectsConfigSaveFileName = Path.GetFileName(path);
+            vm.LastEffectsConfigSavePath = path;
+
+            vm.EffectsConfigStatusText =
+                $"Loaded effects from: {path} (AshEnabled={vm.Effects.AshEnabled}, AshIntensity={vm.Effects.AshIntensity:0.###})";
         }
         catch (Exception ex)
         {
             ErrorReporter.Report(ex, "Load Effects Config");
+        }
+    }
+
+    private async void OnAutoSaveInitiativeChecked(object? sender, RoutedEventArgs e)
+    {
+        if (_handlingAutoSaveToggle)
+        {
+            return;
+        }
+
+        try
+        {
+            _handlingAutoSaveToggle = true;
+
+            if (DataContext is not MainWindowViewModel vm)
+            {
+                return;
+            }
+
+            if (StorageProvider is null)
+            {
+                vm.AutoSaveInitiativeEnabled = false;
+                if (sender is ToggleButton tb)
+                {
+                    tb.IsChecked = false;
+                }
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(vm.LastInitiativeConfigSavePath))
+            {
+                var savesFolder = await TryGetSavesFolderAsync();
+                var path = await PickInitiativeSavePathAsync(vm, savesFolder);
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    vm.AutoSaveInitiativeEnabled = false;
+                    if (sender is ToggleButton tb)
+                    {
+                        tb.IsChecked = false;
+                    }
+                    return;
+                }
+
+                vm.LastInitiativeConfigSavePath = path;
+                vm.LastInitiativeConfigSaveFileName = Path.GetFileName(path);
+            }
+
+            vm.AutoSaveInitiativeEnabled = true;
+            vm.AutoSaveInitiativeImmediatelyIfEnabled();
+        }
+        finally
+        {
+            _handlingAutoSaveToggle = false;
+        }
+    }
+
+    private void OnAutoSaveInitiativeUnchecked(object? sender, RoutedEventArgs e)
+    {
+        if (_handlingAutoSaveToggle)
+        {
+            return;
+        }
+
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.AutoSaveInitiativeEnabled = false;
+        }
+    }
+
+    private async void OnAutoSaveEffectsChecked(object? sender, RoutedEventArgs e)
+    {
+        if (_handlingAutoSaveToggle)
+        {
+            return;
+        }
+
+        try
+        {
+            _handlingAutoSaveToggle = true;
+
+            if (DataContext is not MainWindowViewModel vm)
+            {
+                return;
+            }
+
+            if (StorageProvider is null)
+            {
+                vm.AutoSaveEffectsEnabled = false;
+                if (sender is ToggleButton tb)
+                {
+                    tb.IsChecked = false;
+                }
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(vm.LastEffectsConfigSavePath))
+            {
+                var savesFolder = await TryGetSavesFolderAsync();
+                var path = await PickEffectsSavePathAsync(vm, savesFolder);
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    vm.AutoSaveEffectsEnabled = false;
+                    if (sender is ToggleButton tb)
+                    {
+                        tb.IsChecked = false;
+                    }
+                    return;
+                }
+
+                vm.LastEffectsConfigSavePath = path;
+                vm.LastEffectsConfigSaveFileName = Path.GetFileName(path);
+            }
+
+            vm.AutoSaveEffectsEnabled = true;
+            vm.AutoSaveEffectsImmediatelyIfEnabled();
+        }
+        finally
+        {
+            _handlingAutoSaveToggle = false;
+        }
+    }
+
+    private void OnAutoSaveEffectsUnchecked(object? sender, RoutedEventArgs e)
+    {
+        if (_handlingAutoSaveToggle)
+        {
+            return;
+        }
+
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.AutoSaveEffectsEnabled = false;
+        }
+    }
+
+    private async Task<string?> PickInitiativeSavePathAsync(MainWindowViewModel vm, IStorageFolder? savesFolder)
+    {
+        if (StorageProvider is null)
+        {
+            return null;
+        }
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save Initiative Config",
+            SuggestedFileName = vm.LastInitiativeConfigSaveFileName ?? "initiative.json",
+            DefaultExtension = "json",
+            SuggestedStartLocation = savesFolder,
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("JSON")
+                {
+                    Patterns = new[] { "*.json" },
+                },
+            },
+        });
+
+        var path = file?.TryGetLocalPath();
+        return string.IsNullOrWhiteSpace(path) ? null : path;
+    }
+
+    private async Task<string?> PickEffectsSavePathAsync(MainWindowViewModel vm, IStorageFolder? savesFolder)
+    {
+        if (StorageProvider is null)
+        {
+            return null;
+        }
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save Effects Config",
+            SuggestedFileName = vm.LastEffectsConfigSaveFileName ?? "effects.json",
+            DefaultExtension = "json",
+            SuggestedStartLocation = savesFolder,
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("JSON")
+                {
+                    Patterns = new[] { "*.json" },
+                },
+            },
+        });
+
+        var path = file?.TryGetLocalPath();
+        return string.IsNullOrWhiteSpace(path) ? null : path;
+    }
+
+    private void OnEffectsSliderPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            // Defer slightly to let the final slider Value propagate to the VM.
+            Dispatcher.UIThread.Post(
+                () => vm.AutoSaveEffectsImmediatelyIfEnabled(),
+                DispatcherPriority.Background);
         }
     }
 }

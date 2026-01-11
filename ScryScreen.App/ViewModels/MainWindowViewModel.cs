@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -16,6 +17,13 @@ namespace ScryScreen.App.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
+    private static readonly JsonSerializerOptions EffectsJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+    };
+
     private readonly PortalHostService _portalHost;
     private readonly EffectsAudioService _effectsAudio;
     private readonly ObservableCollection<ScreenInfoViewModel> _screens;
@@ -24,10 +32,29 @@ public partial class MainWindowViewModel : ViewModelBase
     private string? _lastMediaFolderPath;
     private string? _lastInitiativeConfigSaveFileName;
     private string? _lastEffectsConfigSaveFileName;
+    private string? _lastInitiativeConfigSavePath;
+    private string? _lastEffectsConfigSavePath;
+
+    [ObservableProperty]
+    private bool autoSaveInitiativeEnabled;
+
+    [ObservableProperty]
+    private bool autoSaveEffectsEnabled;
+
+    private int _autoSaveSuppressCount;
+    private bool _initiativeAutoSaveDirty;
+    private bool _effectsAutoSaveDirty;
+    private string? _initiativeAutoSaveJsonSnapshot;
+    private string? _effectsAutoSaveJsonSnapshot;
+    private System.Threading.CancellationTokenSource? _initiativeAutoSaveCts;
+    private System.Threading.CancellationTokenSource? _effectsAutoSaveCts;
 
     private readonly InitiativeTrackerViewModel _initiativeTracker;
 
-    private MediaItemViewModel? _selectedMediaForEffects;
+    public EffectsSettingsViewModel Effects { get; }
+
+    [ObservableProperty]
+    private string effectsConfigStatusText = string.Empty;
 
     private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.Stack<PortalContentRestorationPlanner.Snapshot>> _portalHistory = new();
 
@@ -39,6 +66,9 @@ public partial class MainWindowViewModel : ViewModelBase
         _screensReadOnly = new ReadOnlyObservableCollection<ScreenInfoViewModel>(_screens);
         Portals = new ObservableCollection<PortalRowViewModel>();
         Media = new MediaLibraryViewModel();
+
+        Effects = new EffectsSettingsViewModel();
+        Effects.PropertyChanged += OnGlobalEffectsChanged;
 
         Portals.CollectionChanged += (_, _) => UpdateEffectsAudioMix();
 
@@ -54,6 +84,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // Start with one portal for convenience.
         AddPortal();
+
+        // Ensure portals start with a consistent effects state.
+        ApplyEffectsToAllPortals();
+    }
+
+    private void OnGlobalEffectsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Any effects setting change updates portals + auto-save.
+        ApplyEffectsToAllPortals();
+        NotifyEffectsChangedForAutoSave();
     }
 
     public ReadOnlyObservableCollection<ScreenInfoViewModel> Screens => _screensReadOnly;
@@ -61,13 +101,58 @@ public partial class MainWindowViewModel : ViewModelBase
     public string? LastInitiativeConfigSaveFileName
     {
         get => _lastInitiativeConfigSaveFileName;
-        internal set => _lastInitiativeConfigSaveFileName = value;
+        internal set => SetProperty(ref _lastInitiativeConfigSaveFileName, value);
     }
 
     public string? LastEffectsConfigSaveFileName
     {
         get => _lastEffectsConfigSaveFileName;
-        internal set => _lastEffectsConfigSaveFileName = value;
+        internal set => SetProperty(ref _lastEffectsConfigSaveFileName, value);
+    }
+
+    public string? LastInitiativeConfigSavePath
+    {
+        get => _lastInitiativeConfigSavePath;
+        internal set => SetProperty(ref _lastInitiativeConfigSavePath, value);
+    }
+
+    public string? LastEffectsConfigSavePath
+    {
+        get => _lastEffectsConfigSavePath;
+        internal set => SetProperty(ref _lastEffectsConfigSavePath, value);
+    }
+
+    internal IDisposable SuppressAutoSave()
+    {
+        _autoSaveSuppressCount++;
+        return new AutoSaveSuppressionToken(this);
+    }
+
+    private bool IsAutoSaveSuppressed => _autoSaveSuppressCount > 0;
+
+    private sealed class AutoSaveSuppressionToken : IDisposable
+    {
+        private MainWindowViewModel? _vm;
+
+        public AutoSaveSuppressionToken(MainWindowViewModel vm)
+        {
+            _vm = vm;
+        }
+
+        public void Dispose()
+        {
+            var vm = _vm;
+            _vm = null;
+            if (vm is null)
+            {
+                return;
+            }
+
+            if (vm._autoSaveSuppressCount > 0)
+            {
+                vm._autoSaveSuppressCount--;
+            }
+        }
     }
 
     public void RefreshScreens()
@@ -321,9 +406,6 @@ public partial class MainWindowViewModel : ViewModelBase
             UpdatePortalMediaSelectionFlags();
             OnPropertyChanged(nameof(IsSelectedMediaVideo));
 
-            AttachSelectedMediaEffects(Media.SelectedItem);
-            ApplyEffectsToAssignedPortals();
-
             var selectedPath = Media.SelectedItem?.FilePath;
             if (_lastSelectedMediaPath is null && selectedPath is not null && !IsControlsSectionVisible)
             {
@@ -334,51 +416,141 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void AttachSelectedMediaEffects(MediaItemViewModel? item)
+    private void NotifyEffectsChangedForAutoSave()
     {
-        if (_selectedMediaForEffects is not null)
+        _effectsAutoSaveDirty = true;
+
+        // Cache a snapshot for shutdown timing.
+        var snapshot = ExportSelectedEffectsConfigJson(indented: false);
+        if (!string.IsNullOrWhiteSpace(snapshot))
         {
-            _selectedMediaForEffects.PropertyChanged -= OnSelectedMediaForEffectsChanged;
+            _effectsAutoSaveJsonSnapshot = snapshot;
         }
 
-        _selectedMediaForEffects = item;
-
-        if (_selectedMediaForEffects is not null)
+        if (IsAutoSaveSuppressed || !AutoSaveEffectsEnabled)
         {
-            _selectedMediaForEffects.PropertyChanged += OnSelectedMediaForEffectsChanged;
+            return;
+        }
+
+        var savePath = LastEffectsConfigSavePath;
+        if (string.IsNullOrWhiteSpace(savePath))
+        {
+            return;
+        }
+
+        ScheduleDebouncedEffectsAutoSave(savePath);
+    }
+
+    private void ScheduleDebouncedEffectsAutoSave(string savePath)
+    {
+        _effectsAutoSaveCts?.Cancel();
+        _effectsAutoSaveCts = new System.Threading.CancellationTokenSource();
+        var token = _effectsAutoSaveCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(750, token).ConfigureAwait(false);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await AutoSaveEffectsToPathAsync(savePath, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // ignore
+            }
+            catch (Exception ex)
+            {
+                ErrorReporter.Report(ex, "Auto-save Effects");
+            }
+        }, token);
+    }
+
+    internal void AutoSaveEffectsImmediatelyIfEnabled(bool ignoreSuppression = false)
+    {
+        if (!AutoSaveEffectsEnabled)
+        {
+            return;
+        }
+
+        if (!ignoreSuppression && IsAutoSaveSuppressed)
+        {
+            return;
+        }
+
+        var savePath = LastEffectsConfigSavePath;
+        if (string.IsNullOrWhiteSpace(savePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var json = ExportSelectedEffectsConfigJson(indented: false);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                json = _effectsAutoSaveJsonSnapshot;
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    return;
+                }
+            }
+
+            var dir = Path.GetDirectoryName(savePath);
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.WriteAllText(savePath, json);
+            _effectsAutoSaveDirty = false;
+        }
+        catch (Exception ex)
+        {
+            ErrorReporter.Report(ex, "Auto-save Effects");
         }
     }
 
-    private void OnSelectedMediaForEffectsChanged(object? sender, PropertyChangedEventArgs e)
+    private async Task AutoSaveEffectsToPathAsync(string savePath, System.Threading.CancellationToken token)
     {
-        if (e.PropertyName is nameof(MediaItemViewModel.RainEnabled) or nameof(MediaItemViewModel.RainIntensity) or nameof(MediaItemViewModel.RainMin) or nameof(MediaItemViewModel.RainMax) or
-            nameof(MediaItemViewModel.RainSoundEnabled) or
-            nameof(MediaItemViewModel.EffectsVolume) or
-            nameof(MediaItemViewModel.SnowEnabled) or nameof(MediaItemViewModel.SnowIntensity) or nameof(MediaItemViewModel.SnowMin) or nameof(MediaItemViewModel.SnowMax) or
-            nameof(MediaItemViewModel.SnowSoundEnabled) or
-            nameof(MediaItemViewModel.AshEnabled) or nameof(MediaItemViewModel.AshIntensity) or nameof(MediaItemViewModel.AshMin) or nameof(MediaItemViewModel.AshMax) or
-            nameof(MediaItemViewModel.AshSoundEnabled) or
-            nameof(MediaItemViewModel.FireEnabled) or nameof(MediaItemViewModel.FireIntensity) or nameof(MediaItemViewModel.FireMin) or nameof(MediaItemViewModel.FireMax) or
-            nameof(MediaItemViewModel.FireSoundEnabled) or
-            nameof(MediaItemViewModel.SandEnabled) or nameof(MediaItemViewModel.SandIntensity) or nameof(MediaItemViewModel.SandMin) or nameof(MediaItemViewModel.SandMax) or
-            nameof(MediaItemViewModel.SandSoundEnabled) or
-            nameof(MediaItemViewModel.FogEnabled) or nameof(MediaItemViewModel.FogIntensity) or nameof(MediaItemViewModel.FogMin) or nameof(MediaItemViewModel.FogMax) or
-            nameof(MediaItemViewModel.FogSoundEnabled) or
-            nameof(MediaItemViewModel.SmokeEnabled) or nameof(MediaItemViewModel.SmokeIntensity) or nameof(MediaItemViewModel.SmokeMin) or nameof(MediaItemViewModel.SmokeMax) or
-            nameof(MediaItemViewModel.SmokeSoundEnabled) or
-            nameof(MediaItemViewModel.LightningEnabled) or nameof(MediaItemViewModel.LightningIntensity) or nameof(MediaItemViewModel.LightningMin) or nameof(MediaItemViewModel.LightningMax) or
-            nameof(MediaItemViewModel.LightningSoundEnabled) or
-            nameof(MediaItemViewModel.QuakeEnabled) or nameof(MediaItemViewModel.QuakeIntensity) or nameof(MediaItemViewModel.QuakeMin) or nameof(MediaItemViewModel.QuakeMax) or
-            nameof(MediaItemViewModel.QuakeSoundEnabled))
+        if (!AutoSaveEffectsEnabled || !_effectsAutoSaveDirty)
         {
-            ApplyEffectsToAssignedPortals();
+            return;
         }
+
+        if (IsAutoSaveSuppressed)
+        {
+            return;
+        }
+
+        var json = await Dispatcher.UIThread.InvokeAsync(() => ExportSelectedEffectsConfigJson(indented: false));
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            json = _effectsAutoSaveJsonSnapshot;
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return;
+            }
+        }
+
+        var dir = Path.GetDirectoryName(savePath);
+        if (!string.IsNullOrWhiteSpace(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+
+        await File.WriteAllTextAsync(savePath, json, token).ConfigureAwait(false);
+        _effectsAutoSaveDirty = false;
     }
 
     private long _lightningTriggerNonce;
     private long _quakeTriggerNonce;
 
-    private OverlayEffectsState BuildEffectsState(MediaItemViewModel item)
+    private OverlayEffectsState BuildEffectsStateFromGlobal()
     {
         static double ClampMin0(double v)
         {
@@ -390,52 +562,110 @@ public partial class MainWindowViewModel : ViewModelBase
             return v < 0 ? 0 : v;
         }
 
+        var fx = Effects;
         return new OverlayEffectsState(
-            RainEnabled: item.RainEnabled,
-            RainIntensity: ClampMin0(item.RainIntensity),
-            RainSoundEnabled: item.RainSoundEnabled,
-            SnowEnabled: item.SnowEnabled,
-            SnowIntensity: ClampMin0(item.SnowIntensity),
-            SnowSoundEnabled: item.SnowSoundEnabled,
-            AshEnabled: item.AshEnabled,
-            AshIntensity: ClampMin0(item.AshIntensity),
-            AshSoundEnabled: item.AshSoundEnabled,
-            FireEnabled: item.FireEnabled,
-            FireIntensity: ClampMin0(item.FireIntensity),
-            FireSoundEnabled: item.FireSoundEnabled,
-            SandEnabled: item.SandEnabled,
-            SandIntensity: ClampMin0(item.SandIntensity),
-            SandSoundEnabled: item.SandSoundEnabled,
-            FogEnabled: item.FogEnabled,
-            FogIntensity: ClampMin0(item.FogIntensity),
-            FogSoundEnabled: item.FogSoundEnabled,
-            SmokeEnabled: item.SmokeEnabled,
-            SmokeIntensity: ClampMin0(item.SmokeIntensity),
-            SmokeSoundEnabled: item.SmokeSoundEnabled,
-            LightningEnabled: item.LightningEnabled,
-            LightningIntensity: ClampMin0(item.LightningIntensity),
-            LightningSoundEnabled: item.LightningSoundEnabled,
-            QuakeEnabled: item.QuakeEnabled,
-            QuakeIntensity: ClampMin0(item.QuakeIntensity),
-            QuakeSoundEnabled: item.QuakeSoundEnabled,
-            EffectsVolume: ClampMin0(item.EffectsVolume),
+            RainEnabled: fx.RainEnabled,
+            RainIntensity: ClampMin0(fx.RainIntensity),
+            RainSoundEnabled: fx.RainSoundEnabled,
+            SnowEnabled: fx.SnowEnabled,
+            SnowIntensity: ClampMin0(fx.SnowIntensity),
+            SnowSoundEnabled: fx.SnowSoundEnabled,
+            AshEnabled: fx.AshEnabled,
+            AshIntensity: ClampMin0(fx.AshIntensity),
+            AshSoundEnabled: fx.AshSoundEnabled,
+            FireEnabled: fx.FireEnabled,
+            FireIntensity: ClampMin0(fx.FireIntensity),
+            FireSoundEnabled: fx.FireSoundEnabled,
+            SandEnabled: fx.SandEnabled,
+            SandIntensity: ClampMin0(fx.SandIntensity),
+            SandSoundEnabled: fx.SandSoundEnabled,
+            FogEnabled: fx.FogEnabled,
+            FogIntensity: ClampMin0(fx.FogIntensity),
+            FogSoundEnabled: fx.FogSoundEnabled,
+            SmokeEnabled: fx.SmokeEnabled,
+            SmokeIntensity: ClampMin0(fx.SmokeIntensity),
+            SmokeSoundEnabled: fx.SmokeSoundEnabled,
+            LightningEnabled: fx.LightningEnabled,
+            LightningIntensity: ClampMin0(fx.LightningIntensity),
+            LightningSoundEnabled: fx.LightningSoundEnabled,
+            QuakeEnabled: fx.QuakeEnabled,
+            QuakeIntensity: ClampMin0(fx.QuakeIntensity),
+            QuakeSoundEnabled: fx.QuakeSoundEnabled,
+            EffectsVolume: ClampMin0(fx.EffectsVolume),
             LightningTrigger: _lightningTriggerNonce,
             QuakeTrigger: _quakeTriggerNonce);
     }
 
     public string ExportSelectedEffectsConfigJson(bool indented)
     {
-        var selected = Media.SelectedItem;
-        if (selected is null)
+        var config = Effects.ExportEffectsConfig();
+        return JsonSerializer.Serialize(config, new JsonSerializerOptions(EffectsJsonOptions)
+        {
+            WriteIndented = indented,
+        });
+    }
+
+    internal string ExportBestEffectsConfigJson(bool indented)
+    {
+        var json = ExportSelectedEffectsConfigJson(indented);
+        if (!string.IsNullOrWhiteSpace(json))
+        {
+            return json;
+        }
+
+        // Fallback for shutdown timing: SelectedItem can be cleared before persistence runs.
+        // Snapshot is stored with WriteIndented=false.
+        if (string.IsNullOrWhiteSpace(_effectsAutoSaveJsonSnapshot))
         {
             return string.Empty;
         }
 
-        var config = selected.ExportEffectsConfig();
-        return JsonSerializer.Serialize(config, new JsonSerializerOptions
+        if (!indented)
         {
-            WriteIndented = indented,
-        });
+            return _effectsAutoSaveJsonSnapshot;
+        }
+
+        try
+        {
+            var config = JsonSerializer.Deserialize<EffectsConfig>(_effectsAutoSaveJsonSnapshot);
+            return config is null
+                ? _effectsAutoSaveJsonSnapshot
+                : JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return _effectsAutoSaveJsonSnapshot;
+        }
+    }
+
+    internal string ExportBestInitiativeConfigJson(bool indented)
+    {
+        var json = InitiativeTracker.ExportConfigJson(indented);
+        if (!string.IsNullOrWhiteSpace(json))
+        {
+            return json;
+        }
+
+        if (string.IsNullOrWhiteSpace(_initiativeAutoSaveJsonSnapshot))
+        {
+            return string.Empty;
+        }
+
+        if (!indented)
+        {
+            return _initiativeAutoSaveJsonSnapshot;
+        }
+
+        try
+        {
+            // InitiativeTracker's JSON schema can evolve; best effort.
+            using var doc = JsonDocument.Parse(_initiativeAutoSaveJsonSnapshot);
+            return JsonSerializer.Serialize(doc.RootElement, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return _initiativeAutoSaveJsonSnapshot;
+        }
     }
 
     public void ImportSelectedEffectsConfigJson(string json)
@@ -445,50 +675,25 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        var selected = Media.SelectedItem;
-        if (selected is null)
-        {
-            return;
-        }
-
-        var config = JsonSerializer.Deserialize<EffectsConfig>(json);
+        var config = JsonSerializer.Deserialize<EffectsConfig>(json, EffectsJsonOptions);
         if (config is null)
         {
             return;
         }
 
-        // Apply as a batch to avoid spamming portal updates while importing.
-        AttachSelectedMediaEffects(null);
-        try
-        {
-            selected.ImportEffectsConfig(config);
-        }
-        finally
-        {
-            AttachSelectedMediaEffects(selected);
-        }
-
-        ApplyEffectsToAssignedPortals();
+        Effects.ImportEffectsConfig(config);
+        ApplyEffectsToAllPortals();
     }
 
-    private void ApplyEffectsToAssignedPortals()
+    private void ApplyEffectsToAllPortals()
     {
-        var selected = Media.SelectedItem;
-        if (selected is null)
-        {
-            return;
-        }
-
-        var selectedPath = selected.FilePath;
-        var effects = BuildEffectsState(selected);
+        // Build state once; apply to all portals.
+        var effects = BuildEffectsStateFromGlobal();
 
         foreach (var portal in Portals)
         {
-            if (string.Equals(portal.AssignedMediaFilePath, selectedPath, StringComparison.OrdinalIgnoreCase))
-            {
-                _portalHost.SetOverlayEffects(portal.PortalNumber, effects);
-                portal.OverlayEffects = effects;
-            }
+            _portalHost.SetOverlayEffects(portal.PortalNumber, effects);
+            portal.OverlayEffects = effects;
         }
 
         UpdateEffectsAudioMix();
@@ -506,60 +711,46 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void TriggerLightning()
     {
-        var selected = Media.SelectedItem;
-        if (selected is null)
+        if (!Effects.LightningEnabled)
         {
-            return;
+            Effects.LightningEnabled = true;
         }
 
-        if (!selected.LightningEnabled)
+        if (Effects.LightningIntensity < Effects.LightningMin)
         {
-            selected.LightningEnabled = true;
-        }
-
-        if (selected.LightningIntensity < selected.LightningMin)
-        {
-            selected.LightningIntensity = selected.LightningMin;
+            Effects.LightningIntensity = Effects.LightningMin;
         }
 
         _lightningTriggerNonce++;
-        ApplyEffectsToAssignedPortals();
+        ApplyEffectsToAllPortals();
 
         // If there is no active visible portal for this media, still play a one-shot so
         // the user gets feedback while testing. Otherwise thunder will come from portal flash events.
-        if (selected.LightningSoundEnabled &&
-            !Portals.Any(p => p.IsVisible &&
-                             string.Equals(p.AssignedMediaFilePath, selected.FilePath, StringComparison.OrdinalIgnoreCase)))
+        if (Effects.LightningSoundEnabled && Portals.Any(p => p.IsVisible))
         {
-            _effectsAudio.PlayLightningThunder(selected.LightningIntensity);
+            _effectsAudio.PlayLightningThunder(Effects.LightningIntensity);
         }
     }
 
     [RelayCommand]
     private void TriggerQuake()
     {
-        var selected = Media.SelectedItem;
-        if (selected is null)
+        if (!Effects.QuakeEnabled)
         {
-            return;
+            Effects.QuakeEnabled = true;
         }
 
-        if (!selected.QuakeEnabled)
+        if (Effects.QuakeIntensity < Effects.QuakeMin)
         {
-            selected.QuakeEnabled = true;
-        }
-
-        if (selected.QuakeIntensity < selected.QuakeMin)
-        {
-            selected.QuakeIntensity = selected.QuakeMin;
+            Effects.QuakeIntensity = Effects.QuakeMin;
         }
 
         _quakeTriggerNonce++;
-        ApplyEffectsToAssignedPortals();
+        ApplyEffectsToAllPortals();
 
-        if (selected.QuakeSoundEnabled)
+        if (Effects.QuakeSoundEnabled)
         {
-            _effectsAudio.PlayQuakeHit(selected.QuakeIntensity);
+            _effectsAudio.PlayQuakeHit(Effects.QuakeIntensity);
         }
     }
 
@@ -703,7 +894,7 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.Align = SelectedAlign;
 
         var selected = Media.SelectedItem;
-        var effects = selected is null ? OverlayEffectsState.None : BuildEffectsState(selected);
+        var effects = BuildEffectsStateFromGlobal();
         if (selected?.IsVideo == true)
         {
             portal.AssignedPreview = null;
@@ -735,6 +926,136 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OnInitiativeStateChanged()
     {
         UpdateInitiativeOnSelectedPortals();
+        NotifyInitiativeChangedForAutoSave();
+    }
+
+    private void NotifyInitiativeChangedForAutoSave()
+    {
+        _initiativeAutoSaveDirty = true;
+
+        // Cache snapshot to survive shutdown ordering.
+        var snapshot = InitiativeTracker.ExportConfigJson(indented: false);
+        if (!string.IsNullOrWhiteSpace(snapshot))
+        {
+            _initiativeAutoSaveJsonSnapshot = snapshot;
+        }
+
+        if (IsAutoSaveSuppressed || !AutoSaveInitiativeEnabled)
+        {
+            return;
+        }
+
+        var savePath = LastInitiativeConfigSavePath;
+        if (string.IsNullOrWhiteSpace(savePath))
+        {
+            return;
+        }
+
+        ScheduleDebouncedInitiativeAutoSave(savePath);
+    }
+
+    private void ScheduleDebouncedInitiativeAutoSave(string savePath)
+    {
+        _initiativeAutoSaveCts?.Cancel();
+        _initiativeAutoSaveCts = new System.Threading.CancellationTokenSource();
+        var token = _initiativeAutoSaveCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(750, token).ConfigureAwait(false);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await AutoSaveInitiativeToPathAsync(savePath, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // ignore
+            }
+            catch (Exception ex)
+            {
+                ErrorReporter.Report(ex, "Auto-save Initiative");
+            }
+        }, token);
+    }
+
+    internal void AutoSaveInitiativeImmediatelyIfEnabled(bool ignoreSuppression = false)
+    {
+        if (!AutoSaveInitiativeEnabled)
+        {
+            return;
+        }
+
+        if (!ignoreSuppression && IsAutoSaveSuppressed)
+        {
+            return;
+        }
+
+        var savePath = LastInitiativeConfigSavePath;
+        if (string.IsNullOrWhiteSpace(savePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var json = InitiativeTracker.ExportConfigJson(indented: false);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                json = _initiativeAutoSaveJsonSnapshot;
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    return;
+                }
+            }
+            var dir = Path.GetDirectoryName(savePath);
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.WriteAllText(savePath, json);
+            _initiativeAutoSaveDirty = false;
+        }
+        catch (Exception ex)
+        {
+            ErrorReporter.Report(ex, "Auto-save Initiative");
+        }
+    }
+
+    private async Task AutoSaveInitiativeToPathAsync(string savePath, System.Threading.CancellationToken token)
+    {
+        if (!AutoSaveInitiativeEnabled || !_initiativeAutoSaveDirty)
+        {
+            return;
+        }
+
+        if (IsAutoSaveSuppressed)
+        {
+            return;
+        }
+
+        var json = await Dispatcher.UIThread.InvokeAsync(() => InitiativeTracker.ExportConfigJson(indented: false));
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            json = _initiativeAutoSaveJsonSnapshot;
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return;
+            }
+        }
+        var dir = Path.GetDirectoryName(savePath);
+        if (!string.IsNullOrWhiteSpace(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+
+        await File.WriteAllTextAsync(savePath, json, token).ConfigureAwait(false);
+        _initiativeAutoSaveDirty = false;
     }
 
     private void UpdateInitiativeOnSelectedPortals()
@@ -910,14 +1231,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private OverlayEffectsState LookupEffectsForFile(string filePath)
     {
-        var match = Media.Items.FirstOrDefault(i =>
-            string.Equals(i.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
-
-        return match is null ? OverlayEffectsState.None : BuildEffectsState(match);
+        _ = filePath;
+        return BuildEffectsStateFromGlobal();
     }
 
     public void Shutdown()
     {
+        AutoSaveInitiativeImmediatelyIfEnabled(ignoreSuppression: true);
+        AutoSaveEffectsImmediatelyIfEnabled(ignoreSuppression: true);
         LastSessionPersistence.Save(this);
         _effectsAudio.Dispose();
         _portalHost.CloseAll();

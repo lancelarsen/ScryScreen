@@ -110,23 +110,23 @@
                                 <WrapPanel Orientation="Horizontal" ItemSpacing="12" LineSpacing="12" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
-
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:CompileBindings="False">
                                 <!-- <Border Classes="card" Width="320" Padding="8,6,8,4"> -->
                                 <Border Classes="card" Width="320" Padding="8,6,8,4">
                                     <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="3">
                                         <!-- Controls row -->
-                                        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
+                                        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
                                             <!-- (1) Portal number badge -->
-                                                <Border Width="36" Height="36"
+                                            <Border Grid.Column="0"
+                                                    Width="36"
+                                                    Height="36"
                                                     CornerRadius="18"
                                                     Background="#0A0F18"
                                                     BorderBrush="{DynamicResource ScryBadgeMaroon}"
-                                                    BorderThickness="2"
-                                                    VerticalAlignment="Center">
+                                                    BorderThickness="2">
                                                 <TextBlock Text="{Binding PortalNumber}"
-                                                       FontSize="14"
+                                                           FontSize="14"
                                                            FontWeight="SemiBold"
                                                            Foreground="{DynamicResource ScryTextMuted}"
                                                            HorizontalAlignment="Center"
@@ -159,7 +159,6 @@
                                                       MaxWidth="120"
                                                       Height="36"
                                                       VerticalAlignment="Center"
-                                                      FontSize="12"
                                                       HorizontalAlignment="Stretch"
                                                       ItemsSource="{Binding AvailableScreens}"
                                                       DisplayMemberBinding="{Binding MonitorName}"
@@ -173,7 +172,6 @@
                                                     ToolTip.Tip="Close Portal"
                                                     Command="{Binding ClosePortalCommand}" />
                                         </Grid>
-
                                         <!-- Assigned media preview (fallback only when no monitor preview is available) -->
                                         <Grid Grid.Row="1"
                                               IsVisible="{Binding ShowTopAssignedPreview}"
@@ -871,8 +869,8 @@
                         <StackPanel Grid.Column="3"
                                 Spacing="6"
                                 VerticalAlignment="Top"
-                                IsVisible="{Binding Media.SelectedItem.IsImage}">
-                            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,6">
+                            IsVisible="{Binding IsMediaTabSelected}">
+                            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,6">
                                 <TextBlock Grid.Column="0" Text="Effects" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
                                 <ToggleButton Grid.Column="1"
                                               Classes="circleSmall noAccent"
@@ -911,35 +909,53 @@
                                         <TextBlock Text="Save" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
+
+                                <ToggleButton Grid.Column="4"
+                                              Classes="circleSmall"
+                                              IsChecked="{Binding AutoSaveEffectsEnabled, Mode=TwoWay}"
+                                              Checked="OnAutoSaveEffectsChecked"
+                                              Unchecked="OnAutoSaveEffectsUnchecked"
+                                              ToolTip.Tip="Auto-save Effects JSON to last file">
+                                    <i:Icon Value="mdi-autorenew" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
                             </Grid>
+
+                            <TextBlock Text="{Binding EffectsConfigStatusText}"
+                                       Foreground="{DynamicResource ScryTextMuted}"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"
+                                       MaxWidth="520"
+                                       Margin="0,0,0,4" />
 
                             <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowDefinitions="Auto" HorizontalAlignment="Left">
                             <!-- Column 1: Rain / Lightning / Fog -->
                             <StackPanel Grid.Column="0" Spacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                          IsChecked="{Binding Media.SelectedItem.RainEnabled, Mode=TwoWay}"
+                                          IsChecked="{Binding Effects.RainEnabled, Mode=TwoWay}"
                                           ToolTip.Tip="Rain">
                                     <i:Icon Value="mdi-weather-rainy" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.RainMin, Mode=TwoWay}" />
+                                         Text="{Binding Effects.RainMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="80"
-                                    Minimum="{Binding Media.SelectedItem.RainMin}"
-                                    Maximum="{Binding Media.SelectedItem.RainMax}"
-                                    Value="{Binding Media.SelectedItem.RainIntensity, Mode=TwoWay}"
+                                    Minimum="{Binding Effects.RainMin}"
+                                    Maximum="{Binding Effects.RainMax}"
+                                    Value="{Binding Effects.RainIntensity, Mode=TwoWay}"
+                                    PointerReleased="OnEffectsSliderPointerReleased"
                                     VerticalAlignment="Center" />
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.RainMax, Mode=TwoWay}" />
+                                         Text="{Binding Effects.RainMax, Mode=TwoWay}" />
                                 <ToggleButton Classes="circleSmall noAccent soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
-                                              IsChecked="{Binding Media.SelectedItem.RainSoundEnabled, Mode=TwoWay}"
+                                              IsChecked="{Binding Effects.RainSoundEnabled, Mode=TwoWay}"
                                               ToolTip.Tip="Rain sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
@@ -948,19 +964,20 @@
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                          IsChecked="{Binding Media.SelectedItem.LightningEnabled, Mode=TwoWay}"
+                                          IsChecked="{Binding Effects.LightningEnabled, Mode=TwoWay}"
                                           ToolTip.Tip="Lightning">
                                     <i:Icon Value="mdi-weather-lightning" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.LightningMin, Mode=TwoWay}" />
+                                         Text="{Binding Effects.LightningMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="80"
-                                    Minimum="{Binding Media.SelectedItem.LightningMin}"
-                                    Maximum="{Binding Media.SelectedItem.LightningMax}"
-                                    Value="{Binding Media.SelectedItem.LightningIntensity, Mode=TwoWay}"
+                                    Minimum="{Binding Effects.LightningMin}"
+                                    Maximum="{Binding Effects.LightningMax}"
+                                    Value="{Binding Effects.LightningIntensity, Mode=TwoWay}"
+                                    PointerReleased="OnEffectsSliderPointerReleased"
                                     VerticalAlignment="Center" />
                                 <Button Classes="circleSmall noAccent"
                                         Width="28"
@@ -972,12 +989,12 @@
                                 </Button>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.LightningMax, Mode=TwoWay}" />
+                                         Text="{Binding Effects.LightningMax, Mode=TwoWay}" />
                                 <ToggleButton Classes="circleSmall noAccent soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
-                                              IsChecked="{Binding Media.SelectedItem.LightningSoundEnabled, Mode=TwoWay}"
+                                              IsChecked="{Binding Effects.LightningSoundEnabled, Mode=TwoWay}"
                                               ToolTip.Tip="Lightning sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
@@ -986,23 +1003,24 @@
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                          IsChecked="{Binding Media.SelectedItem.FogEnabled, Mode=TwoWay}"
+                                          IsChecked="{Binding Effects.FogEnabled, Mode=TwoWay}"
                                           ToolTip.Tip="Fog">
                                     <i:Icon Value="mdi-weather-fog" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.FogMin, Mode=TwoWay}" />
+                                         Text="{Binding Effects.FogMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="80"
-                                    Minimum="{Binding Media.SelectedItem.FogMin}"
-                                    Maximum="{Binding Media.SelectedItem.FogMax}"
-                                    Value="{Binding Media.SelectedItem.FogIntensity, Mode=TwoWay}"
+                                    Minimum="{Binding Effects.FogMin}"
+                                    Maximum="{Binding Effects.FogMax}"
+                                    Value="{Binding Effects.FogIntensity, Mode=TwoWay}"
+                                    PointerReleased="OnEffectsSliderPointerReleased"
                                     VerticalAlignment="Center" />
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.FogMax, Mode=TwoWay}" />
+                                         Text="{Binding Effects.FogMax, Mode=TwoWay}" />
                                 </StackPanel>
 
                             </StackPanel>
@@ -1011,49 +1029,51 @@
                             <StackPanel Grid.Column="1" Spacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                          IsChecked="{Binding Media.SelectedItem.SnowEnabled, Mode=TwoWay}"
+                                          IsChecked="{Binding Effects.SnowEnabled, Mode=TwoWay}"
                                           ToolTip.Tip="Snow">
                                     <i:Icon Value="mdi-weather-snowy" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.SnowMin, Mode=TwoWay}" />
+                                         Text="{Binding Effects.SnowMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="80"
-                                    Minimum="{Binding Media.SelectedItem.SnowMin}"
-                                    Maximum="{Binding Media.SelectedItem.SnowMax}"
-                                    Value="{Binding Media.SelectedItem.SnowIntensity, Mode=TwoWay}"
+                                    Minimum="{Binding Effects.SnowMin}"
+                                    Maximum="{Binding Effects.SnowMax}"
+                                    Value="{Binding Effects.SnowIntensity, Mode=TwoWay}"
+                                    PointerReleased="OnEffectsSliderPointerReleased"
                                     VerticalAlignment="Center" />
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.SnowMax, Mode=TwoWay}" />
+                                         Text="{Binding Effects.SnowMax, Mode=TwoWay}" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                          IsChecked="{Binding Media.SelectedItem.SandEnabled, Mode=TwoWay}"
+                                          IsChecked="{Binding Effects.SandEnabled, Mode=TwoWay}"
                                           ToolTip.Tip="Sand Storm">
                                     <i:Icon Value="mdi-weather-dust" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.SandMin, Mode=TwoWay}" />
+                                         Text="{Binding Effects.SandMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="80"
-                                    Minimum="{Binding Media.SelectedItem.SandMin}"
-                                    Maximum="{Binding Media.SelectedItem.SandMax}"
-                                    Value="{Binding Media.SelectedItem.SandIntensity, Mode=TwoWay}"
+                                    Minimum="{Binding Effects.SandMin}"
+                                    Maximum="{Binding Effects.SandMax}"
+                                    Value="{Binding Effects.SandIntensity, Mode=TwoWay}"
+                                    PointerReleased="OnEffectsSliderPointerReleased"
                                     VerticalAlignment="Center" />
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.SandMax, Mode=TwoWay}" />
+                                         Text="{Binding Effects.SandMax, Mode=TwoWay}" />
                                 <ToggleButton Classes="circleSmall noAccent soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
-                                              IsChecked="{Binding Media.SelectedItem.SandSoundEnabled, Mode=TwoWay}"
+                                              IsChecked="{Binding Effects.SandSoundEnabled, Mode=TwoWay}"
                                               ToolTip.Tip="Sand sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
@@ -1062,23 +1082,24 @@
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                          IsChecked="{Binding Media.SelectedItem.SmokeEnabled, Mode=TwoWay}"
+                                          IsChecked="{Binding Effects.SmokeEnabled, Mode=TwoWay}"
                                           ToolTip.Tip="Smoke">
                                     <i:Icon Value="mdi-smoke" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.SmokeMin, Mode=TwoWay}" />
+                                         Text="{Binding Effects.SmokeMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="80"
-                                    Minimum="{Binding Media.SelectedItem.SmokeMin}"
-                                    Maximum="{Binding Media.SelectedItem.SmokeMax}"
-                                    Value="{Binding Media.SelectedItem.SmokeIntensity, Mode=TwoWay}"
+                                    Minimum="{Binding Effects.SmokeMin}"
+                                    Maximum="{Binding Effects.SmokeMax}"
+                                    Value="{Binding Effects.SmokeIntensity, Mode=TwoWay}"
+                                    PointerReleased="OnEffectsSliderPointerReleased"
                                     VerticalAlignment="Center" />
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.SmokeMax, Mode=TwoWay}" />
+                                         Text="{Binding Effects.SmokeMax, Mode=TwoWay}" />
                                 </StackPanel>
                             </StackPanel>
 
@@ -1086,40 +1107,42 @@
                             <StackPanel Grid.Column="2" Spacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                          IsChecked="{Binding Media.SelectedItem.AshEnabled, Mode=TwoWay}"
+                                          IsChecked="{Binding Effects.AshEnabled, Mode=TwoWay}"
                                           ToolTip.Tip="Ash Rain">
                                     <i:Icon Value="mdi-weather-snowy" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.AshMin, Mode=TwoWay}" />
+                                         Text="{Binding Effects.AshMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="80"
-                                    Minimum="{Binding Media.SelectedItem.AshMin}"
-                                    Maximum="{Binding Media.SelectedItem.AshMax}"
-                                    Value="{Binding Media.SelectedItem.AshIntensity, Mode=TwoWay}"
+                                    Minimum="{Binding Effects.AshMin}"
+                                    Maximum="{Binding Effects.AshMax}"
+                                    Value="{Binding Effects.AshIntensity, Mode=TwoWay}"
+                                    PointerReleased="OnEffectsSliderPointerReleased"
                                     VerticalAlignment="Center" />
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.AshMax, Mode=TwoWay}" />
+                                         Text="{Binding Effects.AshMax, Mode=TwoWay}" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                          IsChecked="{Binding Media.SelectedItem.QuakeEnabled, Mode=TwoWay}"
+                                          IsChecked="{Binding Effects.QuakeEnabled, Mode=TwoWay}"
                                           ToolTip.Tip="Quake">
                                     <i:Icon Value="mdi-vibrate" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.QuakeMin, Mode=TwoWay}" />
+                                         Text="{Binding Effects.QuakeMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="80"
-                                    Minimum="{Binding Media.SelectedItem.QuakeMin}"
-                                    Maximum="{Binding Media.SelectedItem.QuakeMax}"
-                                    Value="{Binding Media.SelectedItem.QuakeIntensity, Mode=TwoWay}"
+                                    Minimum="{Binding Effects.QuakeMin}"
+                                    Maximum="{Binding Effects.QuakeMax}"
+                                    Value="{Binding Effects.QuakeIntensity, Mode=TwoWay}"
+                                    PointerReleased="OnEffectsSliderPointerReleased"
                                     VerticalAlignment="Center" />
                                 <Button Classes="circleSmall noAccent"
                                         Width="28"
@@ -1131,12 +1154,12 @@
                                 </Button>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.QuakeMax, Mode=TwoWay}" />
+                                         Text="{Binding Effects.QuakeMax, Mode=TwoWay}" />
                                 <ToggleButton Classes="circleSmall noAccent soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
-                                              IsChecked="{Binding Media.SelectedItem.QuakeSoundEnabled, Mode=TwoWay}"
+                                              IsChecked="{Binding Effects.QuakeSoundEnabled, Mode=TwoWay}"
                                               ToolTip.Tip="Quake sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
@@ -1145,28 +1168,29 @@
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <ToggleButton Classes="circleSmall effectToggle"
-                                          IsChecked="{Binding Media.SelectedItem.FireEnabled, Mode=TwoWay}"
+                                          IsChecked="{Binding Effects.FireEnabled, Mode=TwoWay}"
                                           ToolTip.Tip="Fire">
                                     <i:Icon Value="mdi-fire" FontSize="18"
                                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.FireMin, Mode=TwoWay}" />
+                                         Text="{Binding Effects.FireMin, Mode=TwoWay}" />
                                 <Slider Classes="portalTimeline"
                                     Width="80"
-                                    Minimum="{Binding Media.SelectedItem.FireMin}"
-                                    Maximum="{Binding Media.SelectedItem.FireMax}"
-                                    Value="{Binding Media.SelectedItem.FireIntensity, Mode=TwoWay}"
+                                    Minimum="{Binding Effects.FireMin}"
+                                    Maximum="{Binding Effects.FireMax}"
+                                    Value="{Binding Effects.FireIntensity, Mode=TwoWay}"
+                                    PointerReleased="OnEffectsSliderPointerReleased"
                                     VerticalAlignment="Center" />
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
-                                         Text="{Binding Media.SelectedItem.FireMax, Mode=TwoWay}" />
+                                         Text="{Binding Effects.FireMax, Mode=TwoWay}" />
                                 <ToggleButton Classes="circleSmall noAccent soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
-                                              IsChecked="{Binding Media.SelectedItem.FireSoundEnabled, Mode=TwoWay}"
+                                              IsChecked="{Binding Effects.FireSoundEnabled, Mode=TwoWay}"
                                               ToolTip.Tip="Fire sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
@@ -1182,7 +1206,8 @@
                                     Height="85"
                                         Minimum="0"
                                         Maximum="2"
-                                        Value="{Binding Media.SelectedItem.EffectsVolume, Mode=TwoWay}"
+                                        Value="{Binding Effects.EffectsVolume, Mode=TwoWay}"
+                                        PointerReleased="OnEffectsSliderPointerReleased"
                                         ToolTip.Tip="Effects volume" />
                             </StackPanel>
                             </Grid>
@@ -1253,6 +1278,15 @@
                                         <TextBlock Text="Save" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
+
+                                <ToggleButton Classes="circleSmall"
+                                              IsChecked="{Binding AutoSaveInitiativeEnabled, Mode=TwoWay}"
+                                              Checked="OnAutoSaveInitiativeChecked"
+                                              Unchecked="OnAutoSaveInitiativeUnchecked"
+                                              ToolTip.Tip="Auto-save Initiative JSON to last file">
+                                    <i:Icon Value="mdi-autorenew" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
                             </StackPanel>
 
                             <Grid Grid.Column="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">

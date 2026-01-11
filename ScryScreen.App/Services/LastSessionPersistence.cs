@@ -20,6 +20,10 @@ public static class LastSessionPersistence
         public string? LastSelectedMediaPath { get; set; }
         public string? LastInitiativeConfigSaveFileName { get; set; }
         public string? LastEffectsConfigSaveFileName { get; set; }
+        public string? LastInitiativeConfigSavePath { get; set; }
+        public string? LastEffectsConfigSavePath { get; set; }
+        public bool AutoSaveInitiativeEnabled { get; set; }
+        public bool AutoSaveEffectsEnabled { get; set; }
         public DateTimeOffset SavedAtUtc { get; set; }
     }
 
@@ -61,12 +65,11 @@ public static class LastSessionPersistence
                 return;
             }
 
-            var initiativeJson = vm.InitiativeTracker.ExportConfigJson(indented: true);
+            var initiativeJson = vm.ExportBestInitiativeConfigJson(indented: true);
             File.WriteAllText(GetInitiativeConfigPath(), initiativeJson);
 
-            // Effects config is tied to a selected media item.
-            // If nothing is selected yet, keep the last saved effects file as-is.
-            var effectsJson = vm.ExportSelectedEffectsConfigJson(indented: true);
+            // Effects config is global.
+            var effectsJson = vm.ExportBestEffectsConfigJson(indented: true);
             if (!string.IsNullOrWhiteSpace(effectsJson))
             {
                 File.WriteAllText(GetEffectsConfigPath(), effectsJson);
@@ -78,6 +81,10 @@ public static class LastSessionPersistence
                 LastSelectedMediaPath = vm.LastSelectedMediaPath,
                 LastInitiativeConfigSaveFileName = vm.LastInitiativeConfigSaveFileName,
                 LastEffectsConfigSaveFileName = vm.LastEffectsConfigSaveFileName,
+                LastInitiativeConfigSavePath = vm.LastInitiativeConfigSavePath,
+                LastEffectsConfigSavePath = vm.LastEffectsConfigSavePath,
+                AutoSaveInitiativeEnabled = vm.AutoSaveInitiativeEnabled,
+                AutoSaveEffectsEnabled = vm.AutoSaveEffectsEnabled,
                 SavedAtUtc = DateTimeOffset.UtcNow,
             };
 
@@ -107,16 +114,15 @@ public static class LastSessionPersistence
 
         try
         {
-            var initiativePath = GetInitiativeConfigPath();
-            if (File.Exists(initiativePath))
-            {
-                var json = File.ReadAllText(initiativePath);
-                vm.InitiativeTracker.ImportConfigJson(json);
-            }
+            using var _ = vm.SuppressAutoSave();
+
+            // Clear any previous status so startup info is obvious.
+            vm.EffectsConfigStatusText = string.Empty;
 
             var statePath = GetStatePath();
+            var hasStateFile = File.Exists(statePath);
             LastSessionState? state = null;
-            if (File.Exists(statePath))
+            if (hasStateFile)
             {
                 try
                 {
@@ -128,19 +134,45 @@ public static class LastSessionPersistence
                 }
             }
 
+            // First run (or state file couldn't be read): default auto-save ON and target the default saves files.
+            if (!hasStateFile || state is null)
+            {
+                vm.LastInitiativeConfigSavePath ??= GetInitiativeConfigPath();
+                vm.LastEffectsConfigSavePath ??= GetEffectsConfigPath();
+                vm.LastInitiativeConfigSaveFileName ??= Path.GetFileName(vm.LastInitiativeConfigSavePath);
+                vm.LastEffectsConfigSaveFileName ??= Path.GetFileName(vm.LastEffectsConfigSavePath);
+                vm.AutoSaveInitiativeEnabled = true;
+                vm.AutoSaveEffectsEnabled = true;
+            }
+
+            // Backfill save paths if the state file predates these fields.
+            vm.LastInitiativeConfigSavePath ??= state?.LastInitiativeConfigSavePath ?? GetInitiativeConfigPath();
+            vm.LastEffectsConfigSavePath ??= state?.LastEffectsConfigSavePath ?? GetEffectsConfigPath();
+            vm.LastInitiativeConfigSaveFileName ??= state?.LastInitiativeConfigSaveFileName ?? Path.GetFileName(vm.LastInitiativeConfigSavePath);
+            vm.LastEffectsConfigSaveFileName ??= state?.LastEffectsConfigSaveFileName ?? Path.GetFileName(vm.LastEffectsConfigSavePath);
+
+            // Prefer loading the initiative config from the last save path (auto-save target),
+            // but fall back to the default file in saves/.
+            var initiativeLoadPath =
+                !string.IsNullOrWhiteSpace(vm.LastInitiativeConfigSavePath) && File.Exists(vm.LastInitiativeConfigSavePath)
+                    ? vm.LastInitiativeConfigSavePath
+                    : GetInitiativeConfigPath();
+
+            if (!string.IsNullOrWhiteSpace(initiativeLoadPath) && File.Exists(initiativeLoadPath))
+            {
+                var json = File.ReadAllText(initiativeLoadPath);
+                vm.InitiativeTracker.ImportConfigJson(json);
+            }
+
             if (!string.IsNullOrWhiteSpace(state?.LastMediaFolderPath) && Directory.Exists(state.LastMediaFolderPath))
             {
                 vm.ImportMediaFolder(state.LastMediaFolderPath);
             }
 
-            if (!string.IsNullOrWhiteSpace(state?.LastInitiativeConfigSaveFileName))
+            if (state is not null)
             {
-                vm.LastInitiativeConfigSaveFileName = state.LastInitiativeConfigSaveFileName;
-            }
-
-            if (!string.IsNullOrWhiteSpace(state?.LastEffectsConfigSaveFileName))
-            {
-                vm.LastEffectsConfigSaveFileName = state.LastEffectsConfigSaveFileName;
+                vm.AutoSaveInitiativeEnabled = state.AutoSaveInitiativeEnabled;
+                vm.AutoSaveEffectsEnabled = state.AutoSaveEffectsEnabled;
             }
 
             // Restore selected media (if it exists in the loaded folder).
@@ -154,13 +186,24 @@ public static class LastSessionPersistence
                 }
             }
 
-            // Apply effects config to the currently selected media item (if any).
-            var effectsPath = GetEffectsConfigPath();
-            if (File.Exists(effectsPath))
+            // Apply effects config globally. Prefer loading from the last save path (auto-save target);
+            // fall back to saves/effects.json.
+            var effectsLoadPath =
+                !string.IsNullOrWhiteSpace(vm.LastEffectsConfigSavePath) && File.Exists(vm.LastEffectsConfigSavePath)
+                    ? vm.LastEffectsConfigSavePath
+                    : GetEffectsConfigPath();
+
+            if (!string.IsNullOrWhiteSpace(effectsLoadPath) && File.Exists(effectsLoadPath))
             {
-                var json = File.ReadAllText(effectsPath);
+                var json = File.ReadAllText(effectsLoadPath);
                 vm.ImportSelectedEffectsConfigJson(json);
             }
+
+            var effectsExists = !string.IsNullOrWhiteSpace(effectsLoadPath) && File.Exists(effectsLoadPath);
+            vm.EffectsConfigStatusText =
+                $"Startup effects load: {(effectsExists ? effectsLoadPath : "(missing)")}. " +
+                $"Auto-save target: {vm.LastEffectsConfigSavePath ?? "(none)"}. " +
+                $"AshEnabled={vm.Effects.AshEnabled}, AshIntensity={vm.Effects.AshIntensity:0.###}.";
         }
         catch (Exception ex)
         {
