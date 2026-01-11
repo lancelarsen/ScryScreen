@@ -726,6 +726,26 @@ public sealed class OverlayEffectsLayer : Control
             return;
         }
 
+        double DropLength(double sizeScale)
+        {
+            // Base lengths tuned for ~1080p portal.
+            var baseLen = Math.Max(2.0, (10 + (_rng.NextDouble() * 18)) * sizeScale);
+
+            // As intensity rises, mix in a higher fraction of longer drops.
+            var capped = Math.Min(density, 5.0);
+            var t = Clamp01((capped - 0.1) / 4.9); // 0..1
+
+            var bigChance = 0.05 + (0.20 * t);
+            if (_rng.NextDouble() < bigChance)
+            {
+                var boost = 1.0 + (0.75 * t) + (_rng.NextDouble() * 0.50 * t);
+                return baseLen * boost;
+            }
+
+            // Subtle overall lift so the field looks a bit heavier at higher intensity.
+            return baseLen * (1.0 + (_rng.NextDouble() * 0.10 * t));
+        }
+
         // 10x baseline * 3x requested boost.
         // For 0..1, keep the same curve behavior; above 1, scale density linearly.
         var sizeScale = ViewportScale(w, h);
@@ -737,7 +757,7 @@ public sealed class OverlayEffectsLayer : Control
                 x: _rng.NextDouble() * w,
                 y: _rng.NextDouble() * h,
             vy: (900 + (_rng.NextDouble() * 700)) * sizeScale,
-            len: Math.Max(2.0, (10 + (_rng.NextDouble() * 18)) * sizeScale),
+            len: DropLength(sizeScale),
                 alpha: 0.10 + (_rng.NextDouble() * 0.18)));
         }
 
@@ -749,6 +769,7 @@ public sealed class OverlayEffectsLayer : Control
             {
                 d.Y = -_rng.NextDouble() * 80;
                 d.X = _rng.NextDouble() * w;
+                d.Len = DropLength(sizeScale);
             }
             _rain[i] = d;
         }
@@ -770,6 +791,24 @@ public sealed class OverlayEffectsLayer : Control
             return;
         }
 
+        double FlakeRadius(double sizeScale)
+        {
+            var baseR = Math.Max(0.6, (1.0 + _rng.NextDouble() * 2.2) * sizeScale);
+
+            // Mix in larger flakes as intensity rises.
+            var capped = Math.Min(density, 5.0);
+            var t = Clamp01((capped - 0.1) / 4.9); // 0..1
+
+            var bigChance = 0.06 + (0.22 * t);
+            if (_rng.NextDouble() < bigChance)
+            {
+                var boost = 1.0 + (0.95 * t) + (_rng.NextDouble() * 0.55 * t);
+                return baseR * boost;
+            }
+
+            return baseR * (1.0 + (_rng.NextDouble() * 0.12 * t));
+        }
+
         // 10x baseline * 3x requested boost.
         // For 0..1, keep the same curve behavior; above 1, scale density linearly.
         var sizeScale = ViewportScale(w, h);
@@ -782,7 +821,7 @@ public sealed class OverlayEffectsLayer : Control
                 y: _rng.NextDouble() * h,
             vx: (-25 + _rng.NextDouble() * 50) * sizeScale,
             vy: (35 + _rng.NextDouble() * 80) * sizeScale,
-            r: Math.Max(0.6, (1.0 + _rng.NextDouble() * 2.2) * sizeScale),
+            r: FlakeRadius(sizeScale),
                 alpha: 0.10 + _rng.NextDouble() * 0.18));
         }
 
@@ -799,6 +838,7 @@ public sealed class OverlayEffectsLayer : Control
             {
                 f.Y = -_rng.NextDouble() * 80;
                 f.X = _rng.NextDouble() * w;
+                f.R = FlakeRadius(sizeScale);
             }
 
             if (f.X < -20) f.X = w + 20;
@@ -823,6 +863,24 @@ public sealed class OverlayEffectsLayer : Control
             return;
         }
 
+        double FlakeRadius(double sizeScale)
+        {
+            var baseR = Math.Max(0.55, (0.9 + _rng.NextDouble() * 1.8) * sizeScale);
+
+            // Ash has smaller particles overall, but higher intensity mixes in some chunkier flakes.
+            var capped = Math.Min(density, 5.0);
+            var t = Clamp01((capped - 0.1) / 4.9); // 0..1
+
+            var bigChance = 0.04 + (0.18 * t);
+            if (_rng.NextDouble() < bigChance)
+            {
+                var boost = 1.0 + (0.90 * t) + (_rng.NextDouble() * 0.60 * t);
+                return baseR * boost;
+            }
+
+            return baseR * (1.0 + (_rng.NextDouble() * 0.10 * t));
+        }
+
         // Similar to snow, but slightly slower and smaller flakes.
         var sizeScale = ViewportScale(w, h);
         var scale = density <= 1 ? 1 : Math.Min(density, 50);
@@ -834,7 +892,7 @@ public sealed class OverlayEffectsLayer : Control
                 y: _rng.NextDouble() * h,
             vx: (-18 + _rng.NextDouble() * 36) * sizeScale,
             vy: (25 + _rng.NextDouble() * 65) * sizeScale,
-            r: Math.Max(0.55, (0.9 + _rng.NextDouble() * 1.8) * sizeScale),
+            r: FlakeRadius(sizeScale),
                 alpha: 0.10 + _rng.NextDouble() * 0.18));
         }
 
@@ -851,6 +909,7 @@ public sealed class OverlayEffectsLayer : Control
             {
                 f.Y = -_rng.NextDouble() * 80;
                 f.X = _rng.NextDouble() * w;
+                f.R = FlakeRadius(sizeScale);
             }
 
             if (f.X < -20) f.X = w + 20;

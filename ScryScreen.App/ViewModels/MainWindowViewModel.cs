@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScryScreen.App.Models;
 using ScryScreen.App.Services;
+using ScryScreen.App.Utilities;
 using ScryScreen.Core.Utilities;
 
 namespace ScryScreen.App.ViewModels;
@@ -100,121 +101,23 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private static ScreenInfoViewModel? FindBestScreenMatch(ScreenInfoViewModel previous, System.Collections.Generic.IReadOnlyList<ScreenInfoViewModel> candidates)
     {
-        if (candidates.Count == 0)
-        {
-            return null;
-        }
+        var previousCandidate = new ScreenMatchCandidate(
+            PlatformDisplayName: previous.PlatformDisplayName,
+            Bounds: previous.Bounds,
+            Scaling: previous.Scaling,
+            IsPrimary: previous.IsPrimary);
 
-        static bool NearlyEqual(double a, double b, double epsilon = 0.01)
-        {
-            if (double.IsNaN(a) || double.IsNaN(b) || double.IsInfinity(a) || double.IsInfinity(b))
-            {
-                return false;
-            }
-
-            return Math.Abs(a - b) <= epsilon;
-        }
-
-        // 1) Prefer matching the underlying platform display name when available.
-        // This is often more stable than Avalonia's screen ordering.
-        var prevPlatformName = previous.PlatformDisplayName;
-        if (!string.IsNullOrWhiteSpace(prevPlatformName))
-        {
-            var byName = candidates
-                .Where(s => string.Equals(s.PlatformDisplayName, prevPlatformName, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (byName.Count == 1)
-            {
-                return byName[0];
-            }
-
-            if (byName.Count > 1)
-            {
-                var namePrimary = byName.FirstOrDefault(s => s.IsPrimary == previous.IsPrimary);
-                if (namePrimary is not null)
-                {
-                    return namePrimary;
-                }
-            }
-        }
-
-        // 2) Exact virtual-bounds match.
-        var bounds = previous.Bounds;
-        var byBounds = candidates.Where(s => s.Bounds.Equals(bounds)).ToList();
-        if (byBounds.Count == 1)
-        {
-            return byBounds[0];
-        }
-
-        if (byBounds.Count > 1)
-        {
-            var boundsPrimary = byBounds.FirstOrDefault(s => s.IsPrimary == previous.IsPrimary);
-            if (boundsPrimary is not null)
-            {
-                return boundsPrimary;
-            }
-
-            var boundsScaling = byBounds.FirstOrDefault(s => NearlyEqual(s.Scaling, previous.Scaling));
-            if (boundsScaling is not null)
-            {
-                return boundsScaling;
-            }
-        }
-
-        // 3) Resolution + scaling match (helps when Windows shifts virtual coordinates on plug/unplug).
-        var byResolution = candidates
-            .Where(s => s.WidthPx == previous.WidthPx && s.HeightPx == previous.HeightPx && NearlyEqual(s.Scaling, previous.Scaling))
+        var candidateList = candidates
+            .Select(s => (
+                Candidate: new ScreenMatchCandidate(
+                    PlatformDisplayName: s.PlatformDisplayName,
+                    Bounds: s.Bounds,
+                    Scaling: s.Scaling,
+                    IsPrimary: s.IsPrimary),
+                Value: s))
             .ToList();
 
-        if (byResolution.Count == 1)
-        {
-            return byResolution[0];
-        }
-
-        if (byResolution.Count > 1)
-        {
-            var resPrimary = byResolution.FirstOrDefault(s => s.IsPrimary == previous.IsPrimary);
-            if (resPrimary is not null)
-            {
-                return resPrimary;
-            }
-        }
-
-        // 4) Nearest-by-position (best-effort heuristic when multiple displays share resolution).
-        var prevCx = bounds.X + (bounds.Width / 2.0);
-        var prevCy = bounds.Y + (bounds.Height / 2.0);
-
-        ScreenInfoViewModel? best = null;
-        double bestScore = double.PositiveInfinity;
-
-        foreach (var candidate in candidates)
-        {
-            var cb = candidate.Bounds;
-            var cx = cb.X + (cb.Width / 2.0);
-            var cy = cb.Y + (cb.Height / 2.0);
-            var dx = cx - prevCx;
-            var dy = cy - prevCy;
-            var dist2 = (dx * dx) + (dy * dy);
-
-            // Penalize scaling mismatch a bit so a same-DPI monitor wins in ties.
-            var scalingPenalty = NearlyEqual(candidate.Scaling, previous.Scaling) ? 0 : 1000;
-            var score = dist2 + scalingPenalty;
-
-            if (score < bestScore)
-            {
-                bestScore = score;
-                best = candidate;
-            }
-        }
-
-        // If the previous selection was primary, keep primary if it exists.
-        if (previous.IsPrimary)
-        {
-            return candidates.FirstOrDefault(s => s.IsPrimary) ?? best;
-        }
-
-        return best;
+        return ScreenMatching.FindBestMatch(previousCandidate, candidateList);
     }
 
     public ObservableCollection<PortalRowViewModel> Portals { get; }
