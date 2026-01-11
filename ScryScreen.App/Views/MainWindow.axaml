@@ -889,7 +889,12 @@
                                         CornerRadius="8"
                                         Padding="10,6"
                                         Click="OnLoadEffectsConfig"
-                                        ToolTip.Tip="Load Effects Settings">
+                                        >
+                                    <ToolTip.Tip>
+                                        <ToolTip MaxWidth="320">
+                                            <TextBlock Text="Load Effect Settings" TextWrapping="Wrap" />
+                                        </ToolTip>
+                                    </ToolTip.Tip>
                                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <i:Icon Value="mdi-folder-open" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                         <TextBlock Text="Load" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
@@ -903,7 +908,12 @@
                                         CornerRadius="8"
                                         Padding="10,6"
                                         Click="OnSaveEffectsConfig"
-                                        ToolTip.Tip="Save Effects Settings">
+                                        >
+                                    <ToolTip.Tip>
+                                        <ToolTip MaxWidth="320">
+                                            <TextBlock Text="Save Effect Settings" TextWrapping="Wrap" />
+                                        </ToolTip>
+                                    </ToolTip.Tip>
                                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <i:Icon Value="mdi-content-save" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                         <TextBlock Text="Save" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
@@ -956,7 +966,7 @@
                                               Height="28"
                                               CornerRadius="14"
                                               IsChecked="{Binding Effects.RainSoundEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Rain sound">
+                                              ToolTip.Tip="Rain Sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
@@ -984,7 +994,7 @@
                                         Height="28"
                                         CornerRadius="14"
                                         Command="{Binding TriggerLightningCommand}"
-                                        ToolTip.Tip="Trigger lightning flash">
+                                        ToolTip.Tip="Trigger Lightning Flash">
                                     <i:Icon Value="mdi-flash" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                 </Button>
                                 <TextBox Classes="sliderBound"
@@ -995,7 +1005,7 @@
                                               Height="28"
                                               CornerRadius="14"
                                               IsChecked="{Binding Effects.LightningSoundEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Lightning sound">
+                                              ToolTip.Tip="Lightning Sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
@@ -1074,7 +1084,7 @@
                                               Height="28"
                                               CornerRadius="14"
                                               IsChecked="{Binding Effects.SandSoundEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Sand sound">
+                                              ToolTip.Tip="Sand Sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
@@ -1149,7 +1159,7 @@
                                         Height="28"
                                         CornerRadius="14"
                                         Command="{Binding TriggerQuakeCommand}"
-                                        ToolTip.Tip="Trigger quake">
+                                        ToolTip.Tip="Trigger Quake">
                                     <i:Icon Value="mdi-vibrate" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                 </Button>
                                 <TextBox Classes="sliderBound"
@@ -1160,7 +1170,7 @@
                                               Height="28"
                                               CornerRadius="14"
                                               IsChecked="{Binding Effects.QuakeSoundEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Quake sound">
+                                              ToolTip.Tip="Quake Sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
@@ -1191,7 +1201,7 @@
                                               Height="28"
                                               CornerRadius="14"
                                               IsChecked="{Binding Effects.FireSoundEnabled, Mode=TwoWay}"
-                                              ToolTip.Tip="Fire sound">
+                                              ToolTip.Tip="Fire Sound">
                                     <i:Icon Value="mdi-volume-high" FontSize="16"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
