@@ -21,6 +21,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ObservableCollection<ScreenInfoViewModel> _screens;
     private readonly ReadOnlyObservableCollection<ScreenInfoViewModel> _screensReadOnly;
     private string? _lastSelectedMediaPath;
+    private string? _lastMediaFolderPath;
+    private string? _lastInitiativeConfigSaveFileName;
+    private string? _lastEffectsConfigSaveFileName;
 
     private readonly InitiativeTrackerViewModel _initiativeTracker;
 
@@ -54,6 +57,18 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public ReadOnlyObservableCollection<ScreenInfoViewModel> Screens => _screensReadOnly;
+
+    public string? LastInitiativeConfigSaveFileName
+    {
+        get => _lastInitiativeConfigSaveFileName;
+        internal set => _lastInitiativeConfigSaveFileName = value;
+    }
+
+    public string? LastEffectsConfigSaveFileName
+    {
+        get => _lastEffectsConfigSaveFileName;
+        internal set => _lastEffectsConfigSaveFileName = value;
+    }
 
     public void RefreshScreens()
     {
@@ -123,6 +138,10 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<PortalRowViewModel> Portals { get; }
 
     public MediaLibraryViewModel Media { get; }
+
+    public string? LastMediaFolderPath => _lastMediaFolderPath;
+
+    public string? LastSelectedMediaPath => _lastSelectedMediaPath;
 
     public InitiativeTrackerViewModel InitiativeTracker => _initiativeTracker;
 
@@ -618,6 +637,11 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         Media.ImportFolder(folderPath);
         UpdatePortalMediaSelectionFlags();
+
+        if (!string.IsNullOrWhiteSpace(folderPath) && System.IO.Directory.Exists(folderPath))
+        {
+            _lastMediaFolderPath = folderPath;
+        }
     }
 
     [RelayCommand]
@@ -894,6 +918,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void Shutdown()
     {
+        LastSessionPersistence.Save(this);
         _effectsAudio.Dispose();
         _portalHost.CloseAll();
     }

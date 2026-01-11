@@ -20,6 +20,52 @@ public partial class MainWindow : Window
     private MainWindowViewModel? _vm;
     private bool _screensChangedHooked;
 
+    private static Uri ToFileUri(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        if (!fullPath.EndsWith(Path.DirectorySeparatorChar))
+        {
+            fullPath += Path.DirectorySeparatorChar;
+        }
+
+        return new UriBuilder
+        {
+            Scheme = Uri.UriSchemeFile,
+            Host = string.Empty,
+            Path = fullPath,
+        }.Uri;
+    }
+
+    private async Task<IStorageFolder?> TryGetFolderAsync(string? directoryPath)
+    {
+        if (StorageProvider is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(directoryPath))
+            {
+                return null;
+            }
+
+            if (!Directory.Exists(directoryPath))
+            {
+                return null;
+            }
+
+            return await StorageProvider.TryGetFolderFromPathAsync(ToFileUri(directoryPath));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private Task<IStorageFolder?> TryGetSavesFolderAsync() =>
+        TryGetFolderAsync(LastSessionPersistence.GetSavesDirectory());
+
     public MainWindow()
     {
         InitializeComponent();
@@ -184,10 +230,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        var startFolder = await TryGetFolderAsync(vm.LastMediaFolderPath);
+
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
             AllowMultiple = false,
             Title = "Import Media Folder",
+            SuggestedStartLocation = startFolder,
         });
 
         var folder = folders.FirstOrDefault();
@@ -219,11 +268,14 @@ public partial class MainWindow : Window
                 return;
             }
 
+            var savesFolder = await TryGetSavesFolderAsync();
+
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Save Initiative Config",
-                SuggestedFileName = "initiative.json",
+                SuggestedFileName = vm.LastInitiativeConfigSaveFileName ?? "initiative.json",
                 DefaultExtension = "json",
+                SuggestedStartLocation = savesFolder,
                 FileTypeChoices = new[]
                 {
                     new FilePickerFileType("JSON")
@@ -246,6 +298,7 @@ public partial class MainWindow : Window
 
             var json = vm.InitiativeTracker.ExportConfigJson(indented: true);
             await File.WriteAllTextAsync(path, json);
+            vm.LastInitiativeConfigSaveFileName = Path.GetFileName(path);
         }
         catch (Exception ex)
         {
@@ -267,10 +320,13 @@ public partial class MainWindow : Window
                 return;
             }
 
+            var savesFolder = await TryGetSavesFolderAsync();
+
             var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 AllowMultiple = false,
                 Title = "Load Initiative Config",
+                SuggestedStartLocation = savesFolder,
                 FileTypeFilter = new[]
                 {
                     new FilePickerFileType("JSON")
@@ -315,11 +371,14 @@ public partial class MainWindow : Window
                 return;
             }
 
+            var savesFolder = await TryGetSavesFolderAsync();
+
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Save Effects Config",
-                SuggestedFileName = "effects.json",
+                SuggestedFileName = vm.LastEffectsConfigSaveFileName ?? "effects.json",
                 DefaultExtension = "json",
+                SuggestedStartLocation = savesFolder,
                 FileTypeChoices = new[]
                 {
                     new FilePickerFileType("JSON")
@@ -347,6 +406,7 @@ public partial class MainWindow : Window
             }
 
             await File.WriteAllTextAsync(path, json, Encoding.UTF8);
+            vm.LastEffectsConfigSaveFileName = Path.GetFileName(path);
         }
         catch (Exception ex)
         {
@@ -368,10 +428,13 @@ public partial class MainWindow : Window
                 return;
             }
 
+            var savesFolder = await TryGetSavesFolderAsync();
+
             var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 AllowMultiple = false,
                 Title = "Load Effects Config",
+                SuggestedStartLocation = savesFolder,
                 FileTypeFilter = new[]
                 {
                     new FilePickerFileType("JSON")

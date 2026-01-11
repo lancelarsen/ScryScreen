@@ -28,7 +28,11 @@ public partial class App : Application
             var mainWindow = new MainWindow();
             ErrorReporter.Initialize(mainWindow);
             var portalHost = new PortalHostService(mainWindow);
-            mainWindow.DataContext = new MainWindowViewModel(portalHost);
+            var vm = new MainWindowViewModel(portalHost);
+            mainWindow.DataContext = vm;
+
+            // Restore last saved session state (initiative/effects/media folder).
+            LastSessionPersistence.Load(vm);
             desktop.MainWindow = mainWindow;
             mainWindow.Show();
             mainWindow.Activate();
