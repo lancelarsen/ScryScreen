@@ -726,26 +726,6 @@ public sealed class OverlayEffectsLayer : Control
             return;
         }
 
-        double DropLength(double sizeScale)
-        {
-            // Base lengths tuned for ~1080p portal.
-            var baseLen = Math.Max(2.0, (10 + (_rng.NextDouble() * 18)) * sizeScale);
-
-            // As intensity rises, mix in a higher fraction of longer drops.
-            var capped = Math.Min(density, 5.0);
-            var t = Clamp01((capped - 0.1) / 4.9); // 0..1
-
-            var bigChance = 0.05 + (0.20 * t);
-            if (_rng.NextDouble() < bigChance)
-            {
-                var boost = 1.0 + (0.75 * t) + (_rng.NextDouble() * 0.50 * t);
-                return baseLen * boost;
-            }
-
-            // Subtle overall lift so the field looks a bit heavier at higher intensity.
-            return baseLen * (1.0 + (_rng.NextDouble() * 0.10 * t));
-        }
-
         // 10x baseline * 3x requested boost.
         // For 0..1, keep the same curve behavior; above 1, scale density linearly.
         var sizeScale = ViewportScale(w, h);
@@ -757,7 +737,7 @@ public sealed class OverlayEffectsLayer : Control
                 x: _rng.NextDouble() * w,
                 y: _rng.NextDouble() * h,
             vy: (900 + (_rng.NextDouble() * 700)) * sizeScale,
-            len: DropLength(sizeScale),
+            len: Math.Max(2.0, (10 + (_rng.NextDouble() * 18)) * sizeScale),
                 alpha: 0.10 + (_rng.NextDouble() * 0.18)));
         }
 
@@ -769,7 +749,6 @@ public sealed class OverlayEffectsLayer : Control
             {
                 d.Y = -_rng.NextDouble() * 80;
                 d.X = _rng.NextDouble() * w;
-                d.Len = DropLength(sizeScale);
             }
             _rain[i] = d;
         }
