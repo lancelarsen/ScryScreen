@@ -26,6 +26,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private readonly PortalHostService _portalHost;
     private readonly EffectsAudioService _effectsAudio;
+    private readonly MediaPreviewAudioService _mediaAudio = new();
     private readonly ObservableCollection<ScreenInfoViewModel> _screens;
     private readonly ReadOnlyObservableCollection<ScreenInfoViewModel> _screensReadOnly;
     private string? _lastSelectedMediaPath;
@@ -63,6 +64,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _screensReadOnly = new ReadOnlyObservableCollection<ScreenInfoViewModel>(_screens);
         Portals = new ObservableCollection<PortalRowViewModel>();
         Media = new MediaLibraryViewModel();
+        Media.SelectedCategory = MediaLibraryViewModel.MediaCategory.Images;
 
         Effects = new EffectsSettingsViewModel();
         Effects.PropertyChanged += OnGlobalEffectsChanged;
@@ -77,6 +79,17 @@ public partial class MainWindowViewModel : ViewModelBase
 
         Media.PropertyChanged += OnMediaPropertyChanged;
 
+        _mediaAudio.PlaybackFinished += (_, _) =>
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                foreach (var item in Media.AllItems.Where(i => i.IsAudio))
+                {
+                    item.IsAudioPlaying = false;
+                }
+            });
+        };
+
         _portalHost.PortalClosed += OnPortalClosed;
 
         // Start with one portal for convenience.
@@ -84,6 +97,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // Ensure portals start with a consistent effects state.
         ApplyEffectsToAllPortals();
+    }
+
+    private void StopMediaAudio()
+    {
+        foreach (var item in Media.AllItems.Where(i => i.IsAudio))
+        {
+            item.IsAudioPlaying = false;
+        }
+
+        _mediaAudio.Stop();
     }
 
     private void OnGlobalEffectsChanged(object? sender, PropertyChangedEventArgs e)
@@ -289,33 +312,71 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public enum LibraryTab
     {
-        Media,
         Apps,
+        Images,
+        Video,
+        Audio,
     }
 
     [ObservableProperty]
-    private LibraryTab selectedLibraryTab = LibraryTab.Media;
-
-    public bool IsMediaTabSelected => SelectedLibraryTab == LibraryTab.Media;
+    private LibraryTab selectedLibraryTab = LibraryTab.Images;
 
     public bool IsAppsTabSelected => SelectedLibraryTab == LibraryTab.Apps;
 
+    public bool IsImagesTabSelected => SelectedLibraryTab == LibraryTab.Images;
+
+    public bool IsVideoTabSelected => SelectedLibraryTab == LibraryTab.Video;
+
+    public bool IsAudioTabSelected => SelectedLibraryTab == LibraryTab.Audio;
+
+    public bool IsAnyMediaTabSelected => SelectedLibraryTab is LibraryTab.Images or LibraryTab.Video or LibraryTab.Audio;
+
+    public bool IsImagesOrVideoTabSelected => SelectedLibraryTab is LibraryTab.Images or LibraryTab.Video;
+
     partial void OnSelectedLibraryTabChanged(LibraryTab value)
     {
-        OnPropertyChanged(nameof(IsMediaTabSelected));
         OnPropertyChanged(nameof(IsAppsTabSelected));
+        OnPropertyChanged(nameof(IsImagesTabSelected));
+        OnPropertyChanged(nameof(IsVideoTabSelected));
+        OnPropertyChanged(nameof(IsAudioTabSelected));
+        OnPropertyChanged(nameof(IsAnyMediaTabSelected));
+        OnPropertyChanged(nameof(IsImagesOrVideoTabSelected));
+
+        if (value == LibraryTab.Images)
+        {
+            Media.SelectedCategory = MediaLibraryViewModel.MediaCategory.Images;
+        }
+        else if (value == LibraryTab.Video)
+        {
+            Media.SelectedCategory = MediaLibraryViewModel.MediaCategory.Video;
+        }
+        else if (value == LibraryTab.Audio)
+        {
+            Media.SelectedCategory = MediaLibraryViewModel.MediaCategory.Audio;
+        }
 
         if (value == LibraryTab.Apps && !IsControlsSectionVisible)
         {
             IsControlsSectionVisible = true;
         }
+
+        if (value != LibraryTab.Audio)
+        {
+            StopMediaAudio();
+        }
     }
 
     [RelayCommand]
-    private void ShowMediaTab() => SelectedLibraryTab = LibraryTab.Media;
+    private void ShowAppsTab() => SelectedLibraryTab = LibraryTab.Apps;
 
     [RelayCommand]
-    private void ShowAppsTab() => SelectedLibraryTab = LibraryTab.Apps;
+    private void ShowImagesTab() => SelectedLibraryTab = LibraryTab.Images;
+
+    [RelayCommand]
+    private void ShowVideoTab() => SelectedLibraryTab = LibraryTab.Video;
+
+    [RelayCommand]
+    private void ShowAudioTab() => SelectedLibraryTab = LibraryTab.Audio;
 
     [RelayCommand]
     private void SelectInitiativeTrackerApp()
@@ -798,6 +859,48 @@ public partial class MainWindowViewModel : ViewModelBase
         if (!isAlreadySelected && !IsControlsSectionVisible)
         {
             IsControlsSectionVisible = true;
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleAudioPlay(MediaItemViewModel? item)
+    {
+        if (item is null || !item.IsAudio)
+        {
+            return;
+        }
+
+        var isSame = string.Equals(_mediaAudio.CurrentFilePath, item.FilePath, StringComparison.OrdinalIgnoreCase);
+        if (isSame && _mediaAudio.IsPlaying)
+        {
+            StopMediaAudio();
+            return;
+        }
+
+        foreach (var other in Media.AllItems.Where(i => i.IsAudio))
+        {
+            other.IsAudioPlaying = false;
+        }
+
+        _mediaAudio.Play(item.FilePath, loop: item.IsAudioLoopEnabled);
+        item.IsAudioPlaying = _mediaAudio.IsPlaying;
+    }
+
+    [RelayCommand]
+    private void ToggleAudioLoop(MediaItemViewModel? item)
+    {
+        if (item is null || !item.IsAudio)
+        {
+            return;
+        }
+
+        item.IsAudioLoopEnabled = !item.IsAudioLoopEnabled;
+
+        var isSame = string.Equals(_mediaAudio.CurrentFilePath, item.FilePath, StringComparison.OrdinalIgnoreCase);
+        if (isSame && _mediaAudio.IsPlaying)
+        {
+            _mediaAudio.Play(item.FilePath, loop: item.IsAudioLoopEnabled);
+            item.IsAudioPlaying = _mediaAudio.IsPlaying;
         }
     }
 

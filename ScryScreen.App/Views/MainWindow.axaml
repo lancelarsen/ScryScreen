@@ -499,9 +499,9 @@
                     <Border Classes="card" Padding="14">
                         <Grid RowDefinitions="Auto,*" RowSpacing="10">
                             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center" MinHeight="36">
-                                <!-- Tabs: Apps / Media -->
-                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Classes="tabLink" Command="{Binding ShowAppsTabCommand}">
+                                <!-- Tabs: Apps / Images / Video / Audio -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="18">
+                                    <Button Classes="tabLink" Command="{Binding ShowAppsTabCommand}" Margin="0">
                                         <Grid RowDefinitions="Auto,Auto">
                                             <Grid Grid.Row="0">
                                                 <TextBlock Text="Apps" Foreground="{DynamicResource ScryText}" IsVisible="{Binding IsAppsTabSelected}" TextWrapping="NoWrap" />
@@ -514,15 +514,41 @@
                                         </Grid>
                                     </Button>
 
-                                    <Button Classes="tabLink" Command="{Binding ShowMediaTabCommand}" Margin="0">
+                                    <Button Classes="tabLink" Command="{Binding ShowImagesTabCommand}" Margin="0">
                                         <Grid RowDefinitions="Auto,Auto">
                                             <Grid Grid.Row="0">
-                                                <TextBlock Text="{Binding Media.MediaTabHeader}" Foreground="{DynamicResource ScryText}" IsVisible="{Binding IsMediaTabSelected}" TextWrapping="NoWrap" />
-                                                <TextBlock Text="{Binding Media.MediaTabHeader}" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsMediaTabSelected}" TextWrapping="NoWrap" />
+                                                <TextBlock Text="{Binding Media.ImagesTabHeader}" Foreground="{DynamicResource ScryText}" IsVisible="{Binding IsImagesTabSelected}" TextWrapping="NoWrap" />
+                                                <TextBlock Text="{Binding Media.ImagesTabHeader}" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsImagesTabSelected}" TextWrapping="NoWrap" />
                                             </Grid>
                                             <Grid Grid.Row="1" Margin="0,4,0,0">
                                                 <Border Height="2" Background="Transparent" />
-                                                <Border Height="2" Background="{DynamicResource ScryAccent}" IsVisible="{Binding IsMediaTabSelected}" />
+                                                <Border Height="2" Background="{DynamicResource ScryAccent}" IsVisible="{Binding IsImagesTabSelected}" />
+                                            </Grid>
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Classes="tabLink" Command="{Binding ShowVideoTabCommand}" Margin="0">
+                                        <Grid RowDefinitions="Auto,Auto">
+                                            <Grid Grid.Row="0">
+                                                <TextBlock Text="{Binding Media.VideoTabHeader}" Foreground="{DynamicResource ScryText}" IsVisible="{Binding IsVideoTabSelected}" TextWrapping="NoWrap" />
+                                                <TextBlock Text="{Binding Media.VideoTabHeader}" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsVideoTabSelected}" TextWrapping="NoWrap" />
+                                            </Grid>
+                                            <Grid Grid.Row="1" Margin="0,4,0,0">
+                                                <Border Height="2" Background="Transparent" />
+                                                <Border Height="2" Background="{DynamicResource ScryAccent}" IsVisible="{Binding IsVideoTabSelected}" />
+                                            </Grid>
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Classes="tabLink" Command="{Binding ShowAudioTabCommand}" Margin="0">
+                                        <Grid RowDefinitions="Auto,Auto">
+                                            <Grid Grid.Row="0">
+                                                <TextBlock Text="{Binding Media.AudioTabHeader}" Foreground="{DynamicResource ScryText}" IsVisible="{Binding IsAudioTabSelected}" TextWrapping="NoWrap" />
+                                                <TextBlock Text="{Binding Media.AudioTabHeader}" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsAudioTabSelected}" TextWrapping="NoWrap" />
+                                            </Grid>
+                                            <Grid Grid.Row="1" Margin="0,4,0,0">
+                                                <Border Height="2" Background="Transparent" />
+                                                <Border Height="2" Background="{DynamicResource ScryAccent}" IsVisible="{Binding IsAudioTabSelected}" />
                                             </Grid>
                                         </Grid>
                                     </Button>
@@ -535,13 +561,13 @@
                                 <Button Grid.Column="2"
                                         Classes="circleSmall"
                                         Click="OnImportMediaFolder"
-                                        IsVisible="{Binding IsMediaTabSelected}"
+                                    IsVisible="{Binding IsAnyMediaTabSelected}"
                                         i:Attached.Icon="mdi-folder-plus"
                                         ToolTip.Tip="Add Folder" />
 
                                 <!-- View mode: grouped vs flat (Media only) -->
                                 <ToggleButton Grid.Column="3"
-                                              IsVisible="{Binding IsMediaTabSelected}"
+                                              IsVisible="{Binding IsImagesOrVideoTabSelected}"
                                               Classes="circleSmall"
                                               ToolTip.Tip="View by Folder"
                                               IsChecked="{Binding Media.IsGroupedView, Mode=TwoWay}">
@@ -549,7 +575,7 @@
                                 </ToggleButton>
 
                                 <ToggleButton Grid.Column="4"
-                                              IsVisible="{Binding IsMediaTabSelected}"
+                                              IsVisible="{Binding IsImagesOrVideoTabSelected}"
                                               Classes="circleSmall"
                                               ToolTip.Tip="View Tiles"
                                               IsChecked="{Binding Media.IsFlatView, Mode=TwoWay}">
@@ -558,8 +584,8 @@
                             </Grid>
 
                             <Grid Grid.Row="1">
-                                <!-- Media content -->
-                                <Grid IsVisible="{Binding IsMediaTabSelected}">
+                                <!-- Images/Video content (tiles) -->
+                                <Grid IsVisible="{Binding IsImagesOrVideoTabSelected}">
                                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                         <Grid>
                                             <!-- Grouped view (by directory) -->
@@ -655,7 +681,7 @@
                                     </ScrollViewer>
 
                                     <!-- Empty state helper text -->
-                                    <Border IsVisible="{Binding Media.HasNoMedia}"
+                                            <Border IsVisible="{Binding Media.HasNoItemsInSelectedCategory}"
                                             Background="#0A0F18"
                                             BorderBrush="{DynamicResource ScryBorder}"
                                             BorderThickness="1"
@@ -665,7 +691,7 @@
                                             VerticalAlignment="Center"
                                             MaxWidth="560">
                                         <StackPanel Spacing="8">
-                                            <TextBlock Text="No Media Imported" FontWeight="SemiBold" />
+                                                <TextBlock Text="No Items Imported" FontWeight="SemiBold" />
                                             <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" RowDefinitions="Auto">
                                                 <TextBlock Grid.Column="0"
                                                            Text="Click"
@@ -680,7 +706,82 @@
                                                         ToolTip.Tip="Add Folder" />
 
                                                 <TextBlock Grid.Column="2"
-                                                           Text="to add a directory with your images and videos."
+                                                           Text="to add a directory with your images, videos, and audio."
+                                                           Foreground="{DynamicResource ScryTextMuted}"
+                                                           VerticalAlignment="Center"
+                                                           TextWrapping="Wrap" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Audio content (list) -->
+                                <Grid IsVisible="{Binding IsAudioTabSelected}">
+                                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding Media.Items}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
+                                                    <Border Background="#0A0F18"
+                                                            BorderBrush="{DynamicResource ScryBorder}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="10"
+                                                            Padding="10"
+                                                            Margin="0,0,0,8">
+                                                        <Grid ColumnDefinitions="*,36,36" ColumnSpacing="8" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+
+                                                            <Button Grid.Column="1"
+                                                                    Classes="circleSmall"
+                                                                    ToolTip.Tip="Play/Stop"
+                                                                    Command="{Binding DataContext.ToggleAudioPlayCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding .}">
+                                                                <Grid>
+                                                                    <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsAudioPlaying}" />
+                                                                    <i:Icon Value="mdi-stop" FontSize="18" Foreground="{DynamicResource ScryDanger}" IsVisible="{Binding IsAudioPlaying}" />
+                                                                </Grid>
+                                                            </Button>
+
+                                                            <ToggleButton Grid.Column="2"
+                                                                          Classes="circleSmall soundToggle"
+                                                                          ToolTip.Tip="Loop"
+                                                                          IsChecked="{Binding IsAudioLoopEnabled, Mode=OneWay}"
+                                                                          Command="{Binding DataContext.ToggleAudioLoopCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                          CommandParameter="{Binding .}">
+                                                                <i:Icon Value="mdi-repeat" FontSize="18" />
+                                                            </ToggleButton>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+
+                                    <Border IsVisible="{Binding Media.HasNoItemsInSelectedCategory}"
+                                            Background="#0A0F18"
+                                            BorderBrush="{DynamicResource ScryBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="16"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            MaxWidth="560">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="No Audio Imported" FontWeight="SemiBold" />
+                                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" RowDefinitions="Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="Click"
+                                                           Foreground="{DynamicResource ScryTextMuted}"
+                                                           VerticalAlignment="Center" />
+
+                                                <Button Grid.Column="1"
+                                                        Classes="circleSmall"
+                                                        Click="OnImportMediaFolder"
+                                                        i:Attached.Icon="mdi-folder-plus"
+                                                        VerticalAlignment="Center"
+                                                        ToolTip.Tip="Add Folder" />
+
+                                                <TextBlock Grid.Column="2"
+                                                           Text="to add a directory with your images, videos, and audio."
                                                            Foreground="{DynamicResource ScryTextMuted}"
                                                            VerticalAlignment="Center"
                                                            TextWrapping="Wrap" />
@@ -756,7 +857,7 @@
                 Padding="12,10">
             <Grid>
                 <!-- Media controls (default) -->
-                <Border Classes="card" Padding="10" IsVisible="{Binding IsMediaTabSelected}">
+                <Border Classes="card" Padding="10" IsVisible="{Binding IsImagesOrVideoTabSelected}">
                     <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="12" RowDefinitions="Auto">
                         <!-- Selected image (left) -->
                         <Border Background="#0A0F18"
@@ -875,7 +976,7 @@
                         <StackPanel Grid.Column="3"
                                 Spacing="6"
                                 VerticalAlignment="Top"
-                            IsVisible="{Binding IsMediaTabSelected}">
+                            IsVisible="{Binding IsImagesOrVideoTabSelected}">
                             <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,6">
                                 <TextBlock Grid.Column="0" Text="Effects" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
                                 <ToggleButton Grid.Column="1"

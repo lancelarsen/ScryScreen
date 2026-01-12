@@ -10,11 +10,12 @@ public sealed partial class MediaItemViewModel : ViewModelBase
     private (int Width, int Height)? _pixelSize;
     private readonly long? _fileSizeBytes;
 
-    public MediaItemViewModel(string filePath, Bitmap? thumbnail, bool isVideo = false)
+    public MediaItemViewModel(string filePath, Bitmap? thumbnail, bool isVideo = false, bool isAudio = false)
     {
         FilePath = filePath;
         Thumbnail = thumbnail;
         IsVideo = isVideo;
+        IsAudio = isAudio;
 
         try
         {
@@ -34,7 +35,9 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     public bool IsVideo { get; }
 
-    public bool IsImage => !IsVideo;
+    public bool IsAudio { get; }
+
+    public bool IsImage => !IsVideo && !IsAudio;
 
     public bool HasPixelSize => !string.IsNullOrWhiteSpace(PixelSizeText);
 
@@ -86,6 +89,13 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private Bitmap? thumbnail;
+
+    // Audio-only UI state
+    [ObservableProperty]
+    private bool isAudioPlaying;
+
+    [ObservableProperty]
+    private bool isAudioLoopEnabled;
 
     partial void OnThumbnailChanged(Bitmap? value)
     {

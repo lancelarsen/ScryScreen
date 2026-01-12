@@ -4,17 +4,24 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScryScreen.App.Services;
+using ScryScreen.Core.Utilities;
 
 namespace ScryScreen.App.ViewModels;
 
 public sealed partial class MediaLibraryViewModel : ViewModelBase
 {
     private int _importGeneration;
+
+    private readonly ObservableCollection<MediaItemViewModel> _allItems = new();
+    private readonly ObservableCollection<MediaFolderGroupViewModel> _allGroups = new();
+
+    public IReadOnlyList<MediaItemViewModel> AllItems => _allItems;
 
     public ObservableCollection<MediaItemViewModel> Items { get; } = new();
 
@@ -25,19 +32,50 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
         Items.CollectionChanged += OnItemsCollectionChanged;
     }
 
-    public int ImagesCount => Items.Count;
+    public enum MediaCategory
+    {
+        Images,
+        Video,
+        Audio,
+    }
 
-    public bool HasAnyMedia => Items.Count > 0;
+    [ObservableProperty]
+    private MediaCategory selectedCategory = MediaCategory.Images;
 
-    public bool HasNoMedia => Items.Count == 0;
+    partial void OnSelectedCategoryChanged(MediaCategory value)
+    {
+        RebuildFilteredCollections(value);
+        OnPropertyChanged(nameof(ImagesCount));
+        OnPropertyChanged(nameof(VideoCount));
+        OnPropertyChanged(nameof(AudioCount));
+        OnPropertyChanged(nameof(ImagesTabHeader));
+        OnPropertyChanged(nameof(VideoTabHeader));
+        OnPropertyChanged(nameof(AudioTabHeader));
+        OnPropertyChanged(nameof(HasAnyMedia));
+        OnPropertyChanged(nameof(HasNoMedia));
+        OnPropertyChanged(nameof(HasAnyItemsInSelectedCategory));
+        OnPropertyChanged(nameof(HasNoItemsInSelectedCategory));
+    }
 
-    public string ImagesHeader => Items.Count > 0
-        ? $"Images ({Items.Count})"
-        : "Images";
+    public int ImagesCount => _allItems.Count(i => i.IsImage);
 
-    public string MediaTabHeader => Items.Count > 0
-        ? $"Media ({Items.Count})"
-        : "Media";
+    public int VideoCount => _allItems.Count(i => i.IsVideo);
+
+    public int AudioCount => _allItems.Count(i => i.IsAudio);
+
+    public bool HasAnyMedia => _allItems.Count > 0;
+
+    public bool HasNoMedia => _allItems.Count == 0;
+
+    public bool HasAnyItemsInSelectedCategory => Items.Count > 0;
+
+    public bool HasNoItemsInSelectedCategory => Items.Count == 0;
+
+    public string ImagesTabHeader => ImagesCount > 0 ? $"Images ({ImagesCount})" : "Images";
+
+    public string VideoTabHeader => VideoCount > 0 ? $"Video ({VideoCount})" : "Video";
+
+    public string AudioTabHeader => AudioCount > 0 ? $"Audio ({AudioCount})" : "Audio";
 
     [RelayCommand]
     private void SelectItem(MediaItemViewModel? item)
@@ -72,11 +110,17 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
 
     private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        // Kept for backward compatibility if anything still listens to Items.
         OnPropertyChanged(nameof(ImagesCount));
-        OnPropertyChanged(nameof(ImagesHeader));
-        OnPropertyChanged(nameof(MediaTabHeader));
+        OnPropertyChanged(nameof(VideoCount));
+        OnPropertyChanged(nameof(AudioCount));
+        OnPropertyChanged(nameof(ImagesTabHeader));
+        OnPropertyChanged(nameof(VideoTabHeader));
+        OnPropertyChanged(nameof(AudioTabHeader));
         OnPropertyChanged(nameof(HasAnyMedia));
         OnPropertyChanged(nameof(HasNoMedia));
+        OnPropertyChanged(nameof(HasAnyItemsInSelectedCategory));
+        OnPropertyChanged(nameof(HasNoItemsInSelectedCategory));
     }
 
     public void ImportFolder(string folderPath)
@@ -90,13 +134,12 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
         _importGeneration++;
         var importGeneration = _importGeneration;
 
-        var supportedImages = new[] { ".png", ".jpg", ".jpeg", ".bmp", ".gif" };
-        var supportedVideos = new[] { ".mp4" };
-
-        foreach (var item in Items)
+        foreach (var item in _allItems)
         {
             item.Thumbnail?.Dispose();
         }
+        _allItems.Clear();
+        _allGroups.Clear();
         Items.Clear();
         Groups.Clear();
 
@@ -120,21 +163,19 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
                 .EnumerateFiles(directoryPath, "*.*", SearchOption.TopDirectoryOnly)
                 .Where(f =>
                 {
-                    var ext = Path.GetExtension(f);
-                    return supportedImages.Contains(ext, StringComparer.OrdinalIgnoreCase) ||
-                           supportedVideos.Contains(ext, StringComparer.OrdinalIgnoreCase);
+                    return MediaFileClassifier.IsImage(f) || MediaFileClassifier.IsVideo(f) || MediaFileClassifier.IsAudio(f);
                 })
                 .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
 
             foreach (var file in localFiles)
             {
                 Bitmap? thumb = null;
-                var ext = Path.GetExtension(file);
-                var isVideo = supportedVideos.Contains(ext, StringComparer.OrdinalIgnoreCase);
+                var isVideo = MediaFileClassifier.IsVideo(file);
+                var isAudio = MediaFileClassifier.IsAudio(file);
 
                 try
                 {
-                    if (!isVideo)
+                    if (!isVideo && !isAudio)
                     {
                         using var stream = File.OpenRead(file);
                         thumb = new Bitmap(stream);
@@ -145,8 +186,8 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
                     // ignore unreadable files
                 }
 
-                var vm = new MediaItemViewModel(file, thumb, isVideo: isVideo);
-                Items.Add(vm);
+                var vm = new MediaItemViewModel(file, thumb, isVideo: isVideo, isAudio: isAudio);
+                _allItems.Add(vm);
                 group.Items.Add(vm);
 
                 if (isVideo)
@@ -158,7 +199,7 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
             // Only show groups that have images, OR the root group (so you at least see the folder name).
             if (group.Items.Count > 0 || relative == ".")
             {
-                Groups.Add(group);
+                _allGroups.Add(group);
             }
 
             foreach (var subDir in Directory.EnumerateDirectories(directoryPath).OrderBy(d => d, StringComparer.OrdinalIgnoreCase))
@@ -169,17 +210,62 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
 
         AddGroupForDirectory(folderPath);
 
-        StatusText = Items.Count == 0
+        RebuildFilteredCollections(SelectedCategory);
+
+        StatusText = _allItems.Count == 0
             ? "No supported media found"
-            : $"{Items.Count} item(s)";
+            : $"{_allItems.Count} item(s)";
 
         OnPropertyChanged(nameof(ImagesCount));
-        OnPropertyChanged(nameof(ImagesHeader));
-        OnPropertyChanged(nameof(MediaTabHeader));
+        OnPropertyChanged(nameof(VideoCount));
+        OnPropertyChanged(nameof(AudioCount));
+        OnPropertyChanged(nameof(ImagesTabHeader));
+        OnPropertyChanged(nameof(VideoTabHeader));
+        OnPropertyChanged(nameof(AudioTabHeader));
         OnPropertyChanged(nameof(HasAnyMedia));
         OnPropertyChanged(nameof(HasNoMedia));
 
         SelectedItem = Items.FirstOrDefault();
+    }
+
+    private void RebuildFilteredCollections(MediaCategory category)
+    {
+        bool Matches(MediaItemViewModel item) => category switch
+        {
+            MediaCategory.Images => item.IsImage,
+            MediaCategory.Video => item.IsVideo,
+            MediaCategory.Audio => item.IsAudio,
+            _ => true,
+        };
+
+        Items.Clear();
+        foreach (var item in _allItems.Where(Matches))
+        {
+            Items.Add(item);
+        }
+
+        Groups.Clear();
+        foreach (var g in _allGroups)
+        {
+            var fg = new MediaFolderGroupViewModel(g.Header);
+            foreach (var item in g.Items.Where(Matches))
+            {
+                fg.Items.Add(item);
+            }
+
+            if (fg.Items.Count > 0)
+            {
+                Groups.Add(fg);
+            }
+        }
+
+        if (SelectedItem is not null && !Items.Contains(SelectedItem))
+        {
+            SelectedItem = Items.FirstOrDefault();
+        }
+
+        OnPropertyChanged(nameof(HasAnyItemsInSelectedCategory));
+        OnPropertyChanged(nameof(HasNoItemsInSelectedCategory));
     }
 
     private async Task PopulateVideoThumbnailAsync(MediaItemViewModel item, string filePath, int importGeneration)

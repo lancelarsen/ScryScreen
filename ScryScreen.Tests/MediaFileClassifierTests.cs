@@ -9,6 +9,23 @@ public class MediaFileClassifierTests
     [InlineData(null, false)]
     [InlineData("", false)]
     [InlineData("   ", false)]
+    [InlineData("C:/x.mp3", true)]
+    [InlineData("C:/x.MP3", true)]
+    [InlineData("C:/x.wav", true)]
+    [InlineData("C:/x.WAV", true)]
+    [InlineData("C:/x.mp3   ", true)]
+    [InlineData("C:/x.mp3.bak", false)]
+    [InlineData("C:/x.mp4", false)]
+    [InlineData("C:/x.png", false)]
+    public void IsAudio_DetectsSupportedAudio(string? path, bool expected)
+    {
+        Assert.Equal(expected, MediaFileClassifier.IsAudio(path));
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
     [InlineData("C:/x.mp4", true)]
     [InlineData("C:/x.MP4", true)]
     [InlineData("C:/x.mp4   ", true)]
