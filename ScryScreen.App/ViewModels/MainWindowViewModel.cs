@@ -425,6 +425,8 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(IsInitiativeTrackerAppSelected));
         OnPropertyChanged(nameof(IsHourglassAppSelected));
+        OnPropertyChanged(nameof(IsInitiativeControlsVisible));
+        OnPropertyChanged(nameof(IsHourglassControlsVisible));
     }
 
     [RelayCommand]

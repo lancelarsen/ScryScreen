@@ -887,12 +887,12 @@
                                                         Height="140">
                                                     <Grid>
                                                         <!-- watermark icon -->
-                                                        <i:Icon Value="mdi-sword-cross"
-                                                                FontSize="110"
-                                                                Foreground="{DynamicResource ScryTextMuted}"
-                                                                Opacity="0.12"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center" />
+                                                        <svg:Svg Path="/Assets/Icons/hourglass.svg"
+                                                                 Width="120"
+                                                                 Height="120"
+                                                                 Margin="0,8,0,0"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center" />
 
                                                         <!-- centered title -->
                                                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
