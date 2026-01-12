@@ -8,34 +8,17 @@
              x:Class="ScryScreen.App.Views.HourglassPortalView"
              x:DataType="vm:HourglassPortalViewModel">
 
-  <Border Background="#66000000"
-          CornerRadius="12"
-          Padding="10"
-          Opacity="{Binding OverlayOpacity}"
-          HorizontalAlignment="Right"
-          VerticalAlignment="Bottom"
-          Margin="18"
-          IsHitTestVisible="False">
-    <StackPanel Spacing="6" HorizontalAlignment="Center">
-      <controls:HourglassVisual Width="120" Height="180" FractionRemaining="{Binding FractionRemaining}" />
-
-      <TextBlock Text="{Binding RemainingText}"
-                 Foreground="#E8D9B6"
-                 FontSize="26"
-                 FontWeight="SemiBold"
-                 HorizontalAlignment="Center" />
-
-      <TextBlock Text="Running"
-                 IsVisible="{Binding IsRunning}"
-                 Foreground="#CCBFA2"
-                 FontSize="12"
-                 HorizontalAlignment="Center" />
-
-      <TextBlock Text="Paused"
-                 IsVisible="{Binding !IsRunning}"
-                 Foreground="#CCBFA2"
-                 FontSize="12"
-                 HorizontalAlignment="Center" />
-    </StackPanel>
-  </Border>
+  <Grid IsHitTestVisible="False">
+    <!-- Full-screen centered hourglass (scales to portal resolution) -->
+    <Viewbox Stretch="Uniform"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center"
+             Margin="48"
+             Opacity="{Binding OverlayOpacity}">
+      <!-- Design-time size; Viewbox scales this to the portal window -->
+      <controls:HourglassVisual Width="420" Height="640"
+                                FractionRemaining="{Binding FractionRemaining}"
+                                IsRunning="{Binding IsRunning}" />
+    </Viewbox>
+  </Grid>
 </UserControl>
