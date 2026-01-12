@@ -1127,6 +1127,7 @@
                                         Width="28"
                                         Height="28"
                                         CornerRadius="14"
+                                        IsEnabled="{Binding !IsLightningTriggerCooldown}"
                                         Command="{Binding TriggerLightningCommand}"
                                         ToolTip.Tip="Trigger Lightning Flash">
                                     <i:Icon Value="mdi-flash" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
@@ -1292,6 +1293,7 @@
                                         Width="28"
                                         Height="28"
                                         CornerRadius="14"
+                                        IsEnabled="{Binding !IsQuakeTriggerCooldown}"
                                         Command="{Binding TriggerQuakeCommand}"
                                         ToolTip.Tip="Trigger Quake">
                                     <i:Icon Value="mdi-vibrate" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />

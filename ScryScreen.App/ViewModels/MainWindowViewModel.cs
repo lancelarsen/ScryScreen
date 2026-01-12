@@ -37,6 +37,18 @@ public partial class MainWindowViewModel : ViewModelBase
     private string? _lastInitiativeConfigSavePath;
     private string? _lastEffectsConfigSavePath;
 
+    private const double QuakeEffectDurationSeconds = 10.0;
+    private System.Threading.CancellationTokenSource? _quakeCooldownCts;
+
+    [ObservableProperty]
+    private bool isQuakeTriggerCooldown;
+
+    private const double LightningEffectCooldownSeconds = 1.5;
+    private System.Threading.CancellationTokenSource? _lightningCooldownCts;
+
+    [ObservableProperty]
+    private bool isLightningTriggerCooldown;
+
     [ObservableProperty]
     private bool autoSaveInitiativeEnabled;
 
@@ -143,11 +155,93 @@ public partial class MainWindowViewModel : ViewModelBase
         // Any effects setting change updates portals + auto-save.
         ApplyEffectsToAllPortals();
 
+        if (e.PropertyName == nameof(EffectsSettingsViewModel.QuakeEnabled) && !Effects.QuakeEnabled)
+        {
+            ClearQuakeCooldown();
+        }
+
+        if (e.PropertyName == nameof(EffectsSettingsViewModel.LightningEnabled) && !Effects.LightningEnabled)
+        {
+            ClearLightningCooldown();
+        }
+
         // Enabled/sound toggles are intentionally NOT persisted.
         if (IsPersistableEffectsProperty(e.PropertyName))
         {
             NotifyEffectsChangedForAutoSave();
         }
+    }
+
+    private void StartQuakeCooldown()
+    {
+        _quakeCooldownCts?.Cancel();
+        _quakeCooldownCts = new System.Threading.CancellationTokenSource();
+        var token = _quakeCooldownCts.Token;
+
+        IsQuakeTriggerCooldown = true;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(QuakeEffectDurationSeconds), token).ConfigureAwait(false);
+            }
+            catch
+            {
+                return;
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!token.IsCancellationRequested)
+                {
+                    IsQuakeTriggerCooldown = false;
+                }
+            });
+        });
+    }
+
+    private void ClearQuakeCooldown()
+    {
+        _quakeCooldownCts?.Cancel();
+        _quakeCooldownCts = null;
+        IsQuakeTriggerCooldown = false;
+    }
+
+    private void StartLightningCooldown()
+    {
+        _lightningCooldownCts?.Cancel();
+        _lightningCooldownCts = new System.Threading.CancellationTokenSource();
+        var token = _lightningCooldownCts.Token;
+
+        IsLightningTriggerCooldown = true;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(LightningEffectCooldownSeconds), token).ConfigureAwait(false);
+            }
+            catch
+            {
+                return;
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!token.IsCancellationRequested)
+                {
+                    IsLightningTriggerCooldown = false;
+                }
+            });
+        });
+    }
+
+    private void ClearLightningCooldown()
+    {
+        _lightningCooldownCts?.Cancel();
+        _lightningCooldownCts = null;
+        IsLightningTriggerCooldown = false;
     }
 
     private static bool IsPersistableEffectsProperty(string? propertyName)
@@ -827,6 +921,13 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void TriggerLightning()
     {
+        if (IsLightningTriggerCooldown)
+        {
+            return;
+        }
+
+        StartLightningCooldown();
+
         if (!Effects.LightningEnabled)
         {
             Effects.LightningEnabled = true;
@@ -850,6 +951,13 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void TriggerQuake()
     {
+        if (IsQuakeTriggerCooldown)
+        {
+            return;
+        }
+
+        StartQuakeCooldown();
+
         if (!Effects.QuakeEnabled)
         {
             Effects.QuakeEnabled = true;

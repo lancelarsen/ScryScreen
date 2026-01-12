@@ -40,13 +40,12 @@ public sealed class QuakeShakeDecorator : Decorator
 
 	private DateTime _lastTickUtc = DateTime.UtcNow;
 
-	private double _timeToNextQuake;
 	private double _quakeTimeRemaining;
 	private double _quakeDuration;
 	private double _quakePhase;
 	private double _quakeAmplitude;
+	private double _sessionElapsed;
 
-	private bool _prevEnabled;
 	private double _prevIntensity;
 	private long _prevTrigger;
 	private bool _wasQuaking;
@@ -65,6 +64,12 @@ public sealed class QuakeShakeDecorator : Decorator
 	}
 
 	private static double Clamp01(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
+
+	private static double SmoothStep01(double t)
+	{
+		t = Clamp01(t);
+		return t * t * (3 - (2 * t));
+	}
 
 	private static double ClampMin0(double v)
 	{
@@ -97,7 +102,7 @@ public sealed class QuakeShakeDecorator : Decorator
 		dt = Math.Min(dt, 0.10);
 
 		var density = ClampMin0(QuakeIntensity);
-		if (!QuakeEnabled || density <= 0)
+		if (!QuakeEnabled)
 		{
 			if (_wasQuaking)
 			{
@@ -108,40 +113,59 @@ public sealed class QuakeShakeDecorator : Decorator
 				}
 			}
 
-			_prevEnabled = false;
 			_prevIntensity = 0;
 			_prevTrigger = 0;
-			_timeToNextQuake = 0;
 			_quakeTimeRemaining = 0;
+			_quakeDuration = 0;
+			_sessionElapsed = 0;
 			_scale.ScaleX = 1.0;
 			_scale.ScaleY = 1.0;
 			ResetTransform();
 			return;
 		}
 
-		// Slight zoom-in to avoid showing outside edges while shaking.
+		// As soon as the Quake effect is enabled, zoom-in slightly to avoid showing outside
+		// edges while shaking (matches prior behavior).
 		_scale.ScaleX = 1.10;
 		_scale.ScaleY = 1.10;
+
+		// Quake enabled but with zero intensity: keep the zoom, but do not shake.
+		if (density <= 0)
+		{
+			if (_wasQuaking)
+			{
+				_wasQuaking = false;
+				if (EmitAudioEvents)
+				{
+					EffectsEventBus.RaiseQuakeEnded(AudioPortalNumber);
+				}
+			}
+
+			_prevIntensity = 0;
+			_quakeTimeRemaining = 0;
+			_quakeDuration = 0;
+			_sessionElapsed = 0;
+			ResetTransform();
+			return;
+		}
+
+		// Use a single quake session per trigger, matching the quake audio length.
+		const double SessionDurationSeconds = 10.0;
+		const double RampUpSeconds = 2.0;
+		const double RampDownSeconds = 0.75;
 
 		var capped = Math.Min(density, 5.0);
 		var ease = Clamp01((capped - 0.10) / 4.90);
 
-		double NextIntervalSeconds()
+		void StartQuakeSession()
 		{
-			// Rare at low, frequent at high.
-			var min = Lerp(60, 6, ease);
-			var max = Lerp(85, 12, ease);
-			return min + (_rng.NextDouble() * (max - min));
-		}
-
-		void StartQuake()
-		{
-			_quakeDuration = 0.55 + (_rng.NextDouble() * (0.95 + (0.35 * ease)));
+			_quakeDuration = SessionDurationSeconds;
 			_quakeTimeRemaining = _quakeDuration;
+			_sessionElapsed = 0;
 			_quakePhase = _rng.NextDouble() * Math.PI * 2.0;
 
-			// Max amplitude ~40px at intensity 5.
-			_quakeAmplitude = 3 + (15 * Math.Pow(capped, 0.60));
+			// Base amplitude is scaled by intensity (0.1..5). Tune to taste.
+			_quakeAmplitude = 2 + (18 * Math.Pow(capped, 0.70));
 
 			if (!_wasQuaking)
 			{
@@ -157,47 +181,44 @@ public sealed class QuakeShakeDecorator : Decorator
 		if (QuakeTrigger != _prevTrigger)
 		{
 			_prevTrigger = QuakeTrigger;
-			StartQuake();
-			_timeToNextQuake = NextIntervalSeconds();
-		}
-
-		// Priming: if just enabled or intensity bumped up, show a quake fairly soon at higher values.
-		if (!_prevEnabled || (capped > _prevIntensity + 0.6))
-		{
-			if (ease > 0.55)
+			// Prevent stacking/restarting: if a quake is already in progress, ignore the trigger.
+			// We still consume the trigger value so it doesn't "queue" an immediate restart.
+			if (_quakeTimeRemaining <= 0)
 			{
-				_timeToNextQuake = Math.Min(_timeToNextQuake <= 0 ? double.PositiveInfinity : _timeToNextQuake, 0.8);
+				StartQuakeSession();
 			}
 		}
 
-		// Schedule / progress.
+		// Progress the current quake session (if active).
 		if (_quakeTimeRemaining > 0)
 		{
-			_quakeTimeRemaining -= dt;
-		}
-		else
-		{
-			_timeToNextQuake -= dt;
-			if (_timeToNextQuake <= 0)
-			{
-				StartQuake();
-				_timeToNextQuake = NextIntervalSeconds();
-			}
+			_quakeTimeRemaining = Math.Max(0, _quakeTimeRemaining - dt);
+			_sessionElapsed = Math.Min(_quakeDuration, _sessionElapsed + dt);
 		}
 
 		if (_quakeTimeRemaining > 0)
 		{
-			var t = 1.0 - (_quakeTimeRemaining / _quakeDuration);
-			var envelope = Math.Sin(Math.PI * t); // 0..1..0
+			var t = _quakeDuration <= 0 ? 0 : Clamp01(_sessionElapsed / _quakeDuration);
 
-			var baseAmp = _quakeAmplitude * envelope;
+			// Match the audio: gradual build for the first ~2 seconds.
+			var rampUp = SmoothStep01(_sessionElapsed / RampUpSeconds);
+			// Gentle tail-off to avoid an abrupt stop when the sound ends.
+			var rampDown = SmoothStep01(_quakeTimeRemaining / RampDownSeconds);
+			var envelope = rampUp * rampDown;
 
-			var x = Math.Sin((_quakePhase + (t * 20.0))) * baseAmp;
-			x += Math.Sin((_quakePhase * 1.7) + (t * 35.0)) * baseAmp * 0.25;
+			// Continuously update amplitude so slider/intensity changes take effect mid-quake.
+			var amp = 2 + (18 * Math.Pow(capped, 0.70));
+			var baseAmp = amp * envelope;
 
-			var y = Math.Sin((_quakePhase * 0.8) + (t * 18.0)) * baseAmp * 0.08;
+			// High-frequency shake with a tiny low-frequency sway.
+			var x = Math.Sin((_quakePhase + (t * 70.0))) * baseAmp;
+			x += Math.Sin((_quakePhase * 1.7) + (t * 110.0)) * baseAmp * 0.35;
+			x += Math.Sin((_quakePhase * 0.15) + (t * 6.0)) * baseAmp * 0.12;
 
-			var rot = Math.Sin((_quakePhase * 0.4) + (t * 12.0)) * Math.Min(2.0, _quakeAmplitude * 0.06) * envelope;
+			var y = Math.Sin((_quakePhase * 0.8) + (t * 60.0)) * baseAmp * 0.35;
+			y += Math.Sin((_quakePhase * 2.1) + (t * 95.0)) * baseAmp * 0.18;
+
+			var rot = Math.Sin((_quakePhase * 0.4) + (t * 28.0)) * Math.Min(2.0, amp * 0.07) * envelope;
 
 			_translate.X = x;
 			_translate.Y = y;
@@ -217,7 +238,6 @@ public sealed class QuakeShakeDecorator : Decorator
 			ResetTransform();
 		}
 
-		_prevEnabled = true;
 		_prevIntensity = capped;
 		InvalidateVisual();
 	}
