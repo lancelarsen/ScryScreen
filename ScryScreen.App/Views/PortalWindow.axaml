@@ -104,6 +104,11 @@
           AudioPortalNumber="{Binding PortalNumber}"
           IsHitTestVisible="False" />
 
+      <!-- Keep hourglass visible above effects -->
+      <Grid IsVisible="{Binding IsShowingHourglass}" IsHitTestVisible="False">
+        <views:HourglassPortalView DataContext="{Binding Hourglass}" />
+      </Grid>
+
       <!-- Identify overlay -->
       <Border IsVisible="{Binding IsIdentifyOverlayVisible}"
               Background="#AA000000">

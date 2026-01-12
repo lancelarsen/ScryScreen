@@ -267,6 +267,23 @@ public sealed class PortalHostService
         }
     }
 
+    public void SetContentHourglassOverlay(int portalNumber, HourglassState state, double overlayOpacity)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.SetHourglassOverlay(state, overlayOpacity);
+            controller.ViewModel.IsContentVisible = true;
+        }
+    }
+
+    public void ClearHourglassOverlay(int portalNumber)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.ClearHourglassOverlay();
+        }
+    }
+
     public void ClearContent(int portalNumber, string contentTitle = "Idle")
     {
         if (_portals.TryGetValue(portalNumber, out var controller))

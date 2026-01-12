@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ScryScreen.App.ViewModels"
+             xmlns:controls="using:ScryScreen.App.Controls"
+             mc:Ignorable="d"
+             x:Class="ScryScreen.App.Views.HourglassPortalView"
+             x:DataType="vm:HourglassPortalViewModel">
+
+  <Border Background="#66000000"
+          CornerRadius="12"
+          Padding="10"
+          Opacity="{Binding OverlayOpacity}"
+          HorizontalAlignment="Right"
+          VerticalAlignment="Bottom"
+          Margin="18"
+          IsHitTestVisible="False">
+    <StackPanel Spacing="6" HorizontalAlignment="Center">
+      <controls:HourglassVisual Width="120" Height="180" FractionRemaining="{Binding FractionRemaining}" />
+
+      <TextBlock Text="{Binding RemainingText}"
+                 Foreground="#E8D9B6"
+                 FontSize="26"
+                 FontWeight="SemiBold"
+                 HorizontalAlignment="Center" />
+
+      <TextBlock Text="Running"
+                 IsVisible="{Binding IsRunning}"
+                 Foreground="#CCBFA2"
+                 FontSize="12"
+                 HorizontalAlignment="Center" />
+
+      <TextBlock Text="Paused"
+                 IsVisible="{Binding !IsRunning}"
+                 Foreground="#CCBFA2"
+                 FontSize="12"
+                 HorizontalAlignment="Center" />
+    </StackPanel>
+  </Border>
+</UserControl>

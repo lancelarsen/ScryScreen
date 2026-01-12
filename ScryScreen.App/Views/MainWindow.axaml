@@ -507,8 +507,8 @@
                                     <Button Classes="tabLink" Command="{Binding ShowAppsTabCommand}" Margin="0">
                                         <Grid RowDefinitions="Auto,Auto">
                                             <Grid Grid.Row="0">
-                                                <TextBlock Text="Apps" Foreground="{DynamicResource ScryText}" IsVisible="{Binding IsAppsTabSelected}" TextWrapping="NoWrap" />
-                                                <TextBlock Text="Apps" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsAppsTabSelected}" TextWrapping="NoWrap" />
+                                                <TextBlock Text="{Binding AppsTabHeader}" Foreground="{DynamicResource ScryText}" IsVisible="{Binding IsAppsTabSelected}" TextWrapping="NoWrap" />
+                                                <TextBlock Text="{Binding AppsTabHeader}" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsAppsTabSelected}" TextWrapping="NoWrap" />
                                             </Grid>
                                             <Grid Grid.Row="1" Margin="0,4,0,0">
                                                 <Border Height="2" Background="Transparent" />
@@ -864,6 +864,44 @@
                                                                        HorizontalAlignment="Center"
                                                                        TextAlignment="Center" />
                                                             <TextBlock Text="Tracker"
+                                                                       FontSize="16"
+                                                                       FontWeight="SemiBold"
+                                                                       HorizontalAlignment="Center"
+                                                                       TextAlignment="Center" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </Button>
+
+                                            <Button Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    Command="{Binding SelectHourglassAppCommand}"
+                                                    ToolTip.Tip="Show a dramatic hourglass countdown overlay on portals.">
+                                                <Border Background="#0A0F18"
+                                                        BorderBrush="{DynamicResource ScryBorder}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="10"
+                                                        Padding="8"
+                                                        Width="140"
+                                                        Height="140">
+                                                    <Grid>
+                                                        <!-- watermark icon -->
+                                                        <i:Icon Value="mdi-sword-cross"
+                                                                FontSize="110"
+                                                                Foreground="{DynamicResource ScryTextMuted}"
+                                                                Opacity="0.12"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center" />
+
+                                                        <!-- centered title -->
+                                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                                            <TextBlock Text="Hourglass"
+                                                                       FontSize="16"
+                                                                       FontWeight="SemiBold"
+                                                                       HorizontalAlignment="Center"
+                                                                       TextAlignment="Center" />
+                                                            <TextBlock Text="Timer"
                                                                        FontSize="16"
                                                                        FontWeight="SemiBold"
                                                                        HorizontalAlignment="Center"
@@ -1362,7 +1400,7 @@
                 </Border>
 
                 <!-- Apps controls (Initiative Tracker) -->
-                <Border Classes="card" Padding="10" IsVisible="{Binding IsAppsTabSelected}">
+                <Border Classes="card" Padding="10" IsVisible="{Binding IsInitiativeControlsVisible}">
                     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
                         <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
                             <TextBlock Text="Assign to Portals" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
@@ -1495,6 +1533,42 @@
                         <Border Grid.Row="1" Height="1" Background="{DynamicResource ScryBorder}" Opacity="0.6" />
 
                         <views:InitiativeTrackerView Grid.Row="2" DataContext="{Binding InitiativeTracker}" />
+                    </Grid>
+                </Border>
+
+                <!-- Apps controls (Hourglass) -->
+                <Border Classes="card" Padding="10" IsVisible="{Binding IsHourglassControlsVisible}">
+                    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+                        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
+                            <TextBlock Text="Assign to Portals" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+
+                            <ItemsControl Grid.Column="1" ItemsSource="{Binding Portals}" HorizontalAlignment="Left">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
+                                        <ToggleButton Classes="circleSmall"
+                                                      Content="{Binding PortalNumber}"
+                                                      ToolTip.Tip="Show Hourglass on this Portal"
+                                                      IsChecked="{Binding IsSelectedForHourglass, Mode=OneWay}"
+                                                      Command="{Binding DataContext.ToggleHourglassForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      CommandParameter="{Binding .}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
+                                <TextBlock Text="Set duration, then start/stop." Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Grid.Row="1" Height="1" Background="{DynamicResource ScryBorder}" Opacity="0.6" />
+
+                        <views:HourglassView Grid.Row="2" DataContext="{Binding Hourglass}" />
                     </Grid>
                 </Border>
             </Grid>

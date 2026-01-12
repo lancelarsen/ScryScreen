@@ -147,6 +147,9 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     private bool isSelectedForInitiative;
 
     [ObservableProperty]
+    private bool isSelectedForHourglass;
+
+    [ObservableProperty]
     private Bitmap? assignedPreview;
 
     [ObservableProperty]

@@ -28,6 +28,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     private long? _pendingSeekTimeMs;
     private bool _pendingPrimeFrame;
     private InitiativePortalViewModel? _initiative;
+    private HourglassPortalViewModel? _hourglass;
 
     public PortalWindowViewModel(int portalNumber)
     {
@@ -181,6 +182,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public bool HasInitiative => _initiative is not null;
 
+    public bool HasHourglass => _hourglass is not null;
+
     public InitiativePortalViewModel? Initiative
     {
         get => _initiative;
@@ -196,6 +199,26 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(HasInitiative));
             OnPropertyChanged(nameof(IsShowingInitiative));
             OnPropertyChanged(nameof(IsShowingText));
+        }
+    }
+
+    public HourglassPortalViewModel? Hourglass
+    {
+        get => _hourglass;
+        private set
+        {
+            if (ReferenceEquals(_hourglass, value))
+            {
+                return;
+            }
+
+            _hourglass = value;
+            OnPropertyChanged(nameof(Hourglass));
+            OnPropertyChanged(nameof(HasHourglass));
+            OnPropertyChanged(nameof(IsShowingHourglass));
+            OnPropertyChanged(nameof(IsShowingText));
+            OnPropertyChanged(nameof(IsShowingIdleLogo));
+            OnPropertyChanged(nameof(IsShowingNonIdleText));
         }
     }
 
@@ -264,7 +287,9 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsShowingInitiative => !IsSetup && HasInitiative;
 
-    public bool IsShowingText => !IsSetup && !HasInitiative && !HasImage && !HasVideo;
+    public bool IsShowingHourglass => !IsSetup && HasHourglass;
+
+    public bool IsShowingText => !IsSetup && !HasInitiative && !HasHourglass && !HasImage && !HasVideo;
 
     public bool IsShowingIdleLogo =>
         IsShowingText && string.Equals(ContentTitle, "Idle", StringComparison.OrdinalIgnoreCase);
@@ -279,6 +304,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsShowingImage));
         OnPropertyChanged(nameof(IsShowingVideo));
         OnPropertyChanged(nameof(IsShowingInitiative));
+        OnPropertyChanged(nameof(IsShowingHourglass));
         OnPropertyChanged(nameof(IsShowingText));
         OnPropertyChanged(nameof(IsShowingIdleLogo));
         OnPropertyChanged(nameof(IsShowingNonIdleText));
@@ -462,6 +488,32 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         Initiative.PortalFontSize = fontSize;
 
         IsSetup = false;
+    }
+
+    public void SetHourglassOverlay(HourglassState state, double overlayOpacity)
+    {
+        // Overlay mode: do NOT clear existing image/video content.
+        if (Hourglass is null)
+        {
+            Hourglass = new HourglassPortalViewModel(state);
+        }
+        else
+        {
+            Hourglass.Update(state);
+        }
+
+        Hourglass.OverlayOpacity = overlayOpacity;
+        IsSetup = false;
+    }
+
+    public void ClearHourglassOverlay()
+    {
+        if (Hourglass is null)
+        {
+            return;
+        }
+
+        Hourglass = null;
     }
 
     public void SetVideoLoop(bool loop)

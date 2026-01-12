@@ -48,16 +48,43 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Spacing="8">
-          <TextBlock Text="Source:" Foreground="{DynamicResource ScryTextMuted}" />
+          <TextBlock Text="Email:" Foreground="{DynamicResource ScryTextMuted}" />
+          <Button Background="Transparent"
+                  BorderThickness="0"
+                  Padding="0"
+                  Cursor="Hand"
+                  Click="OnEmailLance">
+            <TextBlock Text="lance@lancelarsen.com"
+                       Foreground="{DynamicResource ScryAccent}"
+                       TextDecorations="Underline" />
+          </Button>
+          <TextBlock Text="Suggestions? Wants? Issues? Email me!" Foreground="{DynamicResource ScryTextMuted}" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="Code:" Foreground="{DynamicResource ScryTextMuted}" />
           <Button Background="Transparent"
                   BorderThickness="0"
                   Padding="0"
                   Cursor="Hand"
                   Click="OnOpenGitHub">
-            <TextBlock Text="ScryScreen is an open source project located on GitHub"
+            <TextBlock Text="Open Source on GitHub"
                        Foreground="{DynamicResource ScryAccent}"
                        TextDecorations="Underline"
                        TextWrapping="Wrap" />
+          </Button>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="Error Logs:" Foreground="{DynamicResource ScryTextMuted}" />
+          <Button Background="Transparent"
+                  BorderThickness="0"
+                  Padding="0"
+                  Cursor="Hand"
+                  Click="OnOpenLogsFolder">
+            <TextBlock Text="Open Folder"
+                       Foreground="{DynamicResource ScryAccent}"
+                       TextDecorations="Underline" />
           </Button>
         </StackPanel>
       </StackPanel>

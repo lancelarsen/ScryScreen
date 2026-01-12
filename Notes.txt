@@ -6,8 +6,24 @@ dotnet test -v minimal
 dotnet run --project .\ScryScreen.App\ScryScreen.App.csproj -c Debug
 
 
+Startup crash test (PowerShell):
+
+# Option A: two-step (recommended; avoids any linkification weirdness)
+$env:SCRYSCREEN_TEST_STARTUP_CRASH=1
+dotnet run --project D:\Dev\AI\ScryScreen\ScryScreen.App\ScryScreen.App.csproj -c Debug
+
+# Turn it off afterwards
+Remove-Item Env:SCRYSCREEN_TEST_STARTUP_CRASH -ErrorAction SilentlyContinue
+
+
+If the startup error dialog only shows OK (no buttons):
+
+# Check whether TaskDialog failed and why
+type "$env:LOCALAPPDATA\ScryScreen\logs\ScryScreen.startup.log" | Select-String "TaskDialogIndirect failed|TaskDialog sizes" -Context 0,1 | Select-Object -Last 20
+
+
 From the repo root:
-powershell -NoProfile -ExecutionPolicy Bypass -File [publish.ps1](http://_vscodecontentref_/1) -Runtime win-x64 -Configuration Release -Zip
+powershell -NoProfile -ExecutionPolicy Bypass -File .\publish.ps1 -Runtime win-x64 -Configuration Release -Zip
 
 Or with an absolute path:
 powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Dev\AI\ScryScreen\publish.ps1" -Runtime win-x64 -Configuration Release -Zip

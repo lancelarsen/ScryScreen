@@ -64,6 +64,13 @@ public partial class MainWindowViewModel : ViewModelBase
     private System.Threading.CancellationTokenSource? _effectsAutoSaveCts;
 
     private readonly InitiativeTrackerViewModel _initiativeTracker;
+    private readonly HourglassViewModel _hourglass;
+
+    public enum AppSelection
+    {
+        InitiativeTracker,
+        Hourglass,
+    }
 
     public EffectsSettingsViewModel Effects { get; }
 
@@ -86,6 +93,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _initiativeTracker = new InitiativeTrackerViewModel();
         _initiativeTracker.StateChanged += OnInitiativeStateChanged;
+
+        _hourglass = new HourglassViewModel();
+        _hourglass.StateChanged += OnHourglassStateChanged;
 
         SelectedScaleMode = MediaScaleMode.FillHeight;
         SelectedAlign = MediaAlign.Center;
@@ -402,6 +412,21 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public InitiativeTrackerViewModel InitiativeTracker => _initiativeTracker;
 
+    public HourglassViewModel Hourglass => _hourglass;
+
+    [ObservableProperty]
+    private AppSelection selectedApp = AppSelection.InitiativeTracker;
+
+    public bool IsInitiativeTrackerAppSelected => SelectedApp == AppSelection.InitiativeTracker;
+
+    public bool IsHourglassAppSelected => SelectedApp == AppSelection.Hourglass;
+
+    partial void OnSelectedAppChanged(AppSelection value)
+    {
+        OnPropertyChanged(nameof(IsInitiativeTrackerAppSelected));
+        OnPropertyChanged(nameof(IsHourglassAppSelected));
+    }
+
     [RelayCommand]
     private void ToggleInitiativeForPortal(PortalRowViewModel? portal)
     {
@@ -417,6 +442,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (shouldSelect)
         {
+            if (portal.IsSelectedForHourglass)
+            {
+                portal.IsSelectedForHourglass = false;
+                _portalHost.ClearHourglassOverlay(portal.PortalNumber);
+            }
+
             PushSnapshot(portal);
             ApplyInitiativeToPortal(portal);
         }
@@ -455,6 +486,10 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool IsAnyMediaTabSelected => SelectedLibraryTab is LibraryTab.Images or LibraryTab.Video or LibraryTab.Audio;
 
     public bool IsImagesOrVideoTabSelected => SelectedLibraryTab is LibraryTab.Images or LibraryTab.Video;
+    public int AppsCount => Enum.GetValues(typeof(AppSelection)).Length;
+    public string AppsTabHeader => $"Apps ({AppsCount})";
+    public bool IsInitiativeControlsVisible => IsAppsTabSelected && IsInitiativeTrackerAppSelected;
+    public bool IsHourglassControlsVisible => IsAppsTabSelected && IsHourglassAppSelected;
 
     partial void OnSelectedLibraryTabChanged(LibraryTab value)
     {
@@ -464,9 +499,13 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsAudioTabSelected));
         OnPropertyChanged(nameof(IsAnyMediaTabSelected));
         OnPropertyChanged(nameof(IsImagesOrVideoTabSelected));
+        OnPropertyChanged(nameof(IsInitiativeControlsVisible));
+        OnPropertyChanged(nameof(IsHourglassControlsVisible));
 
         if (value == LibraryTab.Images)
         {
+        OnPropertyChanged(nameof(IsInitiativeControlsVisible));
+        OnPropertyChanged(nameof(IsHourglassControlsVisible));
             Media.SelectedCategory = MediaLibraryViewModel.MediaCategory.Images;
         }
         else if (value == LibraryTab.Video)
@@ -505,10 +544,52 @@ public partial class MainWindowViewModel : ViewModelBase
     private void SelectInitiativeTrackerApp()
     {
         SelectedLibraryTab = LibraryTab.Apps;
+        SelectedApp = AppSelection.InitiativeTracker;
 
         if (!IsControlsSectionVisible)
         {
             IsControlsSectionVisible = true;
+        }
+    }
+
+    [RelayCommand]
+    private void SelectHourglassApp()
+    {
+        SelectedLibraryTab = LibraryTab.Apps;
+        SelectedApp = AppSelection.Hourglass;
+
+        if (!IsControlsSectionVisible)
+        {
+            IsControlsSectionVisible = true;
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleHourglassForPortal(PortalRowViewModel? portal)
+    {
+        if (portal is null)
+        {
+            return;
+        }
+
+        // Don't rely on binding timing; treat this command as the source of truth.
+        var shouldSelect = !portal.IsSelectedForHourglass;
+        portal.IsSelectedForHourglass = shouldSelect;
+
+        if (shouldSelect)
+        {
+            // Hourglass and Initiative overlays should not stack.
+            if (portal.IsSelectedForInitiative)
+            {
+                portal.IsSelectedForInitiative = false;
+                RestorePreviousContent(portal);
+            }
+
+            ApplyHourglassToPortal(portal);
+        }
+        else
+        {
+            _portalHost.ClearHourglassOverlay(portal.PortalNumber);
         }
     }
 
@@ -1204,6 +1285,38 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         UpdateInitiativeOnSelectedPortals();
         NotifyInitiativeChangedForAutoSave();
+    }
+
+    private void OnHourglassStateChanged()
+    {
+        UpdateHourglassOnSelectedPortals();
+    }
+
+    private void UpdateHourglassOnSelectedPortals()
+    {
+        var state = Hourglass.SnapshotState();
+        foreach (var portal in Portals)
+        {
+            if (!portal.IsSelectedForHourglass)
+            {
+                continue;
+            }
+
+            _portalHost.SetContentHourglassOverlay(
+                portal.PortalNumber,
+                state,
+                overlayOpacity: Hourglass.OverlayOpacity);
+        }
+    }
+
+    private void ApplyHourglassToPortal(PortalRowViewModel portal)
+    {
+        _portalHost.SetContentHourglassOverlay(
+            portal.PortalNumber,
+            Hourglass.SnapshotState(),
+            overlayOpacity: Hourglass.OverlayOpacity);
+        _portalHost.SetVisibility(portal.PortalNumber, true);
+        portal.IsVisible = true;
     }
 
     private void NotifyInitiativeChangedForAutoSave()

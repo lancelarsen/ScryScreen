@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using System;
+using System.IO;
 using System.Reflection;
 using ScryScreen.App.Utilities;
 
@@ -9,6 +11,7 @@ public partial class AboutWindow : Window
 {
     private const string LanceSiteUrl = "https://lancelarsen.com";
     private const string GitHubRepoUrl = "https://github.com/lancelarsen/ScryScreen";
+    private const string SupportEmail = "lance@lancelarsen.com";
 
     public string VersionText { get; }
 
@@ -58,5 +61,40 @@ public partial class AboutWindow : Window
     private void OnOpenGitHub(object? sender, RoutedEventArgs e)
     {
         UrlLauncher.TryOpen(GitHubRepoUrl);
+    }
+
+    private void OnEmailLance(object? sender, RoutedEventArgs e)
+    {
+        var subject = "ScryScreen Feedback";
+        var body =
+            "Suggestions? Wants? Issues? Love to hear them!\n\n" +
+            "\n\n" +
+            $"(Sent from ScryScreen {VersionText})";
+
+        var mailto = $"mailto:{SupportEmail}?subject={Uri.EscapeDataString(subject)}&body={Uri.EscapeDataString(body)}";
+        UrlLauncher.TryOpen(mailto);
+    }
+
+    private void OnOpenLogsFolder(object? sender, RoutedEventArgs e)
+    {
+        UrlLauncher.TryOpen(GetLogsFolderPath());
+    }
+
+    private static string GetLogsFolderPath()
+    {
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!string.IsNullOrWhiteSpace(localAppData))
+            {
+                return Path.Combine(localAppData, "ScryScreen", "logs");
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return AppContext.BaseDirectory;
     }
 }
