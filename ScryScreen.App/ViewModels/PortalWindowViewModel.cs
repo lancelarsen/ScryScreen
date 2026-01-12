@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using LibVLCSharp.Shared;
@@ -41,6 +42,42 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
         _libVlc = new LibVLC("--no-video-title-show");
         _mediaPlayer = new MediaPlayer(_libVlc);
+
+#if DEBUG
+        try
+        {
+            _libVlc.Log += (_, e) =>
+            {
+                try
+                {
+                    Debug.WriteLine($"[VLC][Portal {PortalNumber}] {e.Level}: {e.Message}");
+                }
+                catch
+                {
+                    // ignore
+                }
+            };
+        }
+        catch
+        {
+            // ignore
+        }
+#endif
+
+        try
+        {
+            // Defensive defaults: some code paths (paused-frame priming / early media load)
+            // can leave audio muted/zeroed; always start from an audible baseline.
+            _mediaPlayer.Mute = false;
+            if (_mediaPlayer.Volume <= 0)
+            {
+                _mediaPlayer.Volume = 100;
+            }
+        }
+        catch
+        {
+            // ignore
+        }
 
         _pausedFramePrimer = new VideoPausedFramePrimer(new TaskVideoDelay());
 
@@ -302,6 +339,20 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             _currentVideoMedia?.Dispose();
             _currentVideoMedia = new Media(_libVlc, new Uri(filePath));
             _mediaPlayer.Media = _currentVideoMedia;
+
+            // Make sure video media starts with audio enabled.
+            try
+            {
+                _mediaPlayer.Mute = false;
+                if (_mediaPlayer.Volume <= 0)
+                {
+                    _mediaPlayer.Volume = 100;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
         }
         catch
         {
@@ -482,6 +533,20 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
                     _pendingSeekTimeMs = null;
                     _pendingPrimeFrame = false;
                 }
+            }
+
+            // Last-chance: ensure audio isn't muted before play.
+            try
+            {
+                _mediaPlayer.Mute = false;
+                if (_mediaPlayer.Volume <= 0)
+                {
+                    _mediaPlayer.Volume = 100;
+                }
+            }
+            catch
+            {
+                // ignore
             }
 
             _mediaPlayer.Play();

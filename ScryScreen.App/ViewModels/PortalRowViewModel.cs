@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
@@ -48,6 +49,41 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
         _previewLibVlc = new LibVLC("--no-video-title-show");
         _previewPlayer = new MediaPlayer(_previewLibVlc);
+
+#if DEBUG
+        try
+        {
+            _previewLibVlc.Log += (_, e) =>
+            {
+                try
+                {
+                    Debug.WriteLine($"[VLC][Preview {PortalNumber}] {e.Level}: {e.Message}");
+                }
+                catch
+                {
+                    // ignore
+                }
+            };
+        }
+        catch
+        {
+            // ignore
+        }
+#endif
+
+        try
+        {
+            _previewPlayer.Mute = false;
+            if (_previewPlayer.Volume <= 0)
+            {
+                _previewPlayer.Volume = 100;
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
         _pausedFramePrimer = new VideoPausedFramePrimer(new TaskVideoDelay());
         _videoSyncTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background, (_, _) => SyncVideo());
     }
@@ -441,6 +477,20 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
             _previewMedia?.Dispose();
             _previewMedia = new Media(_previewLibVlc, new Uri(AssignedMediaFilePath));
             _previewPlayer.Media = _previewMedia;
+
+            try
+            {
+                _previewPlayer.Mute = false;
+                if (_previewPlayer.Volume <= 0)
+                {
+                    _previewPlayer.Volume = 100;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
             _previewPlayer.Pause();
         }
         catch

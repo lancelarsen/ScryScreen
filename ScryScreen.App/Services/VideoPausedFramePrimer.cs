@@ -49,12 +49,10 @@ public sealed class VideoPausedFramePrimer
         }
 
         var originalMute = false;
-        var originalVolume = 0;
 
         try
         {
             originalMute = player.Mute;
-            originalVolume = player.Volume;
         }
         catch
         {
@@ -89,7 +87,6 @@ public sealed class VideoPausedFramePrimer
             try
             {
                 player.Mute = originalMute;
-                player.Volume = originalVolume;
             }
             catch
             {
