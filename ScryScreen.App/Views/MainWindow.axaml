@@ -231,8 +231,8 @@
                                                                         HorizontalAlignment="Stretch"
                                                                         VerticalAlignment="Stretch" />
 
-                                                            <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
-                                                                                   MediaPlayer="{Binding PreviewVideoPlayer}" />
+                                                                    <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
+                                                                               MediaPlayer="{Binding PreviewVideoPlayer}" />
 
                                                             <!-- Overlay effects preview (matches portal overlay) -->
                                                             <controls:OverlayEffectsLayer
@@ -346,6 +346,9 @@
                                                                             Canvas.Top="{Binding PreviewImageTop}">
                                                                         <Image Source="{Binding AssignedPreview}" Stretch="Fill" />
                                                                     </Border>
+
+                                                                    <!-- Video preview (live; synced to portal playback) -->
+                                                                    <!-- Live video preview temporarily disabled (use snapshots only) -->
 
                                                                     <!-- Video preview (live; synced to portal playback) -->
                                                                     <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"

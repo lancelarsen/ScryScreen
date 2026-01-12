@@ -37,6 +37,10 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     private const double MonitorPreviewOuterW = 158;
     private const double MonitorPreviewOuterH = 88;
 
+    // Preview is visual-only. Keep audio disabled at the LibVLC level to avoid any chance
+    // of doubled audio from the GM preview tile.
+    private static bool EnableLiveVideoPreview { get; } = true;
+
     public event Action<int>? DeleteRequested;
 
     public PortalRowViewModel(PortalHostService portalHost, int portalNumber, IReadOnlyList<ScreenInfoViewModel> availableScreens)
@@ -47,7 +51,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         IsVisible = true;
         currentAssignment = "Idle";
 
-        _previewLibVlc = new LibVLC("--no-video-title-show");
+        _previewLibVlc = new LibVLC("--no-video-title-show", "--no-audio");
         _previewPlayer = new MediaPlayer(_previewLibVlc);
 
 #if DEBUG
@@ -172,7 +176,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
     public bool ShowMonitorSnapshot => AssignedPreview is not null && !IsVideoAssigned;
 
-    public bool ShowMonitorLiveVideo => IsVideoAssigned;
+    public bool ShowMonitorLiveVideo => EnableLiveVideoPreview && IsVideoAssigned;
 
     public bool HasMonitorRenderablePreview => ShowMonitorSnapshot || ShowMonitorLiveVideo;
 
@@ -477,6 +481,17 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
         {
             _previewMedia?.Dispose();
             _previewMedia = new Media(_previewLibVlc, new Uri(AssignedMediaFilePath));
+
+            try
+            {
+                // Extra belt-and-suspenders: ensure no audio track can play.
+                _previewMedia.AddOption(":no-audio");
+            }
+            catch
+            {
+                // ignore
+            }
+
             _previewPlayer.Media = _previewMedia;
 
             try
@@ -569,6 +584,24 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
         OnPropertyChanged(nameof(HasVideoTimeline));
         OnPropertyChanged(nameof(VideoDurationText));
+
+        if (!EnableLiveVideoPreview)
+        {
+            // Ensure the preview player cannot emit audio by never playing it.
+            try
+            {
+                if (_previewPlayer.IsPlaying)
+                {
+                    _previewPlayer.Pause();
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return;
+        }
 
         // Mirror play/pause
         try
