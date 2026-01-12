@@ -4,3 +4,12 @@ dotnet test
 dotnet test -v minimal
 
 dotnet run --project .\ScryScreen.App\ScryScreen.App.csproj -c Debug
+
+
+From the repo root:
+powershell -NoProfile -ExecutionPolicy Bypass -File [publish.ps1](http://_vscodecontentref_/1) -Runtime win-x64 -Configuration Release -Zip
+
+Or with an absolute path:
+powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Dev\AI\ScryScreen\publish.ps1" -Runtime win-x64 -Configuration Release -Zip
+
+Tip: if you type .\pub and hit Tab, PowerShell will autocomplete publish.ps1 so you don’t have to copy/paste it.
