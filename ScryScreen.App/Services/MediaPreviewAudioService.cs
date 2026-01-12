@@ -16,6 +16,24 @@ internal sealed class MediaPreviewAudioService : IDisposable
 
     public bool IsPlaying { get; private set; }
 
+    public TimeSpan CurrentTime
+    {
+        get
+        {
+            try { return _reader?.CurrentTime ?? TimeSpan.Zero; }
+            catch { return TimeSpan.Zero; }
+        }
+    }
+
+    public TimeSpan TotalTime
+    {
+        get
+        {
+            try { return _reader?.TotalTime ?? TimeSpan.Zero; }
+            catch { return TimeSpan.Zero; }
+        }
+    }
+
     public event EventHandler<string>? PlaybackFinished;
 
     public void Play(string filePath, bool loop)

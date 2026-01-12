@@ -27,6 +27,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly PortalHostService _portalHost;
     private readonly EffectsAudioService _effectsAudio;
     private readonly MediaPreviewAudioService _mediaAudio = new();
+    private readonly DispatcherTimer _audioProgressTimer = new();
     private readonly ObservableCollection<ScreenInfoViewModel> _screens;
     private readonly ReadOnlyObservableCollection<ScreenInfoViewModel> _screensReadOnly;
     private string? _lastSelectedMediaPath;
@@ -86,9 +87,15 @@ public partial class MainWindowViewModel : ViewModelBase
                 foreach (var item in Media.AllItems.Where(i => i.IsAudio))
                 {
                     item.IsAudioPlaying = false;
+                    item.AudioPosition = TimeSpan.Zero;
                 }
+
+                _audioProgressTimer.Stop();
             });
         };
+
+        _audioProgressTimer.Interval = TimeSpan.FromMilliseconds(250);
+        _audioProgressTimer.Tick += (_, _) => UpdateAudioProgress();
 
         _portalHost.PortalClosed += OnPortalClosed;
 
@@ -101,12 +108,34 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void StopMediaAudio()
     {
+        _audioProgressTimer.Stop();
+
         foreach (var item in Media.AllItems.Where(i => i.IsAudio))
         {
             item.IsAudioPlaying = false;
+            item.AudioPosition = TimeSpan.Zero;
         }
 
         _mediaAudio.Stop();
+    }
+
+    private void UpdateAudioProgress()
+    {
+        if (!_mediaAudio.IsPlaying || string.IsNullOrWhiteSpace(_mediaAudio.CurrentFilePath))
+        {
+            _audioProgressTimer.Stop();
+            return;
+        }
+
+        var currentPath = _mediaAudio.CurrentFilePath;
+        var current = Media.AllItems.FirstOrDefault(i => i.IsAudio && string.Equals(i.FilePath, currentPath, StringComparison.OrdinalIgnoreCase));
+        if (current is null)
+        {
+            _audioProgressTimer.Stop();
+            return;
+        }
+
+        current.AudioPosition = _mediaAudio.CurrentTime;
     }
 
     private void OnGlobalEffectsChanged(object? sender, PropertyChangedEventArgs e)
@@ -880,10 +909,16 @@ public partial class MainWindowViewModel : ViewModelBase
         foreach (var other in Media.AllItems.Where(i => i.IsAudio))
         {
             other.IsAudioPlaying = false;
+            other.AudioPosition = TimeSpan.Zero;
         }
 
         _mediaAudio.Play(item.FilePath, loop: item.IsAudioLoopEnabled);
         item.IsAudioPlaying = _mediaAudio.IsPlaying;
+
+        if (_mediaAudio.IsPlaying)
+        {
+            _audioProgressTimer.Start();
+        }
     }
 
     [RelayCommand]
@@ -901,6 +936,12 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             _mediaAudio.Play(item.FilePath, loop: item.IsAudioLoopEnabled);
             item.IsAudioPlaying = _mediaAudio.IsPlaying;
+            item.AudioPosition = TimeSpan.Zero;
+
+            if (_mediaAudio.IsPlaying)
+            {
+                _audioProgressTimer.Start();
+            }
         }
     }
 

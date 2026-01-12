@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NAudio.Wave;
 using ScryScreen.App.Services;
 using ScryScreen.Core.Utilities;
 
@@ -172,6 +173,20 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
                 Bitmap? thumb = null;
                 var isVideo = MediaFileClassifier.IsVideo(file);
                 var isAudio = MediaFileClassifier.IsAudio(file);
+                var audioDuration = TimeSpan.Zero;
+
+                if (isAudio)
+                {
+                    try
+                    {
+                        using var reader = new AudioFileReader(file);
+                        audioDuration = reader.TotalTime;
+                    }
+                    catch
+                    {
+                        audioDuration = TimeSpan.Zero;
+                    }
+                }
 
                 try
                 {
@@ -186,7 +201,10 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
                     // ignore unreadable files
                 }
 
-                var vm = new MediaItemViewModel(file, thumb, isVideo: isVideo, isAudio: isAudio);
+                var vm = new MediaItemViewModel(file, thumb, isVideo: isVideo, isAudio: isAudio)
+                {
+                    AudioDuration = audioDuration,
+                };
                 _allItems.Add(vm);
                 group.Items.Add(vm);
 

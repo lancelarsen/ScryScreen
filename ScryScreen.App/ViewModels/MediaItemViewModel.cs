@@ -33,6 +33,8 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     public string DisplayName => System.IO.Path.GetFileName(FilePath);
 
+    public string DisplayNameNoExtension => System.IO.Path.GetFileNameWithoutExtension(FilePath);
+
     public bool IsVideo { get; }
 
     public bool IsAudio { get; }
@@ -96,6 +98,42 @@ public sealed partial class MediaItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool isAudioLoopEnabled;
+
+    [ObservableProperty]
+    private TimeSpan audioDuration;
+
+    [ObservableProperty]
+    private TimeSpan audioPosition;
+
+    public string AudioTimeText
+    {
+        get
+        {
+            if (AudioDuration <= TimeSpan.Zero)
+            {
+                return string.Empty;
+            }
+
+            return IsAudioPlaying
+                ? $"{FormatTime(AudioPosition)} / {FormatTime(AudioDuration)}"
+                : FormatTime(AudioDuration);
+        }
+    }
+
+    partial void OnIsAudioPlayingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(AudioTimeText));
+    }
+
+    partial void OnAudioDurationChanged(TimeSpan value)
+    {
+        OnPropertyChanged(nameof(AudioTimeText));
+    }
+
+    partial void OnAudioPositionChanged(TimeSpan value)
+    {
+        OnPropertyChanged(nameof(AudioTimeText));
+    }
 
     partial void OnThumbnailChanged(Bitmap? value)
     {
@@ -167,5 +205,16 @@ public sealed partial class MediaItemViewModel : ViewModelBase
         }
 
         return $"{abs:0.0} {units[unitIndex]}";
+    }
+
+    private static string FormatTime(TimeSpan value)
+    {
+        if (value < TimeSpan.Zero)
+        {
+            value = TimeSpan.Zero;
+        }
+
+        var totalMinutes = (int)value.TotalMinutes;
+        return $"{totalMinutes}:{value.Seconds:D2}";
     }
 }

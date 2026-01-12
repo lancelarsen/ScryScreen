@@ -715,40 +715,71 @@
                                     </Border>
                                 </Grid>
 
-                                <!-- Audio content (list) -->
+                                <!-- Audio content (tiles) -->
                                 <Grid IsVisible="{Binding IsAudioTabSelected}">
                                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                         <ItemsControl ItemsSource="{Binding Media.Items}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel ItemSpacing="10" LineSpacing="10" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="vm:MediaItemViewModel" x:CompileBindings="False">
                                                     <Border Background="#0A0F18"
                                                             BorderBrush="{DynamicResource ScryBorder}"
                                                             BorderThickness="1"
                                                             CornerRadius="10"
-                                                            Padding="10"
-                                                            Margin="0,0,0,8">
-                                                        <Grid ColumnDefinitions="*,36,36" ColumnSpacing="8" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                            Padding="8"
+                                                            Width="140"
+                                                            Height="140">
+                                                        <Grid RowDefinitions="*,Auto" RowSpacing="6">
+                                                            <!-- watermark icon (behind everything, incl. name/time) -->
+                                                            <i:Icon Grid.RowSpan="2"
+                                                                    Value="mdi-music"
+                                                                    FontSize="110"
+                                                                    Foreground="{DynamicResource ScryTextMuted}"
+                                                                    Opacity="0.18"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    IsHitTestVisible="False" />
 
-                                                            <Button Grid.Column="1"
-                                                                    Classes="circleSmall"
-                                                                    ToolTip.Tip="Play/Stop"
-                                                                    Command="{Binding DataContext.ToggleAudioPlayCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                    CommandParameter="{Binding .}">
-                                                                <Grid>
-                                                                    <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsAudioPlaying}" />
-                                                                    <i:Icon Value="mdi-stop" FontSize="18" Foreground="{DynamicResource ScryDanger}" IsVisible="{Binding IsAudioPlaying}" />
-                                                                </Grid>
-                                                            </Button>
+                                                            <!-- controls -->
+                                                            <StackPanel Orientation="Horizontal"
+                                                                        Spacing="10"
+                                                                        HorizontalAlignment="Center"
+                                                                        VerticalAlignment="Center"
+                                                                        Margin="0,10,0,0">
+                                                                <Button Classes="circleSmall"
+                                                                        Padding="0"
+                                                                        HorizontalContentAlignment="Center"
+                                                                        VerticalContentAlignment="Center"
+                                                                        ToolTip.Tip="Play/Stop"
+                                                                        Command="{Binding DataContext.ToggleAudioPlayCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                        CommandParameter="{Binding .}">
+                                                                    <Grid>
+                                                                        <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsAudioPlaying}" />
+                                                                        <i:Icon Value="mdi-stop" FontSize="18" Foreground="{DynamicResource ScryDanger}" IsVisible="{Binding IsAudioPlaying}" />
+                                                                    </Grid>
+                                                                </Button>
 
-                                                            <ToggleButton Grid.Column="2"
-                                                                          Classes="circleSmall soundToggle"
-                                                                          ToolTip.Tip="Loop"
-                                                                          IsChecked="{Binding IsAudioLoopEnabled, Mode=OneWay}"
-                                                                          Command="{Binding DataContext.ToggleAudioLoopCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                          CommandParameter="{Binding .}">
-                                                                <i:Icon Value="mdi-repeat" FontSize="18" />
-                                                            </ToggleButton>
+                                                                <ToggleButton Classes="circleSmall soundToggle"
+                                                                              Padding="0"
+                                                                              HorizontalContentAlignment="Center"
+                                                                              VerticalContentAlignment="Center"
+                                                                              ToolTip.Tip="Loop"
+                                                                              IsChecked="{Binding IsAudioLoopEnabled, Mode=OneWay}"
+                                                                              Command="{Binding DataContext.ToggleAudioLoopCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                              CommandParameter="{Binding .}">
+                                                                    <i:Icon Value="mdi-repeat" FontSize="18" />
+                                                                </ToggleButton>
+                                                            </StackPanel>
+
+                                                            <!-- text -->
+                                                            <StackPanel Grid.Row="1" Spacing="2">
+                                                                <TextBlock Text="{Binding DisplayNameNoExtension}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding AudioTimeText}" FontSize="12" Foreground="{DynamicResource ScryTextMuted}" TextWrapping="NoWrap" />
+                                                            </StackPanel>
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
