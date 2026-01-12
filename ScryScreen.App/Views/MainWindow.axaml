@@ -738,8 +738,8 @@
                                                             <i:Icon Grid.RowSpan="2"
                                                                     Value="mdi-music"
                                                                     FontSize="110"
-                                                                    Foreground="{DynamicResource ScryTextMuted}"
-                                                                    Opacity="0.18"
+                                                                    Foreground="{DynamicResource ScryAccent}"
+                                                                    Opacity="0.50"
                                                                     HorizontalAlignment="Center"
                                                                     VerticalAlignment="Center"
                                                                     IsHitTestVisible="False" />
