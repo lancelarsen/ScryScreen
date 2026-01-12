@@ -840,11 +840,10 @@ public partial class MainWindowViewModel : ViewModelBase
         _lightningTriggerNonce++;
         ApplyEffectsToAllPortals();
 
-        // If there is no active visible portal for this media, still play a one-shot so
-        // the user gets feedback while testing. Otherwise thunder will come from portal flash events.
-        if (Effects.LightningSoundEnabled && Portals.Any(p => p.IsVisible))
+        if (Effects.LightningSoundEnabled)
         {
-            _effectsAudio.PlayLightningThunder(Effects.LightningIntensity);
+            // UI button should sound like the Audio tab: single + loud.
+            _effectsAudio.PlayLightningThunderPreview(Math.Clamp(Effects.EffectsVolume, 0, 1));
         }
     }
 
@@ -866,7 +865,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (Effects.QuakeSoundEnabled)
         {
-            _effectsAudio.PlayQuakeHit(Effects.QuakeIntensity);
+            _effectsAudio.PlayQuakeHitPreview(Math.Clamp(Effects.EffectsVolume, 0, 1));
         }
     }
 

@@ -21,6 +21,12 @@ internal sealed class EffectsAudioService : IDisposable
 
     private DateTime _lastThunderUtc = DateTime.MinValue;
 
+    // Manual UI button clicks should sound like the Audio tab: single, immediate, and loud.
+    // When we play a manual preview, suppress the next event-bus thunder/quake briefly so
+    // the visual overlay trigger doesn't create a delayed "echo".
+    private DateTime _suppressThunderUntilUtc = DateTime.MinValue;
+    private DateTime _suppressQuakeUntilUtc = DateTime.MinValue;
+
     public readonly record struct PortalEffectsSnapshot(int PortalNumber, bool IsVisible, Models.OverlayEffectsState Effects);
 
     public EffectsAudioService()
@@ -85,15 +91,35 @@ internal sealed class EffectsAudioService : IDisposable
         PlayOneShot("thunder_clap", VolumeForOneShot(intensity, maxVolume: 0.95));
     }
 
+    public void PlayLightningThunderPreview(double effectsVolume01)
+    {
+        var v = (float)Clamp01(effectsVolume01);
+        // Mirror the Audio tab feel: full loudness (subject to EffectsVolume slider).
+        PlayOneShot("thunder_clap", v <= 0 ? 0 : v);
+        _suppressThunderUntilUtc = DateTime.UtcNow.AddMilliseconds(650);
+    }
+
     public void PlayQuakeHit(double intensity)
     {
         PlayOneShot("quake_hit", VolumeForOneShot(intensity, maxVolume: 0.90));
     }
 
+    public void PlayQuakeHitPreview(double effectsVolume01)
+    {
+        var v = (float)Clamp01(effectsVolume01);
+        PlayOneShot("quake_hit", v <= 0 ? 0 : v);
+        _suppressQuakeUntilUtc = DateTime.UtcNow.AddMilliseconds(650);
+    }
+
     private void OnLightningFlash(int portalNumber, double intensity)
     {
-        // Throttle a bit so multi-pulse strikes don't create a machine-gun of thunder.
         var now = DateTime.UtcNow;
+        if (now < _suppressThunderUntilUtc)
+        {
+            return;
+        }
+
+        // Throttle a bit so multi-pulse strikes don't create a machine-gun of thunder.
         if ((now - _lastThunderUtc).TotalMilliseconds < 180)
         {
             return;
@@ -115,6 +141,11 @@ internal sealed class EffectsAudioService : IDisposable
 
     private void OnQuakeStarted(int portalNumber, double intensity)
     {
+        if (DateTime.UtcNow < _suppressQuakeUntilUtc)
+        {
+            return;
+        }
+
         if (!_latestPortals.TryGetValue(portalNumber, out var snap))
         {
             return;

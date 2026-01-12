@@ -73,7 +73,8 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
         try
         {
-            _previewPlayer.Mute = false;
+            // The preview tile is a visual preview only; it should never emit audio.
+            _previewPlayer.Mute = true;
             if (_previewPlayer.Volume <= 0)
             {
                 _previewPlayer.Volume = 100;
@@ -480,7 +481,7 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
 
             try
             {
-                _previewPlayer.Mute = false;
+                _previewPlayer.Mute = true;
                 if (_previewPlayer.Volume <= 0)
                 {
                     _previewPlayer.Volume = 100;

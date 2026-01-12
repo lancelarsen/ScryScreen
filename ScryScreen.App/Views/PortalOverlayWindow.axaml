@@ -23,7 +23,7 @@
       QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
       QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
       QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}"
-      EmitAudioEvents="True"
+      EmitAudioEvents="{Binding IsShowingVideo}"
       AudioPortalNumber="{Binding PortalNumber}">
 
     <Grid IsHitTestVisible="False">
@@ -45,7 +45,7 @@
           LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
           LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
           LightningTrigger="{Binding OverlayEffects.LightningTrigger}"
-          EmitAudioEvents="True"
+          EmitAudioEvents="{Binding IsShowingVideo}"
           AudioPortalNumber="{Binding PortalNumber}"
           IsHitTestVisible="False" />
 
