@@ -43,7 +43,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool isQuakeTriggerCooldown;
 
-    private const double LightningEffectCooldownSeconds = 1.5;
+    private const double LightningEffectCooldownSeconds = 5.0;
     private System.Threading.CancellationTokenSource? _lightningCooldownCts;
 
     [ObservableProperty]
