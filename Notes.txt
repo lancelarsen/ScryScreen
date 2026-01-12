@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------
--- Running
+-- Run in Terminal
 ----------------------------------------------------------------------
 dotnet run --project .\ScryScreen.App\ScryScreen.App.csproj -c Debug
 

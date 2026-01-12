@@ -19,8 +19,16 @@ public sealed class HourglassVisual : Control
     private DateTime _lastRenderTickUtc;
     private readonly Random _rng = new(0x5C_52_59_01);
 
-    private readonly List<SandParticle> _particles = new();
-    private double _spawnAccumulator;
+    private const int GrainCount = 1000;
+    private readonly List<Grain> _grains = new(GrainCount);
+    private readonly Dictionary<long, List<int>> _grid = new();
+    private readonly SolidColorBrush[] _sandBrushRamp = new SolidColorBrush[18];
+
+    private double _lastFrac = 1.0;
+    private double _lastW;
+    private double _lastH;
+    private bool _needsReseed = true;
+    private double _releaseCarry;
 
     public double FractionRemaining
     {
@@ -49,7 +57,8 @@ public sealed class HourglassVisual : Control
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _renderTimer.Stop();
-        _particles.Clear();
+        _grains.Clear();
+        _grid.Clear();
         base.OnDetachedFromVisualTree(e);
     }
 
@@ -70,85 +79,619 @@ public sealed class HourglassVisual : Control
             dt = TimeSpan.FromMilliseconds(16);
         }
 
-        UpdateParticles(dt.TotalSeconds);
+        UpdatePhysics(dt.TotalSeconds);
         InvalidateVisual();
     }
 
-    private void UpdateParticles(double dtSeconds)
+    private void UpdatePhysics(double dtSeconds)
     {
-        // Only emit particles while sand is flowing.
+        var w = Bounds.Width;
+        var h = Bounds.Height;
+        if (w <= 4 || h <= 4)
+        {
+            return;
+        }
+
+        var frac = GetClampedFraction();
+        EnsureInitialized(w, h, frac);
+
+        // If the timer just ended, aggressively drain any remaining grains so the top ends empty.
+        if (!IsRunning && frac <= 0.0001 && _lastFrac > 0.01)
+        {
+            DrainTopIntoBottom(w, h);
+        }
+
+        if (!IsRunning)
+        {
+            _lastFrac = frac;
+            return;
+        }
+
+        var geom = GetGeometry(w, h);
+        ReleaseGrainsFromTop(dtSeconds, frac, geom);
+
+        // Verlet integration.
+        var gravity = 3000.0;
+        var damping = 0.012;
+        var dt2 = dtSeconds * dtSeconds;
+
+        for (var i = 0; i < _grains.Count; i++)
+        {
+            var g = _grains[i];
+
+            if (!g.Active)
+            {
+                continue;
+            }
+
+            var vx = (g.X - g.PrevX) * (1.0 - damping);
+            var vy = (g.Y - g.PrevY) * (1.0 - damping);
+
+            g.PrevX = g.X;
+            g.PrevY = g.Y;
+
+            // Very small jitter keeps the stream from looking perfectly uniform.
+            var jitter = (0.5 - _rng.NextDouble()) * 1.5;
+
+            g.X += vx + jitter;
+            g.Y += vy + gravity * dt2;
+
+            _grains[i] = g;
+        }
+
+        // Constraint iterations.
+        const int iterations = 4;
+        for (var it = 0; it < iterations; it++)
+        {
+            ConstrainToHourglass(geom);
+            SolveParticleCollisions();
+        }
+
+        _lastFrac = frac;
+    }
+
+    private double GetClampedFraction()
+    {
         var frac = FractionRemaining;
         if (double.IsNaN(frac) || double.IsInfinity(frac)) frac = 0;
         if (frac < 0) frac = 0;
         if (frac > 1) frac = 1;
+        return frac;
+    }
 
-        var shouldFlow = IsRunning && frac > 0 && frac < 1;
-        if (!shouldFlow)
+    private void EnsureInitialized(double w, double h, double frac)
+    {
+        var sizeChanged = Math.Abs(_lastW - w) > 0.5 || Math.Abs(_lastH - h) > 0.5;
+        var fracIncreased = frac > _lastFrac + 0.10;
+
+        if (_needsReseed || sizeChanged || (_grains.Count != GrainCount) || (!IsRunning && fracIncreased))
         {
-            _particles.Clear();
-            _spawnAccumulator = 0;
+            _lastW = w;
+            _lastH = h;
+            _needsReseed = false;
+            _releaseCarry = 0;
+            ReseedGrains(w, h, frac);
+        }
+    }
+
+    private void ReseedGrains(double w, double h, double frac)
+    {
+        _grains.Clear();
+        var geom = GetGeometry(w, h);
+
+        var topCount = (int)Math.Round(GrainCount * frac);
+        if (topCount < 0) topCount = 0;
+        if (topCount > GrainCount) topCount = GrainCount;
+
+        var r = geom.GrainR;
+
+        // Populate top as a packed pile (inactive until released).
+        FillPackedTop(geom, r, topCount);
+
+        // Populate bottom as a packed pile (already released/active).
+        FillPackedBottom(geom, r, GrainCount - topCount);
+
+        // Quick relaxation so it starts as a pile instead of a cloud.
+        for (var it = 0; it < 22; it++)
+        {
+            ConstrainToHourglass(geom);
+            SolveParticleCollisions();
+        }
+    }
+
+    private void DrainTopIntoBottom(HourglassGeom geom)
+    {
+        // Move any grains still in the top chamber down into the bottom chamber.
+        var r = geom.GrainR;
+        for (var i = 0; i < _grains.Count; i++)
+        {
+            var g = _grains[i];
+            if (!g.Active || g.Y < geom.NeckY0)
+            {
+                var p = RandomPointInBottom(geom, r);
+                g.X = p.X;
+                g.Y = p.Y;
+                g.PrevX = g.X;
+                g.PrevY = g.Y;
+                g.Active = true;
+                _grains[i] = g;
+            }
+        }
+
+        for (var it = 0; it < 18; it++)
+        {
+            ConstrainToHourglass(geom);
+            SolveParticleCollisions();
+        }
+    }
+
+    private void DrainTopIntoBottom(double w, double h)
+        => DrainTopIntoBottom(GetGeometry(w, h));
+
+    private void ReleaseGrainsFromTop(double dtSeconds, double frac, HourglassGeom geom)
+    {
+        // Release rate is derived from how fast FractionRemaining decreases.
+        // This automatically matches the user's chosen timer duration.
+        var deltaFrac = _lastFrac - frac;
+        if (deltaFrac <= 0)
+        {
             return;
         }
 
-        var w = Bounds.Width;
-        var h = Bounds.Height;
+        var desired = (deltaFrac * GrainCount) + _releaseCarry;
+        var toRelease = (int)Math.Floor(desired);
+        _releaseCarry = desired - toRelease;
 
-        // Spawn rate scales with control size.
-        var areaScale = Math.Clamp((w * h) / (420.0 * 640.0), 0.4, 2.5);
-        var spawnPerSecond = 220.0 * areaScale;
-        _spawnAccumulator += spawnPerSecond * dtSeconds;
-
-        var maxParticles = (int)(900 * areaScale);
-        while (_spawnAccumulator >= 1 && _particles.Count < maxParticles)
+        if (toRelease <= 0)
         {
-            _spawnAccumulator -= 1;
-            _particles.Add(SandParticle.Create(_rng, w, h, areaScale));
+            return;
         }
 
-        // Integrate.
-        var gravity = 1600.0 * areaScale;
-        for (var i = _particles.Count - 1; i >= 0; i--)
+        // Avoid huge bursts on lag spikes.
+        toRelease = Math.Min(toRelease, 12);
+        for (var i = 0; i < toRelease; i++)
         {
-            var p = _particles[i];
-            p.Vy += gravity * dtSeconds;
-            p.X += p.Vx * dtSeconds;
-            p.Y += p.Vy * dtSeconds;
-            p.Life -= dtSeconds;
-            _particles[i] = p;
-
-            if (p.Life <= 0)
+            if (!ReleaseOneGrain(geom, dtSeconds))
             {
-                _particles.RemoveAt(i);
+                break;
             }
         }
     }
 
-    private struct SandParticle
+    private bool ReleaseOneGrain(HourglassGeom geom, double dtSeconds)
+    {
+        // Find an inactive grain closest to the neck (largest Y) and release it.
+        var bestIndex = -1;
+        var bestY = double.NegativeInfinity;
+        for (var i = 0; i < _grains.Count; i++)
+        {
+            var g = _grains[i];
+            if (g.Active)
+            {
+                continue;
+            }
+
+            if (g.Y > bestY)
+            {
+                bestY = g.Y;
+                bestIndex = i;
+            }
+        }
+
+        if (bestIndex < 0)
+        {
+            return false;
+        }
+
+        var r = geom.GrainR;
+        var x = geom.Cx + (geom.Rng.NextDouble() - 0.5) * (geom.NeckHalfW * 0.65);
+        var y = geom.NeckY0 + r + (geom.Rng.NextDouble() * r * 0.8);
+
+        var grain = _grains[bestIndex];
+        grain.Active = true;
+        grain.X = x;
+        grain.Y = y;
+
+        // Give it a stable downward initial velocity.
+        var vy0 = 350.0;
+        var vx0 = (geom.Rng.NextDouble() - 0.5) * 30.0;
+        grain.PrevX = grain.X - (vx0 * dtSeconds);
+        grain.PrevY = grain.Y - (vy0 * dtSeconds);
+
+        _grains[bestIndex] = grain;
+        return true;
+    }
+
+    private static Point RandomPointInTop(HourglassGeom g, double r)
+    {
+        // Uniform-ish random within trapezoid bounds by sampling y then clamping x range.
+        var y = g.TopY0 + r + (g.ChamberH - (2 * r)) * g.Rng.NextDouble();
+        var t = (y - g.TopY0) / (g.TopY1 - g.TopY0);
+        if (t < 0) t = 0;
+        if (t > 1) t = 1;
+        var half = Lerp(g.TopHalfW - r, g.NeckHalfW - r, t);
+        var x = (g.Cx - half) + (2 * half) * g.Rng.NextDouble();
+        return new Point(x, y);
+    }
+
+    private static Point RandomPointInBottom(HourglassGeom g, double r)
+    {
+        // Start closer to the bottom so it looks like a pile.
+        var yBias = Math.Pow(g.Rng.NextDouble(), 0.35);
+        var y = g.BotY1 - r - (g.ChamberH - (2 * r)) * yBias;
+        var t = (y - g.BotY0) / (g.BotY1 - g.BotY0);
+        if (t < 0) t = 0;
+        if (t > 1) t = 1;
+        var half = Lerp(g.NeckHalfW - r, g.BotHalfW - r, t);
+        var x = (g.Cx - half) + (2 * half) * g.Rng.NextDouble();
+        return new Point(x, y);
+    }
+
+    private void ConstrainToHourglass(HourglassGeom geom)
+    {
+        var r = geom.GrainR;
+        var topMinY = geom.TopY0 + r;
+        var topMaxY = geom.NeckY0 - r;
+        var neckMinY = geom.NeckY0 + r;
+        var neckMaxY = geom.NeckY1 - r;
+        var botMinY = geom.BotY0 + r;
+        var botMaxY = geom.BotY1 - r;
+
+        for (var i = 0; i < _grains.Count; i++)
+        {
+            var p = _grains[i];
+
+            if (!p.Active)
+            {
+                // Inactive grains stay in the top chamber (a static pile).
+                // Clamp gently in case of resize.
+                if (p.Y < topMinY) p.Y = topMinY;
+                if (p.Y > topMaxY) p.Y = topMaxY;
+                var tt = (p.Y - geom.TopY0) / (geom.TopY1 - geom.TopY0);
+                if (tt < 0) tt = 0;
+                if (tt > 1) tt = 1;
+                var halfT = Lerp(geom.TopHalfW - r, geom.NeckHalfW - r, tt);
+                var minXT = geom.Cx - halfT;
+                var maxXT = geom.Cx + halfT;
+                if (p.X < minXT) p.X = minXT;
+                if (p.X > maxXT) p.X = maxXT;
+                p.PrevX = p.X;
+                p.PrevY = p.Y;
+                _grains[i] = p;
+                continue;
+            }
+
+            if (p.Y < geom.NeckY0)
+            {
+                // Top trapezoid.
+                if (p.Y < topMinY) { p.Y = topMinY; p.PrevY = p.Y; }
+                if (p.Y > topMaxY) { p.Y = topMaxY; }
+                var t = (p.Y - geom.TopY0) / (geom.TopY1 - geom.TopY0);
+                if (t < 0) t = 0;
+                if (t > 1) t = 1;
+                var half = Lerp(geom.TopHalfW - r, geom.NeckHalfW - r, t);
+                var minX = geom.Cx - half;
+                var maxX = geom.Cx + half;
+                if (p.X < minX) { p.X = minX; p.PrevX = p.X; }
+                if (p.X > maxX) { p.X = maxX; p.PrevX = p.X; }
+            }
+            else if (p.Y < geom.NeckY1)
+            {
+                // Neck rectangle.
+                if (p.Y < neckMinY) { p.Y = neckMinY; p.PrevY = p.Y; }
+                if (p.Y > neckMaxY) { p.Y = neckMaxY; }
+                var half = geom.NeckHalfW - r;
+                var minX = geom.Cx - half;
+                var maxX = geom.Cx + half;
+                if (p.X < minX) { p.X = minX; p.PrevX = p.X; }
+                if (p.X > maxX) { p.X = maxX; p.PrevX = p.X; }
+            }
+            else
+            {
+                // Bottom trapezoid.
+                if (p.Y < botMinY) { p.Y = botMinY; p.PrevY = p.Y; }
+                if (p.Y > botMaxY) { p.Y = botMaxY; p.PrevY = p.Y; }
+                var t = (p.Y - geom.BotY0) / (geom.BotY1 - geom.BotY0);
+                if (t < 0) t = 0;
+                if (t > 1) t = 1;
+                var half = Lerp(geom.NeckHalfW - r, geom.BotHalfW - r, t);
+                var minX = geom.Cx - half;
+                var maxX = geom.Cx + half;
+                if (p.X < minX) { p.X = minX; p.PrevX = p.X; }
+                if (p.X > maxX) { p.X = maxX; p.PrevX = p.X; }
+            }
+
+            _grains[i] = p;
+        }
+    }
+
+    private void SolveParticleCollisions()
+    {
+        if (_grains.Count <= 1)
+        {
+            return;
+        }
+
+        // Reuse lists to avoid per-frame allocations.
+        foreach (var list in _grid.Values)
+        {
+            list.Clear();
+        }
+
+        if (_grid.Count > 2500)
+        {
+            _grid.Clear();
+        }
+
+        var r = _grains[0].R;
+        var cellSize = Math.Max(4.0, r * 2.6);
+
+        for (var i = 0; i < _grains.Count; i++)
+        {
+            var p = _grains[i];
+            if (!p.Active)
+            {
+                continue;
+            }
+            var cx = (int)Math.Floor(p.X / cellSize);
+            var cy = (int)Math.Floor(p.Y / cellSize);
+            var key = Pack(cx, cy);
+
+            if (!_grid.TryGetValue(key, out var list))
+            {
+                list = new List<int>(16);
+                _grid[key] = list;
+            }
+
+            list.Add(i);
+        }
+
+        for (var i = 0; i < _grains.Count; i++)
+        {
+            var a = _grains[i];
+            if (!a.Active)
+            {
+                continue;
+            }
+            var cx = (int)Math.Floor(a.X / cellSize);
+            var cy = (int)Math.Floor(a.Y / cellSize);
+
+            for (var oy = -1; oy <= 1; oy++)
+            {
+                for (var ox = -1; ox <= 1; ox++)
+                {
+                    var key = Pack(cx + ox, cy + oy);
+                    if (!_grid.TryGetValue(key, out var list))
+                    {
+                        continue;
+                    }
+
+                    for (var li = 0; li < list.Count; li++)
+                    {
+                        var j = list[li];
+                        if (j <= i)
+                        {
+                            continue;
+                        }
+
+                        var b = _grains[j];
+                        if (!b.Active)
+                        {
+                            continue;
+                        }
+                        var dx = b.X - a.X;
+                        var dy = b.Y - a.Y;
+                        var minDist = a.R + b.R;
+                        var dist2 = (dx * dx) + (dy * dy);
+                        if (dist2 <= 0.0001 || dist2 >= (minDist * minDist))
+                        {
+                            continue;
+                        }
+
+                        var dist = Math.Sqrt(dist2);
+                        var overlap = minDist - dist;
+                        var nx = dx / dist;
+                        var ny = dy / dist;
+
+                        // Push equally apart.
+                        var push = overlap * 0.5;
+                        a.X -= nx * push;
+                        a.Y -= ny * push;
+                        b.X += nx * push;
+                        b.Y += ny * push;
+
+                        _grains[i] = a;
+                        _grains[j] = b;
+                    }
+                }
+            }
+        }
+    }
+
+    private static long Pack(int x, int y)
+        => ((long)x << 32) ^ (uint)y;
+
+    private static double Lerp(double a, double b, double t)
+        => a + ((b - a) * t);
+
+    private SolidColorBrush GetSandBrush(double t)
+    {
+        if (t < 0) t = 0;
+        if (t > 1) t = 1;
+
+        var idx = (int)Math.Round(t * (_sandBrushRamp.Length - 1));
+        if (idx < 0) idx = 0;
+        if (idx >= _sandBrushRamp.Length) idx = _sandBrushRamp.Length - 1;
+
+        var brush = _sandBrushRamp[idx];
+        if (brush is not null)
+        {
+            return brush;
+        }
+
+        // Slightly brighter toward the top; darker toward the bottom.
+        var inv = 1.0 - (idx / (double)(_sandBrushRamp.Length - 1));
+        var rCol = (byte)Math.Clamp(232 + (12 * inv), 0, 255);
+        var gCol = (byte)Math.Clamp(160 + (48 * inv), 0, 255);
+        var bCol = (byte)Math.Clamp(72 + (58 * inv), 0, 255);
+        var aCol = (byte)210;
+
+        brush = new SolidColorBrush(Color.FromArgb(aCol, rCol, gCol, bCol));
+        _sandBrushRamp[idx] = brush;
+        return brush;
+    }
+
+    private readonly struct HourglassGeom
+    {
+        public readonly double W;
+        public readonly double H;
+        public readonly double Cx;
+        public readonly double M;
+        public readonly double NeckH;
+        public readonly double ChamberH;
+        public readonly double TopY0;
+        public readonly double TopY1;
+        public readonly double NeckY0;
+        public readonly double NeckY1;
+        public readonly double BotY0;
+        public readonly double BotY1;
+        public readonly double TopHalfW;
+        public readonly double NeckHalfW;
+        public readonly double BotHalfW;
+        public readonly double GrainR;
+        public readonly Random Rng;
+
+        public HourglassGeom(double w, double h, Random rng)
+        {
+            W = w;
+            H = h;
+            Rng = rng;
+
+            Cx = w / 2.0;
+            M = Math.Max(6, Math.Min(w, h) * 0.06);
+            NeckH = Math.Max(10, h * 0.10);
+            ChamberH = (h - NeckH - (M * 2)) / 2.0;
+            if (ChamberH <= 2)
+            {
+                ChamberH = Math.Max(2, (h - (M * 2)) / 2.0);
+            }
+
+            TopY0 = M;
+            TopY1 = TopY0 + ChamberH;
+            NeckY0 = TopY1;
+            NeckY1 = NeckY0 + NeckH;
+            BotY0 = NeckY1;
+            BotY1 = BotY0 + ChamberH;
+
+            var topW = w - (M * 2);
+            var neckW = Math.Max(10, w * 0.10);
+            TopHalfW = topW / 2.0;
+            NeckHalfW = neckW / 2.0;
+            BotHalfW = TopHalfW;
+
+            GrainR = Math.Clamp(Math.Min(w, h) * 0.0065, 1.4, 4.2);
+        }
+    }
+
+    private HourglassGeom GetGeometry(double w, double h)
+        => new(w, h, _rng);
+
+    private struct Grain
     {
         public double X;
         public double Y;
-        public double Vx;
-        public double Vy;
-        public double Life;
-        public double Size;
+        public double PrevX;
+        public double PrevY;
+        public double R;
+        public bool Active;
 
-        public static SandParticle Create(Random rng, double w, double h, double areaScale)
+        public Grain(double x, double y, double r)
         {
-            // Spawn in pixel coordinates near the neck.
-            var x = (w * 0.5) + (rng.NextDouble() - 0.5) * (w * 0.04);
-            var y = (h * 0.50) + (rng.NextDouble() - 0.5) * (h * 0.01);
-            var vx = (rng.NextDouble() - 0.5) * 90 * areaScale;
-            var vy = rng.NextDouble() * 60 * areaScale;
+            X = x;
+            Y = y;
+            PrevX = x;
+            PrevY = y;
+            R = r;
+            Active = true;
+        }
+    }
 
-            return new SandParticle
+    private void FillPackedTop(HourglassGeom geom, double r, int count)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        // Pack starting near the neck (bottom of top chamber) and build upward.
+        var spacingX = r * 2.05;
+        var spacingY = r * 1.95;
+        var y = geom.TopY1 - r;
+
+        while (_grains.Count < count && y > geom.TopY0 + r)
+        {
+            var t = (y - geom.TopY0) / (geom.TopY1 - geom.TopY0);
+            if (t < 0) t = 0;
+            if (t > 1) t = 1;
+            var half = Lerp(geom.TopHalfW - r, geom.NeckHalfW - r, t);
+
+            for (var x = geom.Cx - half; x <= geom.Cx + half && _grains.Count < count; x += spacingX)
             {
-                X = x,
-                Y = y,
-                Vx = vx,
-                Vy = vy,
-                Life = 0.45 + rng.NextDouble() * 0.25,
-                Size = 0.8 + rng.NextDouble() * 1.4,
-            };
+                var gx = x + (geom.Rng.NextDouble() - 0.5) * r * 0.35;
+                var gy = y + (geom.Rng.NextDouble() - 0.5) * r * 0.25;
+                var g = new Grain(gx, gy, r) { Active = false };
+                _grains.Add(g);
+            }
+
+            y -= spacingY;
+        }
+
+        // If we couldn't pack enough (very small sizes), fill the rest randomly.
+        while (_grains.Count < count)
+        {
+            var p = RandomPointInTop(geom, r);
+            var g = new Grain(p.X, p.Y, r) { Active = false };
+            _grains.Add(g);
+        }
+    }
+
+    private void FillPackedBottom(HourglassGeom geom, double r, int count)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        var spacingX = r * 2.05;
+        var spacingY = r * 1.95;
+        var filled = 0;
+        var y = geom.BotY1 - r;
+
+        while (filled < count && y > geom.BotY0 + r)
+        {
+            var t = (y - geom.BotY0) / (geom.BotY1 - geom.BotY0);
+            if (t < 0) t = 0;
+            if (t > 1) t = 1;
+            var half = Lerp(geom.NeckHalfW - r, geom.BotHalfW - r, t);
+
+            for (var x = geom.Cx - half; x <= geom.Cx + half && filled < count; x += spacingX)
+            {
+                var gx = x + (geom.Rng.NextDouble() - 0.5) * r * 0.35;
+                var gy = y + (geom.Rng.NextDouble() - 0.5) * r * 0.25;
+                var g = new Grain(gx, gy, r) { Active = true };
+                _grains.Add(g);
+                filled++;
+            }
+
+            y -= spacingY;
+        }
+
+        while (filled < count)
+        {
+            var p = RandomPointInBottom(geom, r);
+            var g = new Grain(p.X, p.Y, r) { Active = true };
+            _grains.Add(g);
+            filled++;
         }
     }
 
@@ -163,10 +706,7 @@ public sealed class HourglassVisual : Control
             return;
         }
 
-        var frac = FractionRemaining;
-        if (double.IsNaN(frac) || double.IsInfinity(frac)) frac = 0;
-        if (frac < 0) frac = 0;
-        if (frac > 1) frac = 1;
+        var frac = GetClampedFraction();
 
         // Layout.
         var cx = w / 2.0;
@@ -235,132 +775,18 @@ public sealed class HourglassVisual : Control
         };
         context.DrawGeometry(glass, null, outline);
 
-        // Sand brush.
-        var sandBrush = new LinearGradientBrush
+        // Sand grains.
+        // Ensure grain state exists even if Render happens before the first physics tick.
+        EnsureInitialized(w, h, frac);
+        using (context.PushGeometryClip(outline))
         {
-            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-            GradientStops = new GradientStops
+            for (var i = 0; i < _grains.Count; i++)
             {
-                new GradientStop(Color.FromArgb(230, 244, 210, 120), 0),
-                new GradientStop(Color.FromArgb(230, 232, 160, 72), 1),
-            }
-        };
-
-        // Top chamber clip (curved trapezoid).
-        var topClip = new StreamGeometry();
-        using (var g = topClip.Open())
-        {
-            var tl = new Point(cx - topW / 2 + m * 0.20, topY0 + m * 0.15);
-            var tr = new Point(cx + topW / 2 - m * 0.20, topY0 + m * 0.15);
-            var br = new Point(cx + neckW / 2, topY1);
-            var bl = new Point(cx - neckW / 2, topY1);
-
-            g.BeginFigure(tl, isFilled: true);
-            g.LineTo(tr);
-            g.CubicBezierTo(new Point(tr.X, tr.Y + curve * 0.35), new Point(br.X + curve * 0.15, br.Y - curve * 0.35), br);
-            g.LineTo(bl);
-            g.CubicBezierTo(new Point(bl.X - curve * 0.15, bl.Y - curve * 0.35), new Point(tl.X, tl.Y + curve * 0.35), tl);
-            g.EndFigure(isClosed: true);
-        }
-
-        // Bottom chamber clip (curved trapezoid).
-        var botClip = new StreamGeometry();
-        using (var g = botClip.Open())
-        {
-            var tl = new Point(cx - neckW / 2, botY0);
-            var tr = new Point(cx + neckW / 2, botY0);
-            var br = new Point(cx + botW / 2 - m * 0.20, botY1 - m * 0.15);
-            var bl = new Point(cx - botW / 2 + m * 0.20, botY1 - m * 0.15);
-
-            g.BeginFigure(tl, isFilled: true);
-            g.LineTo(tr);
-            g.CubicBezierTo(new Point(tr.X + curve * 0.15, tr.Y + curve * 0.35), new Point(br.X, br.Y - curve * 0.35), br);
-            g.LineTo(bl);
-            g.CubicBezierTo(new Point(bl.X, bl.Y - curve * 0.35), new Point(tl.X - curve * 0.15, tl.Y + curve * 0.35), tl);
-            g.EndFigure(isClosed: true);
-        }
-
-        // Top sand: remaining (flat-ish with slight curve).
-        var topFillHeight = chamberH * frac;
-        using (context.PushGeometryClip(topClip))
-        {
-            var y = topY1 - topFillHeight;
-            var mound = new StreamGeometry();
-            using (var g = mound.Open())
-            {
-                var left = new Point(m, topY1);
-                var right = new Point(w - m, topY1);
-                var topLeft = new Point(m, y);
-                var topRight = new Point(w - m, y);
-                var bulge = Math.Min(18, topFillHeight * 0.35);
-
-                g.BeginFigure(left, isFilled: true);
-                g.LineTo(right);
-                g.LineTo(topRight);
-                g.CubicBezierTo(new Point(cx + topW * 0.10, y + bulge), new Point(cx - topW * 0.10, y + bulge), topLeft);
-                g.EndFigure(isClosed: true);
-            }
-            context.DrawGeometry(sandBrush, null, mound);
-        }
-
-        // Bottom sand: accumulated (mounded). Leave a tiny "dead space" for realism when emptying completes.
-        const double bottomDeadSpaceFrac = 0.05;
-        var botFillFrac = 1 - frac;
-        var botMaxFillFrac = 1 - bottomDeadSpaceFrac;
-        if (botFillFrac > botMaxFillFrac) botFillFrac = botMaxFillFrac;
-        var botFillHeight = chamberH * botFillFrac;
-        using (context.PushGeometryClip(botClip))
-        {
-            var y = botY1 - botFillHeight;
-            var mound = new StreamGeometry();
-            using (var g = mound.Open())
-            {
-                var left = new Point(m, botY1);
-                var right = new Point(w - m, botY1);
-                var topLeft = new Point(m, y);
-                var topRight = new Point(w - m, y);
-                var bulge = Math.Min(28, botFillHeight * 0.55);
-
-                g.BeginFigure(left, isFilled: true);
-                g.LineTo(right);
-                g.LineTo(topRight);
-                g.CubicBezierTo(new Point(cx + botW * 0.14, y + bulge), new Point(cx - botW * 0.14, y + bulge), topLeft);
-                g.EndFigure(isClosed: true);
-            }
-            context.DrawGeometry(sandBrush, null, mound);
-        }
-
-        // Falling sand: tapered stream + particles.
-        var shouldFlow = IsRunning && frac > 0 && frac < 1;
-        if (shouldFlow)
-        {
-            var stream = new StreamGeometry();
-            using (var g = stream.Open())
-            {
-                var x0 = cx;
-                var y0 = neckY0 + 2;
-                var y1 = neckY1 - 2;
-                var half = Math.Max(1.2, w * 0.010);
-                g.BeginFigure(new Point(x0 - half, y0), isFilled: true);
-                g.LineTo(new Point(x0 + half, y0));
-                g.LineTo(new Point(x0 + half * 0.55, y1));
-                g.LineTo(new Point(x0 - half * 0.55, y1));
-                g.EndFigure(isClosed: true);
-            }
-
-            var streamBrush = new SolidColorBrush(Color.FromArgb(170, 232, 160, 72));
-            context.DrawGeometry(streamBrush, null, stream);
-
-            // Particles in normalized coords: map into the neck/bottom region.
-            var particleBrush = new SolidColorBrush(Color.FromArgb(210, 244, 210, 120));
-            foreach (var p in _particles)
-            {
-                var px = p.X;
-                var py = p.Y;
-                // Constrain to the hourglass area visually.
-                if (py < neckY0 - 8 || py > botY1 + 10) continue;
-                context.DrawEllipse(particleBrush, null, new Point(px, py), p.Size, p.Size);
+                var p = _grains[i];
+                // Color varies slightly by height to feel more organic.
+                var t = Math.Clamp((p.Y - topY0) / (botY1 - topY0), 0, 1);
+                var brush = GetSandBrush(t);
+                context.DrawEllipse(brush, null, new Point(p.X, p.Y), p.R, p.R);
             }
         }
 
