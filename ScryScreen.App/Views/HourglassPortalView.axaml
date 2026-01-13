@@ -13,17 +13,25 @@
     <Viewbox Stretch="Uniform"
              HorizontalAlignment="Center"
              VerticalAlignment="Center"
-             Margin="48"
-             Opacity="{Binding OverlayOpacity}">
+             Margin="48">
       <!-- Design-time size; Viewbox scales this to the portal window -->
-      <controls:HourglassSandVisual Width="420" Height="640"
-                                FractionRemaining="{Binding FractionRemaining}"
-                                IsRunning="{Binding IsRunning}"
-                                ParticleCount="{Binding ParticleCount}"
-                                Gravity="{Binding Gravity}"
-                                Density="{Binding Density}"
-                                ParticleSize="{Binding ParticleSize}"
-                                MaxReleasePerFrame="{Binding MaxReleasePerFrame}" />
+      <Grid Width="420" Height="640">
+        <!-- Background-only layer: opacity does NOT affect hourglass/sand. -->
+        <controls:HourglassBackdropVisual Opacity="{Binding OverlayOpacity}"
+                                          RenderTransformOrigin="0.5,0.5">
+          <controls:HourglassBackdropVisual.RenderTransform>
+            <ScaleTransform ScaleX="1.08" ScaleY="1.08" />
+          </controls:HourglassBackdropVisual.RenderTransform>
+        </controls:HourglassBackdropVisual>
+
+        <controls:HourglassSandVisual FractionRemaining="{Binding FractionRemaining}"
+                                      IsRunning="{Binding IsRunning}"
+                                      ParticleCount="{Binding ParticleCount}"
+                                      Gravity="{Binding Gravity}"
+                                      Density="{Binding Density}"
+                                      ParticleSize="{Binding ParticleSize}"
+                                      MaxReleasePerFrame="{Binding MaxReleasePerFrame}" />
+      </Grid>
     </Viewbox>
   </Grid>
 </UserControl>

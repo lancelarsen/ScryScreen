@@ -4,10 +4,10 @@ using Avalonia.Input;
 
 namespace ScryScreen.App.Behaviors;
 
-public static class SelectAllOnFocusBehavior
+public sealed class SelectAllOnFocusBehavior
 {
     public static readonly AttachedProperty<bool> IsEnabledProperty =
-        AvaloniaProperty.RegisterAttached<TextBox, Control, bool>("IsEnabled");
+        AvaloniaProperty.RegisterAttached<SelectAllOnFocusBehavior, TextBox, bool>("IsEnabled");
 
     static SelectAllOnFocusBehavior()
     {
@@ -42,10 +42,7 @@ public static class SelectAllOnFocusBehavior
             return;
         }
 
-        if (!string.IsNullOrEmpty(textBox.Text))
-        {
-            textBox.SelectAll();
-        }
+        SelectAllSoon(textBox);
     }
 
     private static void OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -58,7 +55,20 @@ public static class SelectAllOnFocusBehavior
         if (!textBox.IsFocused)
         {
             textBox.Focus();
+            SelectAllSoon(textBox);
             e.Handled = true;
         }
+    }
+
+    private static void SelectAllSoon(TextBox textBox)
+    {
+        if (string.IsNullOrEmpty(textBox.Text))
+        {
+            return;
+        }
+
+        // Schedule after input processing so the pointer event doesn't immediately
+        // collapse selection by placing the caret at the click position.
+        Avalonia.Threading.Dispatcher.UIThread.Post(textBox.SelectAll, Avalonia.Threading.DispatcherPriority.Input);
     }
 }

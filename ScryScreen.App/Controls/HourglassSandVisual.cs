@@ -164,6 +164,72 @@ public sealed class HourglassSandVisual : Control
     private static int Clamp(int v, int min, int max)
         => v < min ? min : (v > max ? max : v);
 
+    private static StreamGeometry CreateHourglassOutline(
+        double w,
+        double h,
+        double cell,
+        out double m,
+        out double neckH,
+        out double chamberH,
+        out double topW,
+        out double neckW,
+        out double topY0,
+        out double topY1,
+        out double neckY0,
+        out double neckY1,
+        out double botY0,
+        out double botY1)
+    {
+        var cx = w / 2.0;
+        m = Math.Max(6, Math.Min(w, h) * 0.06);
+        neckH = Math.Max(cell * 2.0, h * 0.10);
+        chamberH = (h - neckH - (m * 2)) / 2.0;
+        if (chamberH <= cell * 2.0)
+        {
+            chamberH = Math.Max(cell * 2.0, (h - (m * 2)) / 2.0);
+        }
+
+        topY0 = m;
+        topY1 = topY0 + chamberH;
+        neckY0 = topY1;
+        neckY1 = neckY0 + neckH;
+        botY0 = neckY1;
+        botY1 = botY0 + chamberH;
+
+        topW = w - (m * 2);
+        var botW = topW;
+        neckW = Math.Max(cell * 1.45, w * 0.035);
+        var curve = Math.Min(topW, chamberH) * 0.22;
+
+        var outline = new StreamGeometry();
+        using (var g = outline.Open())
+        {
+            var p0 = new Point(cx - topW / 2, topY0);
+            var p1 = new Point(cx + topW / 2, topY0);
+            var p2 = new Point(cx + neckW / 2, topY1);
+            var p3 = new Point(cx + neckW / 2, botY0);
+            var p4 = new Point(cx + botW / 2, botY1);
+            var p5 = new Point(cx - botW / 2, botY1);
+            var p6 = new Point(cx - neckW / 2, botY0);
+            var p7 = new Point(cx - neckW / 2, topY1);
+
+            g.BeginFigure(p0, isFilled: true);
+            g.LineTo(p1);
+            g.CubicBezierTo(new Point(cx + topW / 2, topY0 + curve), new Point(cx + neckW / 2 + curve * 0.35, topY1 - curve), p2);
+            g.LineTo(new Point(cx + neckW / 2, neckY0));
+            g.LineTo(p3);
+            g.CubicBezierTo(new Point(cx + neckW / 2 + curve * 0.35, botY0 + curve), new Point(cx + botW / 2, botY1 - curve), p4);
+            g.LineTo(p5);
+            g.CubicBezierTo(new Point(cx - botW / 2, botY1 - curve), new Point(cx - neckW / 2 - curve * 0.35, botY0 + curve), p6);
+            g.LineTo(new Point(cx - neckW / 2, neckY0));
+            g.LineTo(p7);
+            g.CubicBezierTo(new Point(cx - neckW / 2 - curve * 0.35, topY1 - curve), new Point(cx - topW / 2, topY0 + curve), p0);
+            g.EndFigure(isClosed: true);
+        }
+
+        return outline;
+    }
+
     private double GetClampedFraction()
     {
         var frac = FractionRemaining;
@@ -184,7 +250,7 @@ public sealed class HourglassSandVisual : Control
 
         // If the timer is rewound (Reset), start the sand over.
         var fracNow = GetClampedFraction();
-        if (!_needsReseed && fracNow > _lastFrac + 0.20)
+        if (!_needsReseed && (fracNow >= _lastFrac + 0.20 || (fracNow >= 0.999 && _lastFrac < 0.999)))
         {
             _needsReseed = true;
         }
@@ -201,10 +267,9 @@ public sealed class HourglassSandVisual : Control
 
         EnsureGrid();
 
-        if (IsRunning)
-        {
-            UpdateFlowAndSim(dt.TotalSeconds);
-        }
+        // Always keep the sand simulation progressing (especially after reaching 0) so
+        // grains in the neck and bottom can finish settling. Flow is governed by FractionRemaining.
+        UpdateFlowAndSim(dt.TotalSeconds);
 
         InvalidateVisual();
     }
@@ -255,26 +320,22 @@ public sealed class HourglassSandVisual : Control
         _rowMin = new int[_gridH];
         _rowMax = new int[_gridH];
 
-        // Pixel geometry similar to the existing hourglass, but with a neck sized to one cell.
+        var outline = CreateHourglassOutline(
+            w,
+            h,
+            cell,
+            out _,
+            out _,
+            out _,
+            out _,
+            out _,
+            out var topY0,
+            out var topY1,
+            out var neckY0,
+            out var neckY1,
+            out var botY0,
+            out var botY1);
         var cxPx = w / 2.0;
-        var m = Math.Max(6.0, Math.Min(w, h) * 0.06);
-        var neckHPx = Math.Max(cell * 2.0, h * 0.10);
-        var chamberHPx = (h - neckHPx - (m * 2.0)) / 2.0;
-        if (chamberHPx <= cell * 2.0)
-        {
-            chamberHPx = Math.Max(cell * 2.0, (h - (m * 2.0)) / 2.0);
-        }
-
-        var topY0 = m;
-        var topY1 = topY0 + chamberHPx;
-        var neckY0 = topY1;
-        var neckY1 = neckY0 + neckHPx;
-        var botY0 = neckY1;
-        var botY1 = botY0 + chamberHPx;
-
-        // Slot is one cell wide, with a little visual clearance.
-        var topHalfW = (w - (m * 2.0)) / 2.0;
-        var neckHalfW = cell * 0.62;
 
         // Cache important rows.
         _topStartRow = Math.Clamp((int)Math.Floor(topY0 / cell), 0, _gridH - 1);
@@ -303,30 +364,39 @@ public sealed class HourglassSandVisual : Control
                 continue;
             }
 
-            if (yPx < neckY0)
+            // Use the actual curved outline to decide which cells are "inside".
+            // We sample multiple points per cell so edge cells are included and then
+            // clipped cleanly by the outline during rendering.
+            var inset = cell * 0.45;
+            var minX = int.MaxValue;
+            var maxX = int.MinValue;
+
+            for (var x = 0; x < _gridW; x++)
             {
-                // Top chamber trapezoid.
-                var t = (yPx - topY0) / Math.Max(1.0, topY1 - topY0);
-                t = Clamp(t, 0, 1);
-                var half = topHalfW + ((neckHalfW - topHalfW) * t);
-                var minX = (int)Math.Floor((cxPx - half) / cell);
-                var maxX = (int)Math.Ceiling((cxPx + half) / cell) - 1;
-                minX = Math.Clamp(minX, 0, _gridW - 1);
-                maxX = Math.Clamp(maxX, 0, _gridW - 1);
-                _rowMin[y] = minX;
-                _rowMax[y] = maxX;
-                continue;
+                var xPx = (x + 0.5) * cell;
+                var p0 = new Point(xPx, yPx);
+                var inside = outline.FillContains(p0)
+                             || outline.FillContains(new Point(xPx - inset, yPx))
+                             || outline.FillContains(new Point(xPx + inset, yPx))
+                             || outline.FillContains(new Point(xPx, yPx - inset))
+                             || outline.FillContains(new Point(xPx, yPx + inset));
+
+                if (!inside)
+                {
+                    continue;
+                }
+
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
             }
 
-            // Bottom chamber trapezoid.
+            if (minX == int.MaxValue)
             {
-                var t = (yPx - botY0) / Math.Max(1.0, botY1 - botY0);
-                t = Clamp(t, 0, 1);
-                var half = neckHalfW + ((topHalfW - neckHalfW) * t);
-                var minX = (int)Math.Floor((cxPx - half) / cell);
-                var maxX = (int)Math.Ceiling((cxPx + half) / cell) - 1;
-                minX = Math.Clamp(minX, 0, _gridW - 1);
-                maxX = Math.Clamp(maxX, 0, _gridW - 1);
+                _rowMin[y] = 1;
+                _rowMax[y] = 0;
+            }
+            else
+            {
                 _rowMin[y] = minX;
                 _rowMax[y] = maxX;
             }
@@ -693,53 +763,24 @@ public sealed class HourglassSandVisual : Control
 
         var cell = Clamp(ParticleSize, 2.0, 14.0);
 
-        // Draw glass outline (fantasy frame) with a neck that visually has slight clearance.
+        // Draw glass outline (fantasy frame).
+        var outline = CreateHourglassOutline(
+            w,
+            h,
+            cell,
+            out var m,
+            out var neckH,
+            out var chamberH,
+            out var topW,
+            out var neckW,
+            out var topY0,
+            out _,
+            out var neckY0,
+            out _,
+            out _,
+            out _);
+
         var cx = w / 2.0;
-        var m = Math.Max(6, Math.Min(w, h) * 0.06);
-        var neckH = Math.Max(cell * 2.0, h * 0.10);
-        var chamberH = (h - neckH - (m * 2)) / 2.0;
-        if (chamberH <= cell * 2.0)
-        {
-            chamberH = Math.Max(cell * 2.0, (h - (m * 2)) / 2.0);
-        }
-
-        var topY0 = m;
-        var topY1 = topY0 + chamberH;
-        var neckY0 = topY1;
-        var neckY1 = neckY0 + neckH;
-        var botY0 = neckY1;
-        var botY1 = botY0 + chamberH;
-
-        var topW = w - (m * 2);
-        var botW = topW;
-        var neckW = Math.Max(cell * 1.45, w * 0.035);
-        var curve = Math.Min(topW, chamberH) * 0.22;
-
-        var outline = new StreamGeometry();
-        using (var g = outline.Open())
-        {
-            var p0 = new Point(cx - topW / 2, topY0);
-            var p1 = new Point(cx + topW / 2, topY0);
-            var p2 = new Point(cx + neckW / 2, topY1);
-            var p3 = new Point(cx + neckW / 2, botY0);
-            var p4 = new Point(cx + botW / 2, botY1);
-            var p5 = new Point(cx - botW / 2, botY1);
-            var p6 = new Point(cx - neckW / 2, botY0);
-            var p7 = new Point(cx - neckW / 2, topY1);
-
-            g.BeginFigure(p0, isFilled: true);
-            g.LineTo(p1);
-            g.CubicBezierTo(new Point(cx + topW / 2, topY0 + curve), new Point(cx + neckW / 2 + curve * 0.35, topY1 - curve), p2);
-            g.LineTo(new Point(cx + neckW / 2, neckY0));
-            g.LineTo(p3);
-            g.CubicBezierTo(new Point(cx + neckW / 2 + curve * 0.35, botY0 + curve), new Point(cx + botW / 2, botY1 - curve), p4);
-            g.LineTo(p5);
-            g.CubicBezierTo(new Point(cx - botW / 2, botY1 - curve), new Point(cx - neckW / 2 - curve * 0.35, botY0 + curve), p6);
-            g.LineTo(new Point(cx - neckW / 2, neckY0));
-            g.LineTo(p7);
-            g.CubicBezierTo(new Point(cx - neckW / 2 - curve * 0.35, topY1 - curve), new Point(cx - topW / 2, topY0 + curve), p0);
-            g.EndFigure(isClosed: true);
-        }
 
         var frameStroke = new Pen(new SolidColorBrush(Color.FromArgb(210, 232, 217, 182)), thickness: Math.Max(2, Math.Min(w, h) * 0.018));
         context.DrawGeometry(null, frameStroke, outline);
@@ -749,7 +790,9 @@ public sealed class HourglassSandVisual : Control
         EnsureGrid();
         if (_occ is not null && _grainColor is not null)
         {
-            var drawSize = Math.Max(1.0, cell * 0.92);
+            // Slightly oversize grains so they read as "touching" at typical DPI and AA settings.
+            // The outline clip prevents any spill outside the glass.
+            var drawSize = Math.Max(1.0, cell * 1.02);
             using (context.PushGeometryClip(outline))
             {
                 for (var y = 0; y < _gridH; y++)
@@ -771,9 +814,6 @@ public sealed class HourglassSandVisual : Control
             }
         }
 
-        // Highlights
-        var highlight = new Pen(new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)), thickness: Math.Max(1, Math.Min(w, h) * 0.01));
-        context.DrawLine(highlight, new Point(cx - topW * 0.24, topY0 + chamberH * 0.08), new Point(cx - neckW * 0.55, neckY0 + neckH * 0.15));
-        context.DrawLine(highlight, new Point(cx + topW * 0.26, topY0 + chamberH * 0.12), new Point(cx + neckW * 0.62, neckY0 + neckH * 0.25));
+        // (Intentionally no interior highlight lines; keep the glass clean.)
     }
 }

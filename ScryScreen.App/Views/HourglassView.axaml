@@ -47,10 +47,12 @@
         <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
           <TextBox Text="{Binding DurationMinutesText, Mode=TwoWay}"
                    beh:NumericTextBoxBehavior.IsNumericOnly="True"
+                   beh:SelectAllOnFocusBehavior.IsEnabled="True"
                    Watermark="min" />
           <TextBlock Text=":" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
           <TextBox Text="{Binding DurationSecondsText, Mode=TwoWay}"
                    beh:NumericTextBoxBehavior.IsNumericOnly="True"
+                   beh:SelectAllOnFocusBehavior.IsEnabled="True"
                    Watermark="sec" />
         </StackPanel>
 
@@ -106,13 +108,6 @@
     </Grid>
 
     <Border Grid.Row="2" Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="10">
-      <StackPanel Spacing="6">
-        <TextBlock Text="Tip: assign this overlay to portals below; it sits over image/video." Foreground="{DynamicResource ScryTextMuted}" />
-        <ProgressBar Minimum="0" Maximum="1" Value="{Binding FractionRemaining}" Height="10" />
-      </StackPanel>
-    </Border>
-
-    <Border Grid.Row="3" Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="10">
       <StackPanel Spacing="8">
         <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
           <TextBlock Text="Sand Physics" Foreground="{DynamicResource ScryTextMuted}" FontWeight="SemiBold" />
