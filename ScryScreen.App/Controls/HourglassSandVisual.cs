@@ -19,7 +19,7 @@ public sealed class HourglassSandVisual : Control
         AvaloniaProperty.Register<HourglassSandVisual, bool>(nameof(IsRunning), true);
 
     public static readonly StyledProperty<int> ParticleCountProperty =
-        AvaloniaProperty.Register<HourglassSandVisual, int>(nameof(ParticleCount), 1000);
+        AvaloniaProperty.Register<HourglassSandVisual, int>(nameof(ParticleCount), 3000);
 
     /// <summary>
     /// Gravity as cells/s^2.
@@ -37,13 +37,13 @@ public sealed class HourglassSandVisual : Control
     /// Particle size in pixels (grid cell size).
     /// </summary>
     public static readonly StyledProperty<double> ParticleSizeProperty =
-        AvaloniaProperty.Register<HourglassSandVisual, double>(nameof(ParticleSize), 6.0);
+        AvaloniaProperty.Register<HourglassSandVisual, double>(nameof(ParticleSize), 4.0);
 
     /// <summary>
-    /// Maximum number of particles allowed through the neck per frame.
+    /// Maximum number of particles allowed through the neck per second.
     /// </summary>
     public static readonly StyledProperty<int> MaxReleasePerFrameProperty =
-        AvaloniaProperty.Register<HourglassSandVisual, int>(nameof(MaxReleasePerFrame), 6);
+        AvaloniaProperty.Register<HourglassSandVisual, int>(nameof(MaxReleasePerFrame), 120);
 
     private readonly DispatcherTimer _renderTimer;
     private DateTime _lastTickUtc;
@@ -64,14 +64,15 @@ public sealed class HourglassSandVisual : Control
 
     private double _lastW;
     private double _lastH;
-    private double _lastParticleSize = 6.0;
-    private int _lastParticleCount = 1000;
+    private double _lastParticleSize = 4.0;
+    private int _lastParticleCount = 3000;
     private bool _needsReseed = true;
 
     // Time/flow
     private double _lastFrac = 1.0;
     private double _releaseCarry;
     private int _passBudget;
+    private int _passedCount;
 
     // Motion integration (grid)
     private double _fallVelocity;
@@ -222,6 +223,7 @@ public sealed class HourglassSandVisual : Control
         _lastFrac = GetClampedFraction();
         _releaseCarry = 0;
         _passBudget = 0;
+        _passedCount = 0;
         _fallVelocity = 0;
         _moveCarry = 0;
         _stepParity = 0;
@@ -359,17 +361,26 @@ public sealed class HourglassSandVisual : Control
 
         var frac = GetClampedFraction();
 
-        // Convert timer progress into a number of particles allowed through the neck.
-        var deltaFrac = _lastFrac - frac;
-        if (deltaFrac > 0)
+        // Convert timer progress into a target count of grains that should have passed the neck so far.
+        // The timer updates at ~200ms, so FractionRemaining changes in chunks; to keep visuals smooth,
+        // we release at a steady grains/sec rate (Flow) up to what the timer indicates.
+        var total = Clamp(ParticleCount, 10, 200000);
+        var targetPassed = (1.0 - frac) * total;
+        var needed = targetPassed - _passedCount;
+
+        if (needed > 0)
         {
-            var total = Clamp(ParticleCount, 10, 200000);
-            var desired = (deltaFrac * total) + _releaseCarry;
+            var flowPerSecond = Clamp(MaxReleasePerFrame, 1, 20000);
+            var desired = (flowPerSecond * dtSeconds) + _releaseCarry;
             var toRelease = (int)Math.Floor(desired);
             _releaseCarry = desired - toRelease;
 
-            var cap = Clamp(MaxReleasePerFrame, 1, 500);
-            toRelease = Math.Min(toRelease, cap);
+            // Don't exceed what the timer says should have passed.
+            toRelease = Math.Min(toRelease, (int)Math.Floor(needed));
+
+            // Guard rare big dt events.
+            toRelease = Math.Min(toRelease, 2000);
+
             _passBudget += toRelease;
         }
 
@@ -476,6 +487,7 @@ public sealed class HourglassSandVisual : Control
         if (y0 == gateRow && y1 == gateRow + 1)
         {
             _passBudget--;
+            _passedCount++;
         }
 
         return true;

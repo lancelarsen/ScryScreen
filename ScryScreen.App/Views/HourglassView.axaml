@@ -145,11 +145,11 @@
           <TextBlock Grid.Row="1" Grid.Column="2" Text="Size" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
           <TextBox Grid.Row="1" Grid.Column="3" Width="84" Text="{Binding ParticleSizeText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-          <TextBlock Grid.Row="2" Grid.Column="0" Text="Flow" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="Flow (grains/sec)" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
           <TextBox Grid.Row="2" Grid.Column="1" Width="84" Text="{Binding MaxReleasePerFrameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </Grid>
 
-        <TextBlock Text="Tip: higher density makes steeper piles; Flow controls how many grains per tick are allowed through the slot." Foreground="{DynamicResource ScryTextMuted}" />
+        <TextBlock Text="Tip: higher density makes steeper piles; Flow controls the steady grains/sec allowed through the slot." Foreground="{DynamicResource ScryTextMuted}" />
       </StackPanel>
     </Border>
   </Grid>

@@ -21,7 +21,7 @@ public partial class HourglassViewModel : ViewModelBase
     private const double MinParticleSize = 2.0;
     private const double MaxParticleSize = 14.0;
     private const int MinMaxRelease = 1;
-    private const int MaxMaxRelease = 100;
+    private const int MaxMaxRelease = 5000;
 
     private const int MinParticleCount = 50;
     private const int MaxParticleCount = 8000;
