@@ -17,12 +17,7 @@
       <!-- Design-time size; Viewbox scales this to the portal window -->
       <Grid Width="420" Height="640">
         <!-- Background-only layer: opacity does NOT affect hourglass/sand. -->
-        <controls:HourglassBackdropVisual Opacity="{Binding OverlayOpacity}"
-                                          RenderTransformOrigin="0.5,0.5">
-          <controls:HourglassBackdropVisual.RenderTransform>
-            <ScaleTransform ScaleX="1.08" ScaleY="1.08" />
-          </controls:HourglassBackdropVisual.RenderTransform>
-        </controls:HourglassBackdropVisual>
+        <controls:HourglassBackdropVisual Opacity="{Binding OverlayOpacity}" />
 
         <controls:HourglassSandVisual FractionRemaining="{Binding FractionRemaining}"
                                       IsRunning="{Binding IsRunning}"
