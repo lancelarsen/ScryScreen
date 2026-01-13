@@ -48,10 +48,11 @@ public sealed class HourglassSandVisual : Control
     private readonly DispatcherTimer _renderTimer;
     private DateTime _lastTickUtc;
 
-    private readonly Random _rng = new(0x53_41_4E_44);
+    private readonly Random _rng = new();
 
     // Grid state
     private bool[]? _occ;
+    private byte[]? _grainColor;
     private int _gridW;
     private int _gridH;
     private int[]? _rowMin;
@@ -81,6 +82,21 @@ public sealed class HourglassSandVisual : Control
 
     // Visual
     private static readonly IBrush SandBrush = new SolidColorBrush(Color.FromRgb(218, 162, 76));
+    private static readonly IBrush GreyBrush = new SolidColorBrush(Color.FromRgb(170, 170, 170));
+    private static readonly IBrush LightGreyBrush = new SolidColorBrush(Color.FromRgb(214, 214, 214));
+    private static readonly IBrush DarkGreyBrush = new SolidColorBrush(Color.FromRgb(110, 110, 110));
+    private static readonly IBrush WhiteBrush = new SolidColorBrush(Color.FromRgb(242, 242, 242));
+
+    // 0 = empty, 1..5 are palette indices.
+    private static readonly IBrush[] GrainPalette =
+    [
+        Brushes.Transparent,
+        SandBrush,
+        GreyBrush,
+        LightGreyBrush,
+        DarkGreyBrush,
+        WhiteBrush,
+    ];
     private static readonly IBrush GlassBrush = new LinearGradientBrush
     {
         StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
@@ -235,6 +251,7 @@ public sealed class HourglassSandVisual : Control
         _gridH = Math.Max(8, (int)Math.Floor(h / cell));
 
         _occ = new bool[_gridW * _gridH];
+        _grainColor = new byte[_gridW * _gridH];
         _rowMin = new int[_gridH];
         _rowMax = new int[_gridH];
 
@@ -329,29 +346,50 @@ public sealed class HourglassSandVisual : Control
     {
         if (_occ is null) return;
         Array.Clear(_occ, 0, _occ.Length);
+
+        if (_grainColor is not null)
+        {
+            Array.Clear(_grainColor, 0, _grainColor.Length);
+        }
     }
 
     private void SeedTop(int desiredCount)
     {
-        if (_occ is null || _rowMin is null || _rowMax is null) return;
+        if (_occ is null || _grainColor is null || _rowMin is null || _rowMax is null) return;
 
         ClearGrid();
 
-        var count = 0;
         var maxCount = Math.Max(0, desiredCount);
 
-        // Fill from the very top of the top chamber downward.
-        for (var y = _topStartRow; y < _neckStartRow && count < maxCount; y++)
+        // Seed randomly across the entire top chamber to avoid systemic left-bias.
+        var candidates = new System.Collections.Generic.List<int>(Math.Max(64, Math.Min(250_000, maxCount * 2)));
+
+        for (var y = _topStartRow; y < _neckStartRow; y++)
         {
             var minX = _rowMin[y];
             var maxX = _rowMax[y];
             if (minX > maxX) continue;
 
-            for (var x = minX; x <= maxX && count < maxCount; x++)
+            for (var x = minX; x <= maxX; x++)
             {
-                _occ[Idx(x, y)] = true;
-                count++;
+                candidates.Add(Idx(x, y));
             }
+        }
+
+        // Fisher–Yates shuffle
+        for (var i = candidates.Count - 1; i > 0; i--)
+        {
+            var j = _rng.Next(i + 1);
+            (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+        }
+
+        var take = Math.Min(maxCount, candidates.Count);
+        for (var i = 0; i < take; i++)
+        {
+            var idx = candidates[i];
+            _occ[idx] = true;
+            // Random grain color: sand, grey, light grey, dark grey, white.
+            _grainColor[idx] = (byte)_rng.Next(1, 6);
         }
     }
 
@@ -385,17 +423,28 @@ public sealed class HourglassSandVisual : Control
         }
 
         // Determine how many grid substeps to run this frame.
+        // Note: if we let velocity grow without bound, the stream becomes "gappy" because grains
+        // traverse the neck faster than they're released. Use a simple terminal velocity.
         var g = Clamp(Gravity, 1.0, 400.0);
-        _fallVelocity += g * dtSeconds;
+        var terminalVelocity = 70.0; // cells/sec
+        _fallVelocity = Math.Min(_fallVelocity + (g * dtSeconds), terminalVelocity);
+
         var move = (_fallVelocity * dtSeconds) + _moveCarry;
         var steps = (int)Math.Floor(move);
         _moveCarry = move - steps;
-        steps = Clamp(steps, 1, 6);
+        steps = Clamp(steps, 0, 4);
 
         var density = Clamp(Density, 0.0, 10.0);
         var slideChance = 1.0 - ((density / 10.0) * 0.75);
 
         for (var s = 0; s < steps; s++)
+        {
+            StepOnce(slideChance);
+        }
+
+        // If we're running and have budget waiting, do at least one settling step so the
+        // gate can consume budget even on small dt / low velocity frames.
+        if (steps == 0 && _passBudget > 0)
         {
             StepOnce(slideChance);
         }
@@ -410,6 +459,8 @@ public sealed class HourglassSandVisual : Control
         // Gate between top chamber and neck: only allow passage when budget > 0.
         var gateRow = Math.Max(0, _neckStartRow - 1);
 
+        ConvergeGateRowTowardsSlot(gateRow);
+
         // Iterate bottom-up to avoid double-moving.
         for (var y = _gridH - 2; y >= 0; y--)
         {
@@ -420,35 +471,92 @@ public sealed class HourglassSandVisual : Control
             // Parity flip to reduce left/right bias.
             var leftFirst = (((y + _stepParity) & 1) == 0);
 
-            for (var x = minX; x <= maxX; x++)
+            if (leftFirst)
             {
-                var i = Idx(x, y);
-                if (!_occ[i]) continue;
-
-                var y1 = y + 1;
-                if (y1 >= _gridH) continue;
-
-                // Down
-                if (TryMove(x, y, x, y1, gateRow))
+                for (var x = minX; x <= maxX; x++)
                 {
-                    continue;
+                    var i = Idx(x, y);
+                    if (!_occ[i]) continue;
+
+                    var y1 = y + 1;
+                    if (y1 >= _gridH) continue;
+
+                    // Down
+                    if (TryMove(x, y, x, y1, gateRow))
+                    {
+                        continue;
+                    }
+
+                    // If blocked, maybe slide.
+                    var localSlideChance = slideChance;
+
+                // Near the neck, strongly encourage motion that feeds the slot.
+                if (y <= gateRow && y >= gateRow - 8)
+                {
+                    localSlideChance = Math.Max(localSlideChance, 0.90);
                 }
 
-                // If blocked, maybe slide.
-                if (_rng.NextDouble() > slideChance)
-                {
-                    continue;
-                }
+                    if (_rng.NextDouble() > localSlideChance)
+                    {
+                        continue;
+                    }
 
-                if (leftFirst)
-                {
-                    if (TryMove(x, y, x - 1, y1, gateRow)) continue;
-                    if (TryMove(x, y, x + 1, y1, gateRow)) continue;
+                    // Prefer sliding toward the neck slot to keep a steady central stream.
+                    var dxPref = x == _slotX ? 0 : (x < _slotX ? 1 : -1);
+                    if (dxPref != 0)
+                    {
+                        if (TryMove(x, y, x + dxPref, y1, gateRow)) continue;
+                        if (TryMove(x, y, x - dxPref, y1, gateRow)) continue;
+                    }
+                    else
+                    {
+                        if (TryMove(x, y, x - 1, y1, gateRow)) continue;
+                        if (TryMove(x, y, x + 1, y1, gateRow)) continue;
+                    }
                 }
-                else
+            }
+            else
+            {
+                for (var x = maxX; x >= minX; x--)
                 {
-                    if (TryMove(x, y, x + 1, y1, gateRow)) continue;
-                    if (TryMove(x, y, x - 1, y1, gateRow)) continue;
+                    var i = Idx(x, y);
+                    if (!_occ[i]) continue;
+
+                    var y1 = y + 1;
+                    if (y1 >= _gridH) continue;
+
+                    // Down
+                    if (TryMove(x, y, x, y1, gateRow))
+                    {
+                        continue;
+                    }
+
+                    // If blocked, maybe slide.
+                    var localSlideChance = slideChance;
+
+                    // Near the neck, strongly encourage motion that feeds the slot.
+                    if (y <= gateRow && y >= gateRow - 8)
+                    {
+                        localSlideChance = Math.Max(localSlideChance, 0.90);
+                    }
+
+                    if (_rng.NextDouble() > localSlideChance)
+                    {
+                        continue;
+                    }
+
+                    // Prefer sliding toward the neck slot to keep a steady central stream.
+                    var dxPref = x == _slotX ? 0 : (x < _slotX ? 1 : -1);
+                    if (dxPref != 0)
+                    {
+                        if (TryMove(x, y, x + dxPref, y1, gateRow)) continue;
+                        if (TryMove(x, y, x - dxPref, y1, gateRow)) continue;
+                    }
+                    else
+                    {
+                        if (TryMove(x, y, x + 1, y1, gateRow)) continue;
+                        if (TryMove(x, y, x - 1, y1, gateRow)) continue;
+                    }
                 }
             }
         }
@@ -456,9 +564,86 @@ public sealed class HourglassSandVisual : Control
         _stepParity ^= 1;
     }
 
+    private void ConvergeGateRowTowardsSlot(int gateRow)
+    {
+        if (_occ is null || _grainColor is null || _rowMin is null || _rowMax is null) return;
+        if (gateRow < 0 || gateRow >= _gridH) return;
+
+        var minX = _rowMin[gateRow];
+        var maxX = _rowMax[gateRow];
+        if (minX > maxX) return;
+
+        var slot = Math.Clamp(_slotX, minX, maxX);
+
+        if ((_stepParity & 1) == 0)
+        {
+            // Shift left side toward slot.
+            for (var x = slot - 1; x >= minX; x--)
+            {
+                var i = Idx(x, gateRow);
+                if (!_occ[i]) continue;
+                var nx = x + 1;
+                if (!IsInside(nx, gateRow)) continue;
+                var ni = Idx(nx, gateRow);
+                if (_occ[ni]) continue;
+                _occ[i] = false;
+                _occ[ni] = true;
+                _grainColor[ni] = _grainColor[i];
+                _grainColor[i] = 0;
+            }
+
+            // Shift right side toward slot.
+            for (var x = slot + 1; x <= maxX; x++)
+            {
+                var i = Idx(x, gateRow);
+                if (!_occ[i]) continue;
+                var nx = x - 1;
+                if (!IsInside(nx, gateRow)) continue;
+                var ni = Idx(nx, gateRow);
+                if (_occ[ni]) continue;
+                _occ[i] = false;
+                _occ[ni] = true;
+                _grainColor[ni] = _grainColor[i];
+                _grainColor[i] = 0;
+            }
+        }
+        else
+        {
+            // Shift right side toward slot.
+            for (var x = slot + 1; x <= maxX; x++)
+            {
+                var i = Idx(x, gateRow);
+                if (!_occ[i]) continue;
+                var nx = x - 1;
+                if (!IsInside(nx, gateRow)) continue;
+                var ni = Idx(nx, gateRow);
+                if (_occ[ni]) continue;
+                _occ[i] = false;
+                _occ[ni] = true;
+                _grainColor[ni] = _grainColor[i];
+                _grainColor[i] = 0;
+            }
+
+            // Shift left side toward slot.
+            for (var x = slot - 1; x >= minX; x--)
+            {
+                var i = Idx(x, gateRow);
+                if (!_occ[i]) continue;
+                var nx = x + 1;
+                if (!IsInside(nx, gateRow)) continue;
+                var ni = Idx(nx, gateRow);
+                if (_occ[ni]) continue;
+                _occ[i] = false;
+                _occ[ni] = true;
+                _grainColor[ni] = _grainColor[i];
+                _grainColor[i] = 0;
+            }
+        }
+    }
+
     private bool TryMove(int x0, int y0, int x1, int y1, int gateRow)
     {
-        if (_occ is null) return false;
+        if (_occ is null || _grainColor is null) return false;
 
         if (!IsInside(x1, y1))
         {
@@ -483,6 +668,8 @@ public sealed class HourglassSandVisual : Control
 
         _occ[i0] = false;
         _occ[i1] = true;
+        _grainColor[i1] = _grainColor[i0];
+        _grainColor[i0] = 0;
 
         if (y0 == gateRow && y1 == gateRow + 1)
         {
@@ -560,7 +747,7 @@ public sealed class HourglassSandVisual : Control
 
         // Sand
         EnsureGrid();
-        if (_occ is not null)
+        if (_occ is not null && _grainColor is not null)
         {
             var drawSize = Math.Max(1.0, cell * 0.92);
             using (context.PushGeometryClip(outline))
@@ -569,10 +756,16 @@ public sealed class HourglassSandVisual : Control
                 {
                     for (var x = 0; x < _gridW; x++)
                     {
-                        if (!_occ[Idx(x, y)]) continue;
+                        var i = Idx(x, y);
+                        if (!_occ[i]) continue;
                         var px = x * cell;
                         var py = y * cell;
-                        context.FillRectangle(SandBrush, new Rect(px + ((cell - drawSize) * 0.5), py + ((cell - drawSize) * 0.5), drawSize, drawSize));
+                        var colorIdx = _grainColor[i];
+                        if (colorIdx <= 0 || colorIdx >= GrainPalette.Length)
+                        {
+                            colorIdx = 1;
+                        }
+                        context.FillRectangle(GrainPalette[colorIdx], new Rect(px + ((cell - drawSize) * 0.5), py + ((cell - drawSize) * 0.5), drawSize, drawSize));
                     }
                 }
             }
