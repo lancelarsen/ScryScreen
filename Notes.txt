@@ -15,7 +15,7 @@ dotnet test -v minimal
 https://fonts.google.com/icons?icon.query=eye
 
 ----------------------------------------------------------------------
--- Startup Cash Test
+-- Startup Crash Test
 ----------------------------------------------------------------------
 1) Enable test crash env variable
 $env:SCRYSCREEN_TEST_STARTUP_CRASH=1

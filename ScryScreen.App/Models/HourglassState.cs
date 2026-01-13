@@ -5,10 +5,16 @@ namespace ScryScreen.App.Models;
 public readonly record struct HourglassState(
     TimeSpan Duration,
     TimeSpan Remaining,
-    bool IsRunning)
+    bool IsRunning,
+    HourglassPhysicsSettings Physics)
 {
     public static HourglassState Stopped(TimeSpan duration)
-        => new(duration <= TimeSpan.Zero ? TimeSpan.FromSeconds(1) : duration, duration, IsRunning: false);
+        => new(duration <= TimeSpan.Zero ? TimeSpan.FromSeconds(1) : duration, duration, IsRunning: false, Physics: HourglassPhysicsSettings.Default);
+
+    public HourglassState(TimeSpan duration, TimeSpan remaining, bool isRunning)
+        : this(duration, remaining, isRunning, HourglassPhysicsSettings.Default)
+    {
+    }
 
     public double FractionRemaining
     {

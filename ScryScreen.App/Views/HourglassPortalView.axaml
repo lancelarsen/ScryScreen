@@ -16,9 +16,14 @@
              Margin="48"
              Opacity="{Binding OverlayOpacity}">
       <!-- Design-time size; Viewbox scales this to the portal window -->
-      <controls:HourglassVisual Width="420" Height="640"
+      <controls:HourglassSandVisual Width="420" Height="640"
                                 FractionRemaining="{Binding FractionRemaining}"
-                                IsRunning="{Binding IsRunning}" />
+                                IsRunning="{Binding IsRunning}"
+                                ParticleCount="{Binding ParticleCount}"
+                                Gravity="{Binding Gravity}"
+                                Density="{Binding Density}"
+                                ParticleSize="{Binding ParticleSize}"
+                                MaxReleasePerFrame="{Binding MaxReleasePerFrame}" />
     </Viewbox>
   </Grid>
 </UserControl>

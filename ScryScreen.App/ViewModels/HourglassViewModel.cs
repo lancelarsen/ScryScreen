@@ -13,12 +13,35 @@ public partial class HourglassViewModel : ViewModelBase
 
     public event Action? StateChanged;
 
+    // Grid-sand simulation tuning
+    private const double MinGravity = 1.0;
+    private const double MaxGravity = 400.0;
+    private const double MinDensity = 0.0;
+    private const double MaxDensity = 10.0;
+    private const double MinParticleSize = 2.0;
+    private const double MaxParticleSize = 14.0;
+    private const int MinMaxRelease = 1;
+    private const int MaxMaxRelease = 100;
+
+    private const int MinParticleCount = 50;
+    private const int MaxParticleCount = 8000;
+
+    private HourglassPhysicsSettings _physics = HourglassPhysicsSettings.Default;
+
     public HourglassViewModel()
     {
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background, (_, _) => Tick());
         DurationMinutesText = "1";
         DurationSecondsText = "0";
         OverlayOpacity = 0.85;
+
+        // Physics defaults
+        ParticleCountText = HourglassPhysicsSettings.Default.ParticleCount.ToString();
+        GravityText = HourglassPhysicsSettings.Default.Gravity.ToString("0");
+        DensityText = HourglassPhysicsSettings.Default.Density.ToString("0.00");
+        ParticleSizeText = HourglassPhysicsSettings.Default.ParticleSize.ToString("0.0");
+        MaxReleasePerFrameText = HourglassPhysicsSettings.Default.MaxReleasePerFrame.ToString();
+
         Reset();
     }
 
@@ -36,6 +59,22 @@ public partial class HourglassViewModel : ViewModelBase
 
     [ObservableProperty]
     private TimeSpan remaining;
+
+    [ObservableProperty]
+    private string particleCountText = "1000";
+
+    [ObservableProperty]
+    private string gravityText = "2600";
+
+    [ObservableProperty]
+    private string densityText = "5.00";
+
+    [ObservableProperty]
+    private string particleSizeText = "6.0";
+
+    [ObservableProperty]
+    private string maxReleasePerFrameText = "12";
+
 
     public double FractionRemaining
     {
@@ -90,12 +129,59 @@ public partial class HourglassViewModel : ViewModelBase
         StateChanged?.Invoke();
     }
 
+    partial void OnGravityTextChanged(string value)
+    {
+        TryUpdatePhysicsFromText();
+        StateChanged?.Invoke();
+    }
+
+    partial void OnDensityTextChanged(string value)
+    {
+        TryUpdatePhysicsFromText();
+        StateChanged?.Invoke();
+    }
+
+    partial void OnParticleSizeTextChanged(string value)
+    {
+        TryUpdatePhysicsFromText();
+        StateChanged?.Invoke();
+    }
+
+    partial void OnParticleCountTextChanged(string value)
+    {
+        TryUpdatePhysicsFromText();
+        StateChanged?.Invoke();
+    }
+
+    partial void OnMaxReleasePerFrameTextChanged(string value)
+    {
+        TryUpdatePhysicsFromText();
+        StateChanged?.Invoke();
+    }
+
     private void NotifyTimeChanged()
     {
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(FractionRemaining));
         OnPropertyChanged(nameof(RemainingText));
+
+        NotifyCommandStates();
         StateChanged?.Invoke();
+    }
+
+    partial void OnIsRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(CanStop));
+        NotifyCommandStates();
+        StateChanged?.Invoke();
+    }
+
+    private void NotifyCommandStates()
+    {
+        // Avalonia may disable command sources based on ICommand.CanExecute even if IsEnabled is also bound.
+        StartCommand.NotifyCanExecuteChanged();
+        StopCommand.NotifyCanExecuteChanged();
     }
 
     private void ClampDurationFields()
@@ -136,8 +222,39 @@ public partial class HourglassViewModel : ViewModelBase
         return TimeSpan.FromSeconds(total);
     }
 
+    private void TryUpdatePhysicsFromText()
+    {
+        // With UpdateSourceTrigger=PropertyChanged, clamping/rewriting text while typing is hostile.
+        // Keep the user's text and update a cached, clamped numeric settings struct when parsing succeeds.
+
+        _physics = _physics with { ParticleCount = Clamp(ParseInt(ParticleCountText), MinParticleCount, MaxParticleCount) };
+
+        if (TryParseDoubleLoose(GravityText, out var gravity))
+        {
+            _physics = _physics with { Gravity = Clamp(gravity, MinGravity, MaxGravity) };
+        }
+
+        if (TryParseDoubleLoose(DensityText, out var density))
+        {
+            _physics = _physics with { Density = Clamp(density, MinDensity, MaxDensity) };
+        }
+
+        if (TryParseDoubleLoose(ParticleSizeText, out var particleSize))
+        {
+            _physics = _physics with { ParticleSize = Clamp(particleSize, MinParticleSize, MaxParticleSize) };
+        }
+
+        _physics = _physics with { MaxReleasePerFrame = Clamp(ParseInt(MaxReleasePerFrameText), MinMaxRelease, MaxMaxRelease) };
+    }
+
+    private HourglassPhysicsSettings GetPhysicsSettings()
+    {
+        TryUpdatePhysicsFromText();
+        return _physics;
+    }
+
     public HourglassState SnapshotState()
-        => new(GetDuration(), Remaining, IsRunning);
+        => new(GetDuration(), Remaining, IsRunning, GetPhysicsSettings());
 
     private void Tick()
     {
@@ -177,10 +294,35 @@ public partial class HourglassViewModel : ViewModelBase
         _timer.Stop();
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(CanStop));
+
+        NotifyCommandStates();
     }
 
     private static int ParseInt(string? text)
         => int.TryParse(text, out var v) ? v : 0;
+
+    private static bool TryParseDoubleLoose(string? text, out double value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        // Accept both "0.5" and "0,5" regardless of OS locale.
+        var normalized = text.Trim().Replace(',', '.');
+        return double.TryParse(
+            normalized,
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out value);
+    }
+
+    private static int Clamp(int value, int min, int max)
+        => value < min ? min : (value > max ? max : value);
+
+    private static double Clamp(double value, double min, double max)
+        => value < min ? min : (value > max ? max : value);
 
     [RelayCommand(CanExecute = nameof(CanStart))]
     private void Start()
@@ -207,6 +349,8 @@ public partial class HourglassViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(CanStop));
+
+        NotifyCommandStates();
         StateChanged?.Invoke();
     }
 
@@ -229,6 +373,21 @@ public partial class HourglassViewModel : ViewModelBase
         Remaining = GetDuration();
         OnPropertyChanged(nameof(FractionRemaining));
         OnPropertyChanged(nameof(RemainingText));
+        StateChanged?.Invoke();
+    }
+
+    [RelayCommand]
+    private void ResetPhysics()
+    {
+        var d = HourglassPhysicsSettings.Default;
+        ParticleCountText = d.ParticleCount.ToString();
+        GravityText = d.Gravity.ToString("0");
+        DensityText = d.Density.ToString("0.00");
+        ParticleSizeText = d.ParticleSize.ToString("0.0");
+        MaxReleasePerFrameText = d.MaxReleasePerFrame.ToString();
+
+        _physics = d;
+        TryUpdatePhysicsFromText();
         StateChanged?.Invoke();
     }
 }

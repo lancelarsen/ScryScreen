@@ -23,11 +23,32 @@ public partial class HourglassPortalViewModel : ViewModelBase
     [ObservableProperty]
     private bool isRunning;
 
+    [ObservableProperty]
+    private double gravity = HourglassPhysicsSettings.Default.Gravity;
+
+    [ObservableProperty]
+    private double density = HourglassPhysicsSettings.Default.Density;
+
+    [ObservableProperty]
+    private double particleSize = HourglassPhysicsSettings.Default.ParticleSize;
+
+    [ObservableProperty]
+    private int maxReleasePerFrame = HourglassPhysicsSettings.Default.MaxReleasePerFrame;
+
+    [ObservableProperty]
+    private int particleCount = HourglassPhysicsSettings.Default.ParticleCount;
+
     public void Update(HourglassState state)
     {
         FractionRemaining = state.FractionRemaining;
         RemainingText = Format(state.Remaining);
         IsRunning = state.IsRunning;
+
+        Gravity = state.Physics.Gravity;
+        Density = state.Physics.Density;
+        ParticleSize = state.Physics.ParticleSize;
+        MaxReleasePerFrame = state.Physics.MaxReleasePerFrame;
+        ParticleCount = state.Physics.ParticleCount;
     }
 
     private static string Format(TimeSpan t)

@@ -39,7 +39,7 @@
     </Style>
   </UserControl.Styles>
 
-  <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
       <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
         <TextBlock Text="Duration" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
@@ -68,7 +68,7 @@
                 IsEnabled="{Binding CanStart}">
           <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
             <i:Icon Value="mdi-play" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
-            <TextBlock Text="Start" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+            <TextBlock Text="Play" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
 
@@ -80,8 +80,8 @@
                 Command="{Binding StopCommand}"
                 IsEnabled="{Binding CanStop}">
           <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-            <i:Icon Value="mdi-stop" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
-            <TextBlock Text="Stop" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+            <i:Icon Value="mdi-pause" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+            <TextBlock Text="Pause" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
 
@@ -109,6 +109,47 @@
       <StackPanel Spacing="6">
         <TextBlock Text="Tip: assign this overlay to portals below; it sits over image/video." Foreground="{DynamicResource ScryTextMuted}" />
         <ProgressBar Minimum="0" Maximum="1" Value="{Binding FractionRemaining}" Height="10" />
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="3" Background="#0A0F18" BorderBrush="{DynamicResource ScryBorder}" BorderThickness="1" CornerRadius="10" Padding="10">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+          <TextBlock Text="Sand Physics" Foreground="{DynamicResource ScryTextMuted}" FontWeight="SemiBold" />
+          <Button Grid.Column="1"
+                  Background="#0A0F18"
+                  BorderBrush="{DynamicResource ScryBorder}"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="10,4"
+                  Command="{Binding ResetPhysicsCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+              <TextBlock Text="Defaults" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="8">
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="Particles" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <TextBox Grid.Row="0" Grid.Column="1" Width="84"
+                   Text="{Binding ParticleCountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                   beh:NumericTextBoxBehavior.IsNumericOnly="True" />
+
+          <TextBlock Grid.Row="0" Grid.Column="2" Text="Gravity" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <TextBox Grid.Row="0" Grid.Column="3" Width="84" Text="{Binding GravityText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="Density" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <TextBox Grid.Row="1" Grid.Column="1" Width="84" Text="{Binding DensityText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+          <TextBlock Grid.Row="1" Grid.Column="2" Text="Size" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <TextBox Grid.Row="1" Grid.Column="3" Width="84" Text="{Binding ParticleSizeText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="Flow" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <TextBox Grid.Row="2" Grid.Column="1" Width="84" Text="{Binding MaxReleasePerFrameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
+
+        <TextBlock Text="Tip: higher density makes steeper piles; Flow controls how many grains per tick are allowed through the slot." Foreground="{DynamicResource ScryTextMuted}" />
       </StackPanel>
     </Border>
   </Grid>
