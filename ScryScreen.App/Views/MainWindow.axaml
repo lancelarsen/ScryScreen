@@ -286,20 +286,24 @@
                                                         </controls:QuakeShakeDecorator>
 
                                                         <!-- Hourglass indicator overlay (static; no sand) -->
-                                                        <Viewbox IsVisible="{Binding IsSelectedForHourglass}"
-                                                                Width="44"
-                                                                Height="68"
-                                                                Stretch="Uniform"
-                                                                Opacity="0.30"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"
-                                                                IsHitTestVisible="False">
+                                                        <Grid IsVisible="{Binding IsSelectedForHourglass}"
+                                                              Width="44"
+                                                              Height="68"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"
+                                                              IsHitTestVisible="False">
+                                                            <controls:HourglassBackdropVisual Fill="Transparent">
+                                                                <controls:HourglassBackdropVisual.Stroke>
+                                                                    <Pen Brush="#B0000000" Thickness="4" />
+                                                                </controls:HourglassBackdropVisual.Stroke>
+                                                            </controls:HourglassBackdropVisual>
+
                                                             <controls:HourglassBackdropVisual Fill="Transparent">
                                                                 <controls:HourglassBackdropVisual.Stroke>
                                                                     <Pen Brush="{DynamicResource ScryAccent}" Thickness="2" />
                                                                 </controls:HourglassBackdropVisual.Stroke>
                                                             </controls:HourglassBackdropVisual>
-                                                        </Viewbox>
+                                                        </Grid>
                                                     </Grid>
                                                 </Border>
 
@@ -308,19 +312,20 @@
                                                             Grid.Column="2"
                                                             Spacing="2"
                                                             VerticalAlignment="Center"
-                                                            HorizontalAlignment="Right"
+                                                        HorizontalAlignment="Center"
+                                                        Width="60"
                                                             IsVisible="{Binding IsSelectedForHourglass}">
                                                     <TextBlock Text="{Binding DataContext.Hourglass.RemainingText, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                Foreground="{DynamicResource ScryAccent}"
                                                                FontSize="14"
                                                                FontWeight="SemiBold"
-                                                               HorizontalAlignment="Right"
-                                                               TextAlignment="Right" />
-                                                    <TextBlock Text="{Binding DataContext.Hourglass.DurationText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                           HorizontalAlignment="Center"
+                                                           TextAlignment="Center" />
+                                                    <TextBlock Text="{Binding DataContext.Hourglass.DurationText, RelativeSource={RelativeSource AncestorType=Window}, StringFormat=({0})}"
                                                                Foreground="{DynamicResource ScryTextMuted}"
                                                                FontSize="12"
-                                                               HorizontalAlignment="Right"
-                                                               TextAlignment="Right" />
+                                                           HorizontalAlignment="Center"
+                                                           TextAlignment="Center" />
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0">
@@ -482,20 +487,24 @@
                                                     </controls:QuakeShakeDecorator>
 
                                                     <!-- Hourglass indicator overlay (static; no sand) -->
-                                                    <Viewbox IsVisible="{Binding IsSelectedForHourglass}"
-                                                            Width="44"
-                                                            Height="68"
-                                                            Stretch="Uniform"
-                                                            Opacity="0.30"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"
-                                                            IsHitTestVisible="False">
-                                                        <controls:HourglassBackdropVisual Fill="Transparent">
-                                                            <controls:HourglassBackdropVisual.Stroke>
-                                                                <Pen Brush="{DynamicResource ScryAccent}" Thickness="2" />
-                                                            </controls:HourglassBackdropVisual.Stroke>
-                                                        </controls:HourglassBackdropVisual>
-                                                    </Viewbox>
+                                    <Grid IsVisible="{Binding IsSelectedForHourglass}"
+                                          Width="44"
+                                          Height="68"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          IsHitTestVisible="False">
+                                        <controls:HourglassBackdropVisual Fill="Transparent">
+                                            <controls:HourglassBackdropVisual.Stroke>
+                                                <Pen Brush="#B0000000" Thickness="4" />
+                                            </controls:HourglassBackdropVisual.Stroke>
+                                        </controls:HourglassBackdropVisual>
+
+                                        <controls:HourglassBackdropVisual Fill="Transparent">
+                                            <controls:HourglassBackdropVisual.Stroke>
+                                                <Pen Brush="{DynamicResource ScryAccent}" Thickness="2" />
+                                            </controls:HourglassBackdropVisual.Stroke>
+                                        </controls:HourglassBackdropVisual>
+                                    </Grid>
                                                     </Grid>
                                                     </Border>
 
@@ -504,19 +513,20 @@
                                                                 Grid.Column="2"
                                                                 Spacing="2"
                                                                 VerticalAlignment="Center"
-                                                                HorizontalAlignment="Right"
+                                                            HorizontalAlignment="Center"
+                                                            Width="60"
                                                                 IsVisible="{Binding IsSelectedForHourglass}">
                                                         <TextBlock Text="{Binding DataContext.Hourglass.RemainingText, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                    Foreground="{DynamicResource ScryAccent}"
                                                                    FontSize="14"
                                                                    FontWeight="SemiBold"
-                                                                   HorizontalAlignment="Right"
-                                                                   TextAlignment="Right" />
-                                                        <TextBlock Text="{Binding DataContext.Hourglass.DurationText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                               HorizontalAlignment="Center"
+                                                               TextAlignment="Center" />
+                                                        <TextBlock Text="{Binding DataContext.Hourglass.DurationText, RelativeSource={RelativeSource AncestorType=Window}, StringFormat=({0})}"
                                                                    Foreground="{DynamicResource ScryTextMuted}"
                                                                    FontSize="12"
-                                                                   HorizontalAlignment="Right"
-                                                                   TextAlignment="Right" />
+                                                               HorizontalAlignment="Center"
+                                                               TextAlignment="Center" />
                                                     </StackPanel>
 
                                                     <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0">
