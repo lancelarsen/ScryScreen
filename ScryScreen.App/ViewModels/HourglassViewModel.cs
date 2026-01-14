@@ -109,6 +109,12 @@ public partial class HourglassViewModel : ViewModelBase
         }
     }
 
+    public string DurationText
+        => FormatClockLike(GetDuration());
+
+    public string RemainingOverDurationText
+        => $"{RemainingText} / {DurationText}";
+
     public bool CanStart => !IsRunning && GetDuration() > TimeSpan.Zero;
 
     public bool CanStop => IsRunning;
@@ -123,6 +129,13 @@ public partial class HourglassViewModel : ViewModelBase
     {
         ClampDurationFields();
         NotifyTimeChanged();
+    }
+
+    partial void OnRemainingChanged(TimeSpan value)
+    {
+        OnPropertyChanged(nameof(FractionRemaining));
+        OnPropertyChanged(nameof(RemainingText));
+        OnPropertyChanged(nameof(RemainingOverDurationText));
     }
 
     partial void OnOverlayOpacityChanged(double value)
@@ -174,6 +187,8 @@ public partial class HourglassViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(FractionRemaining));
         OnPropertyChanged(nameof(RemainingText));
+        OnPropertyChanged(nameof(DurationText));
+        OnPropertyChanged(nameof(RemainingOverDurationText));
 
         NotifyCommandStates();
         StateChanged?.Invoke();
@@ -295,7 +310,25 @@ public partial class HourglassViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(FractionRemaining));
         OnPropertyChanged(nameof(RemainingText));
+        OnPropertyChanged(nameof(RemainingOverDurationText));
         StateChanged?.Invoke();
+    }
+
+    private static string FormatClockLike(TimeSpan time)
+    {
+        if (time < TimeSpan.Zero)
+        {
+            time = TimeSpan.Zero;
+        }
+
+        var totalSeconds = (int)Math.Ceiling(time.TotalSeconds);
+        if (totalSeconds < 0) totalSeconds = 0;
+
+        var minutes = totalSeconds / 60;
+        var seconds = totalSeconds % 60;
+        return minutes > 0
+            ? $"{minutes}:{seconds:00}"
+            : $"0:{seconds:00}";
     }
 
     private void StopInternal()
@@ -383,6 +416,8 @@ public partial class HourglassViewModel : ViewModelBase
         Remaining = GetDuration();
         OnPropertyChanged(nameof(FractionRemaining));
         OnPropertyChanged(nameof(RemainingText));
+        OnPropertyChanged(nameof(DurationText));
+        OnPropertyChanged(nameof(RemainingOverDurationText));
         StateChanged?.Invoke();
     }
 

@@ -184,8 +184,8 @@
                                               IsVisible="{Binding ShowTopAssignedPreview}"
                                               Margin="0,1,0,0">
                                             <Grid RowDefinitions="100,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0" ClipToBounds="True">
-                                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
-                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSelectedForInitiative}">
                                                         <Button Classes="circleSmall"
                                                                 Width="28" Height="28" CornerRadius="14"
                                                                 Command="{Binding DataContext.InitiativeTracker.PreviousTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -197,6 +197,32 @@
                                                                 Command="{Binding DataContext.InitiativeTracker.NextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 ToolTip.Tip="Next Turn">
                                                             <i:Icon Value="mdi-chevron-right" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                        </Button>
+                                                    </StackPanel>
+
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSelectedForHourglass}">
+                                                        <Grid Width="28" Height="28">
+                                                            <Button Classes="circleSmall"
+                                                                    Width="28" Height="28" CornerRadius="14"
+                                                                    Command="{Binding DataContext.Hourglass.StartCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    ToolTip.Tip="Play"
+                                                                    IsVisible="{Binding !DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                                <i:Icon Value="mdi-play" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            </Button>
+                                                            <Button Classes="circleSmall"
+                                                                    Width="28" Height="28" CornerRadius="14"
+                                                                    Command="{Binding DataContext.Hourglass.StopCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    ToolTip.Tip="Pause"
+                                                                    IsVisible="{Binding DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                                <i:Icon Value="mdi-pause" FontSize="16" Foreground="{DynamicResource ScryAccent}" />
+                                                            </Button>
+                                                        </Grid>
+
+                                                        <Button Classes="circleSmall"
+                                                                Width="28" Height="28" CornerRadius="14"
+                                                                Command="{Binding DataContext.Hourglass.ResetCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                ToolTip.Tip="Reset">
+                                                            <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                                         </Button>
                                                     </StackPanel>
                                                 </StackPanel>
@@ -212,66 +238,107 @@
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center"
                                                         ClipToBounds="True">
-                                                    <controls:QuakeShakeDecorator
-                                                        QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
-                                                        QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
-                                                        QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}">
-                                                        <Grid>
-                                                            <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
-                                                                   IsVisible="{Binding !HasMediaPreview}"
-                                                                   Width="40"
-                                                                   Height="40"
-                                                                   Opacity="0.8"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center" />
+                                                    <Grid>
+                                                        <controls:QuakeShakeDecorator
+                                                            QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
+                                                            QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
+                                                            QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}">
+                                                            <Grid>
+                                                                <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
+                                                                       IsVisible="{Binding !HasMediaPreview}"
+                                                                       Width="40"
+                                                                       Height="40"
+                                                                       Opacity="0.8"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center" />
 
-                                                                <Image Source="{Binding AssignedPreview}"
-                                                                        IsVisible="{Binding HasMediaPreview}"
-                                                                        Stretch="UniformToFill"
-                                                                        StretchDirection="Both"
-                                                                        HorizontalAlignment="Stretch"
-                                                                        VerticalAlignment="Stretch" />
+                                                                    <Image Source="{Binding AssignedPreview}"
+                                                                            IsVisible="{Binding HasMediaPreview}"
+                                                                            Stretch="UniformToFill"
+                                                                            StretchDirection="Both"
+                                                                            HorizontalAlignment="Stretch"
+                                                                            VerticalAlignment="Stretch" />
 
-                                                                    <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
-                                                                               MediaPlayer="{Binding PreviewVideoPlayer}" />
+                                                                        <controls:VlcVideoHost IsVisible="{Binding ShowMonitorLiveVideo}"
+                                                                                   MediaPlayer="{Binding PreviewVideoPlayer}" />
 
-                                                            <!-- Overlay effects preview (matches portal overlay) -->
-                                                            <controls:OverlayEffectsLayer
-                                                                RainEnabled="{Binding OverlayEffects.RainEnabled}"
-                                                                RainIntensity="{Binding OverlayEffects.RainIntensity}"
-                                                                SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
-                                                                SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
-                                                                AshEnabled="{Binding OverlayEffects.AshEnabled}"
-                                                                AshIntensity="{Binding OverlayEffects.AshIntensity}"
-                                                                FireEnabled="{Binding OverlayEffects.FireEnabled}"
-                                                                FireIntensity="{Binding OverlayEffects.FireIntensity}"
-                                                                SandEnabled="{Binding OverlayEffects.SandEnabled}"
-                                                                SandIntensity="{Binding OverlayEffects.SandIntensity}"
-                                                                FogEnabled="{Binding OverlayEffects.FogEnabled}"
-                                                                FogIntensity="{Binding OverlayEffects.FogIntensity}"
-                                                                SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
-                                                                SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
-                                                                LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
-                                                                LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
-                                                                LightningTrigger="{Binding OverlayEffects.LightningTrigger}"
-                                                                IsHitTestVisible="False" />
-                                                        </Grid>
-                                                    </controls:QuakeShakeDecorator>
+                                                                <!-- Overlay effects preview (matches portal overlay) -->
+                                                                <controls:OverlayEffectsLayer
+                                                                    RainEnabled="{Binding OverlayEffects.RainEnabled}"
+                                                                    RainIntensity="{Binding OverlayEffects.RainIntensity}"
+                                                                    SnowEnabled="{Binding OverlayEffects.SnowEnabled}"
+                                                                    SnowIntensity="{Binding OverlayEffects.SnowIntensity}"
+                                                                    AshEnabled="{Binding OverlayEffects.AshEnabled}"
+                                                                    AshIntensity="{Binding OverlayEffects.AshIntensity}"
+                                                                    FireEnabled="{Binding OverlayEffects.FireEnabled}"
+                                                                    FireIntensity="{Binding OverlayEffects.FireIntensity}"
+                                                                    SandEnabled="{Binding OverlayEffects.SandEnabled}"
+                                                                    SandIntensity="{Binding OverlayEffects.SandIntensity}"
+                                                                    FogEnabled="{Binding OverlayEffects.FogEnabled}"
+                                                                    FogIntensity="{Binding OverlayEffects.FogIntensity}"
+                                                                    SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
+                                                                    SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
+                                                                    LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
+                                                                    LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
+                                                                    LightningTrigger="{Binding OverlayEffects.LightningTrigger}"
+                                                                    IsHitTestVisible="False" />
+                                                            </Grid>
+                                                        </controls:QuakeShakeDecorator>
+
+                                                        <!-- Hourglass indicator overlay (static; no sand) -->
+                                                        <Viewbox IsVisible="{Binding IsSelectedForHourglass}"
+                                                                Width="44"
+                                                                Height="68"
+                                                                Stretch="Uniform"
+                                                                Opacity="0.30"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"
+                                                                IsHitTestVisible="False">
+                                                            <controls:HourglassBackdropVisual Fill="Transparent">
+                                                                <controls:HourglassBackdropVisual.Stroke>
+                                                                    <Pen Brush="{DynamicResource ScryAccent}" Thickness="2" />
+                                                                </controls:HourglassBackdropVisual.Stroke>
+                                                            </controls:HourglassBackdropVisual>
+                                                        </Viewbox>
+                                                    </Grid>
                                                 </Border>
 
-                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
-                                                    <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
-                                                        <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
-                                                        <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
-                                                    </Grid>
-                                                    <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
-                                                        <TextBlock Grid.Column="0" Text="Up:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
-                                                        <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.UpTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
-                                                    </Grid>
-                                                    <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
-                                                        <TextBlock Grid.Column="0" Text="Next:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
-                                                        <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.NextTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
-                                                    </Grid>
+                                                <!-- Hourglass timer readout (right of image) -->
+                                                <StackPanel Grid.Row="0"
+                                                            Grid.Column="2"
+                                                            Spacing="2"
+                                                            VerticalAlignment="Center"
+                                                            HorizontalAlignment="Right"
+                                                            IsVisible="{Binding IsSelectedForHourglass}">
+                                                    <TextBlock Text="{Binding DataContext.Hourglass.RemainingText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                               Foreground="{DynamicResource ScryAccent}"
+                                                               FontSize="14"
+                                                               FontWeight="SemiBold"
+                                                               HorizontalAlignment="Right"
+                                                               TextAlignment="Right" />
+                                                    <TextBlock Text="{Binding DataContext.Hourglass.DurationText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                               Foreground="{DynamicResource ScryTextMuted}"
+                                                               FontSize="12"
+                                                               HorizontalAlignment="Right"
+                                                               TextAlignment="Right" />
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0">
+                                                    <!-- Initiative details -->
+                                                    <StackPanel Spacing="2" IsVisible="{Binding IsSelectedForInitiative}">
+                                                        <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                            <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                        </Grid>
+                                                        <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                            <TextBlock Grid.Column="0" Text="Up:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.UpTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                        </Grid>
+                                                        <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                            <TextBlock Grid.Column="0" Text="Next:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.NextTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                        </Grid>
+                                                    </StackPanel>
                                                 </StackPanel>
                                             </Grid>
                                         </Grid>
@@ -282,8 +349,8 @@
                                               Margin="0,2,0,0"
                                               ToolTip.Tip="{Binding MonitorPreviewToolTip}">
                                                 <Grid RowDefinitions="100,Auto" ColumnDefinitions="60,*,60" ColumnSpacing="0">
-                                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Left" IsVisible="{Binding IsSelectedForInitiative}">
-                                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSelectedForInitiative}">
                                                             <Button Classes="circleSmall"
                                                                     Width="28" Height="28" CornerRadius="14"
                                                                     Command="{Binding DataContext.InitiativeTracker.PreviousTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -295,6 +362,32 @@
                                                                     Command="{Binding DataContext.InitiativeTracker.NextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     ToolTip.Tip="Next Turn">
                                                                 <i:Icon Value="mdi-chevron-right" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            </Button>
+                                                        </StackPanel>
+
+                                                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSelectedForHourglass}">
+                                                            <Grid Width="28" Height="28">
+                                                                <Button Classes="circleSmall"
+                                                                        Width="28" Height="28" CornerRadius="14"
+                                                                        Command="{Binding DataContext.Hourglass.StartCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                        ToolTip.Tip="Play"
+                                                                        IsVisible="{Binding !DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                                    <i:Icon Value="mdi-play" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                                </Button>
+                                                                <Button Classes="circleSmall"
+                                                                        Width="28" Height="28" CornerRadius="14"
+                                                                        Command="{Binding DataContext.Hourglass.StopCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                        ToolTip.Tip="Pause"
+                                                                        IsVisible="{Binding DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                                    <i:Icon Value="mdi-pause" FontSize="16" Foreground="{DynamicResource ScryAccent}" />
+                                                                </Button>
+                                                            </Grid>
+
+                                                            <Button Classes="circleSmall"
+                                                                    Width="28" Height="28" CornerRadius="14"
+                                                                    Command="{Binding DataContext.Hourglass.ResetCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    ToolTip.Tip="Reset">
+                                                                <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                                             </Button>
                                                         </StackPanel>
                                                     </StackPanel>
@@ -387,22 +480,61 @@
                                                             </Border>
                                                         </Grid>
                                                     </controls:QuakeShakeDecorator>
+
+                                                    <!-- Hourglass indicator overlay (static; no sand) -->
+                                                    <Viewbox IsVisible="{Binding IsSelectedForHourglass}"
+                                                            Width="44"
+                                                            Height="68"
+                                                            Stretch="Uniform"
+                                                            Opacity="0.30"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            IsHitTestVisible="False">
+                                                        <controls:HourglassBackdropVisual Fill="Transparent">
+                                                            <controls:HourglassBackdropVisual.Stroke>
+                                                                <Pen Brush="{DynamicResource ScryAccent}" Thickness="2" />
+                                                            </controls:HourglassBackdropVisual.Stroke>
+                                                        </controls:HourglassBackdropVisual>
+                                                    </Viewbox>
                                                     </Grid>
                                                     </Border>
 
-                                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedForInitiative}">
-                                                        <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
-                                                            <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
-                                                            <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
-                                                        </Grid>
-                                                        <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
-                                                            <TextBlock Grid.Column="0" Text="Up:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
-                                                            <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.UpTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
-                                                        </Grid>
-                                                        <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
-                                                            <TextBlock Grid.Column="0" Text="Next:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
-                                                            <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.NextTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
-                                                        </Grid>
+                                                    <!-- Hourglass timer readout (right of image) -->
+                                                    <StackPanel Grid.Row="0"
+                                                                Grid.Column="2"
+                                                                Spacing="2"
+                                                                VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right"
+                                                                IsVisible="{Binding IsSelectedForHourglass}">
+                                                        <TextBlock Text="{Binding DataContext.Hourglass.RemainingText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                   Foreground="{DynamicResource ScryAccent}"
+                                                                   FontSize="14"
+                                                                   FontWeight="SemiBold"
+                                                                   HorizontalAlignment="Right"
+                                                                   TextAlignment="Right" />
+                                                        <TextBlock Text="{Binding DataContext.Hourglass.DurationText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                   Foreground="{DynamicResource ScryTextMuted}"
+                                                                   FontSize="12"
+                                                                   HorizontalAlignment="Right"
+                                                                   TextAlignment="Right" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,6,0,0">
+                                                        <!-- Initiative details -->
+                                                        <StackPanel Spacing="2" IsVisible="{Binding IsSelectedForInitiative}">
+                                                            <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                                <TextBlock Grid.Column="0" Text="Prev:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.PrevTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                            </Grid>
+                                                            <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                                <TextBlock Grid.Column="0" Text="Up:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.UpTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                            </Grid>
+                                                            <Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+                                                                <TextBlock Grid.Column="0" Text="Next:" FontWeight="Bold" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" HorizontalAlignment="Right" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding DataContext.InitiativeTracker.NextTurnDetailsText, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                                                            </Grid>
+                                                        </StackPanel>
                                                     </StackPanel>
                                                 </Grid>
                                         </Grid>
@@ -454,7 +586,7 @@
                                                             Command="{Binding ToggleVideoPlayPauseCommand}">
                                                         <Grid>
                                                             <i:Icon IsVisible="{Binding !IsVideoPlaying}" Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                                                            <i:Icon IsVisible="{Binding IsVideoPlaying}" Value="mdi-pause" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            <i:Icon IsVisible="{Binding IsVideoPlaying}" Value="mdi-pause" FontSize="18" Foreground="{DynamicResource ScryAccent}" />
                                                         </Grid>
                                                     </Button>
 
@@ -1618,7 +1750,7 @@
                                             ToolTip.Tip="Pause"
                                             Command="{Binding Hourglass.StopCommand}"
                                             IsVisible="{Binding Hourglass.IsRunning}">
-                                        <i:Icon Value="mdi-pause" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                        <i:Icon Value="mdi-pause" FontSize="18" Foreground="{DynamicResource ScryAccent}" />
                                     </Button>
                                 </Grid>
 
