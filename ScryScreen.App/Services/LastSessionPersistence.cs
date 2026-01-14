@@ -24,8 +24,22 @@ public static class LastSessionPersistence
         public string? LastEffectsConfigSavePath { get; set; }
         public bool AutoSaveInitiativeEnabled { get; set; }
         public bool AutoSaveEffectsEnabled { get; set; }
+
+        public int HourglassDurationMinutes { get; set; }
+        public int HourglassDurationSeconds { get; set; }
+        public double HourglassOverlayOpacity { get; set; }
+
         public DateTimeOffset SavedAtUtc { get; set; }
     }
+
+    private static int Clamp(int value, int min, int max)
+        => value < min ? min : (value > max ? max : value);
+
+    private static double Clamp(double value, double min, double max)
+        => value < min ? min : (value > max ? max : value);
+
+    private static int ParseInt(string? text)
+        => int.TryParse(text, out var v) ? v : 0;
 
     public static string GetSavesDirectory()
     {
@@ -85,6 +99,11 @@ public static class LastSessionPersistence
                 LastEffectsConfigSavePath = vm.LastEffectsConfigSavePath,
                 AutoSaveInitiativeEnabled = vm.AutoSaveInitiativeEnabled,
                 AutoSaveEffectsEnabled = vm.AutoSaveEffectsEnabled,
+
+                HourglassDurationMinutes = Clamp(ParseInt(vm.Hourglass.DurationMinutesText), 0, 999),
+                HourglassDurationSeconds = Clamp(ParseInt(vm.Hourglass.DurationSecondsText), 0, 59),
+                HourglassOverlayOpacity = Clamp(vm.Hourglass.OverlayOpacity, 0, 1),
+
                 SavedAtUtc = DateTimeOffset.UtcNow,
             };
 
@@ -170,6 +189,11 @@ public static class LastSessionPersistence
             {
                 vm.AutoSaveInitiativeEnabled = state.AutoSaveInitiativeEnabled;
                 vm.AutoSaveEffectsEnabled = state.AutoSaveEffectsEnabled;
+
+                // Hourglass: restore last set duration + overlay opacity.
+                vm.Hourglass.DurationMinutesText = Clamp(state.HourglassDurationMinutes, 0, 999).ToString();
+                vm.Hourglass.DurationSecondsText = Clamp(state.HourglassDurationSeconds, 0, 59).ToString();
+                vm.Hourglass.OverlayOpacity = Clamp(state.HourglassOverlayOpacity, 0, 1);
             }
 
             // Restore selected media (if it exists in the loaded folder).

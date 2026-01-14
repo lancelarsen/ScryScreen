@@ -16,7 +16,7 @@ public sealed class HourglassSandVisual : Control
         AvaloniaProperty.Register<HourglassSandVisual, double>(nameof(FractionRemaining), 1.0);
 
     public static readonly StyledProperty<bool> IsRunningProperty =
-        AvaloniaProperty.Register<HourglassSandVisual, bool>(nameof(IsRunning), true);
+        AvaloniaProperty.Register<HourglassSandVisual, bool>(nameof(IsRunning), false);
 
     public static readonly StyledProperty<int> ParticleCountProperty =
         AvaloniaProperty.Register<HourglassSandVisual, int>(nameof(ParticleCount), 3000);
@@ -267,11 +267,115 @@ public sealed class HourglassSandVisual : Control
 
         EnsureGrid();
 
-        // Always keep the sand simulation progressing (especially after reaching 0) so
-        // grains in the neck and bottom can finish settling. Flow is governed by FractionRemaining.
-        UpdateFlowAndSim(dt.TotalSeconds);
+        if (IsRunning)
+        {
+            // Normal run: flow governed by FractionRemaining.
+            UpdateFlowAndSim(dt.TotalSeconds);
+        }
+        else
+        {
+            // Paused: allow sand already past the neck to continue settling,
+            // but do not allow any new grains to pass through the neck.
+            UpdateSettleBelowNeck(dt.TotalSeconds);
+        }
 
         InvalidateVisual();
+    }
+
+    private void UpdateSettleBelowNeck(double dtSeconds)
+    {
+        if (_occ is null || _rowMin is null || _rowMax is null) return;
+
+        // No new flow while paused.
+        _passBudget = 0;
+        _releaseCarry = 0;
+
+        var g = Clamp(Gravity, 1.0, 400.0);
+        var terminalVelocity = 70.0; // cells/sec
+        _fallVelocity = Math.Min(_fallVelocity + (g * dtSeconds), terminalVelocity);
+
+        var move = (_fallVelocity * dtSeconds) + _moveCarry;
+        var steps = (int)Math.Floor(move);
+        _moveCarry = move - steps;
+        steps = Clamp(steps, 0, 4);
+
+        var density = Clamp(Density, 0.0, 10.0);
+        var slideChance = 1.0 - ((density / 10.0) * 0.75);
+
+        for (var s = 0; s < steps; s++)
+        {
+            StepOnceBelowNeck(slideChance);
+        }
+    }
+
+    private void StepOnceBelowNeck(double slideChance)
+    {
+        if (_occ is null || _rowMin is null || _rowMax is null) return;
+
+        var minY = Math.Clamp(_neckStartRow, 0, _gridH - 1);
+
+        // Iterate bottom-up to avoid double-moving.
+        for (var y = _gridH - 2; y >= minY; y--)
+        {
+            var minX = _rowMin[y];
+            var maxX = _rowMax[y];
+            if (minX > maxX) continue;
+
+            var leftFirst = (((y + _stepParity) & 1) == 0);
+
+            if (leftFirst)
+            {
+                for (var x = minX; x <= maxX; x++)
+                {
+                    var i = Idx(x, y);
+                    if (!_occ[i]) continue;
+
+                    var y1 = y + 1;
+                    if (y1 >= _gridH) continue;
+
+                    // Down
+                    if (TryMove(x, y, x, y1, gateRow: int.MinValue))
+                    {
+                        continue;
+                    }
+
+                    if (_rng.NextDouble() > slideChance)
+                    {
+                        continue;
+                    }
+
+                    if (TryMove(x, y, x - 1, y1, gateRow: int.MinValue)) continue;
+                    if (TryMove(x, y, x + 1, y1, gateRow: int.MinValue)) continue;
+                }
+            }
+            else
+            {
+                for (var x = maxX; x >= minX; x--)
+                {
+                    var i = Idx(x, y);
+                    if (!_occ[i]) continue;
+
+                    var y1 = y + 1;
+                    if (y1 >= _gridH) continue;
+
+                    // Down
+                    if (TryMove(x, y, x, y1, gateRow: int.MinValue))
+                    {
+                        continue;
+                    }
+
+                    if (_rng.NextDouble() > slideChance)
+                    {
+                        continue;
+                    }
+
+                    if (TryMove(x, y, x + 1, y1, gateRow: int.MinValue)) continue;
+                    if (TryMove(x, y, x - 1, y1, gateRow: int.MinValue)) continue;
+                }
+            }
+        }
+
+        _stepParity ^= 1;
     }
 
     private void EnsureGrid()
@@ -782,7 +886,18 @@ public sealed class HourglassSandVisual : Control
 
         var cx = w / 2.0;
 
-        var frameStroke = new Pen(new SolidColorBrush(Color.FromArgb(210, 232, 217, 182)), thickness: Math.Max(2, Math.Min(w, h) * 0.018));
+        // Use the app accent (gold) when available so the portal hourglass frame matches the theme.
+        IBrush frameBrush;
+        if (this.TryFindResource("ScryAccent", out var accent) && accent is IBrush accentBrush)
+        {
+            frameBrush = accentBrush;
+        }
+        else
+        {
+            frameBrush = new SolidColorBrush(Color.FromArgb(210, 232, 217, 182));
+        }
+
+        var frameStroke = new Pen(frameBrush, thickness: Math.Max(2, Math.Min(w, h) * 0.018));
         context.DrawGeometry(null, frameStroke, outline);
         context.DrawGeometry(GlassBrush, null, outline);
 

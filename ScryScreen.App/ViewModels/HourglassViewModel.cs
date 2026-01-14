@@ -33,7 +33,7 @@ public partial class HourglassViewModel : ViewModelBase
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background, (_, _) => Tick());
         DurationMinutesText = "1";
         DurationSecondsText = "0";
-        OverlayOpacity = 0.85;
+        OverlayOpacity = 0.80;
 
         // Physics defaults
         ParticleCountText = HourglassPhysicsSettings.Default.ParticleCount.ToString();
@@ -74,6 +74,9 @@ public partial class HourglassViewModel : ViewModelBase
 
     [ObservableProperty]
     private string maxReleasePerFrameText = "12";
+
+    [ObservableProperty]
+    private bool showSandPhysics;
 
 
     public double FractionRemaining
@@ -161,6 +164,13 @@ public partial class HourglassViewModel : ViewModelBase
 
     private void NotifyTimeChanged()
     {
+        // If the user edits the duration while not running, treat it like setting up a new countdown.
+        // This keeps Remaining and the sand fraction consistent without starting motion.
+        if (!IsRunning)
+        {
+            Remaining = GetDuration();
+        }
+
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(FractionRemaining));
         OnPropertyChanged(nameof(RemainingText));

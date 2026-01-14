@@ -69,6 +69,20 @@
     <Setter Property="BoxShadow" Value="0 10 28 0 #66000000" />
   </Style>
 
+  <!-- Apps tiles (Library -> Apps): match existing tile look, with selected accent outline -->
+  <Style Selector="Border.appsTile">
+    <Setter Property="Background" Value="#0A0F18" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="8" />
+  </Style>
+
+  <Style Selector="Border.appsTile.selected">
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
   <!-- Buttons -->
   <Style Selector="Button">
     <Setter Property="CornerRadius" Value="8" />
