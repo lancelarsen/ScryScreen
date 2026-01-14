@@ -66,6 +66,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly InitiativeTrackerViewModel _initiativeTracker;
     private readonly HourglassViewModel _hourglass;
 
+    private readonly Services.HourglassAudioService _hourglassAudio;
+
     public enum AppSelection
     {
         InitiativeTracker,
@@ -96,6 +98,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _hourglass = new HourglassViewModel();
         _hourglass.StateChanged += OnHourglassStateChanged;
+
+        _hourglassAudio = new Services.HourglassAudioService(_hourglass);
 
         SelectedScaleMode = MediaScaleMode.FillHeight;
         SelectedAlign = MediaAlign.Center;
@@ -1632,6 +1636,7 @@ public partial class MainWindowViewModel : ViewModelBase
         AutoSaveInitiativeImmediatelyIfEnabled(ignoreSuppression: true);
         AutoSaveEffectsImmediatelyIfEnabled(ignoreSuppression: true);
         LastSessionPersistence.Save(this);
+        _hourglassAudio.Dispose();
         _effectsAudio.Dispose();
         _portalHost.CloseAll();
     }

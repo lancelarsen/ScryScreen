@@ -78,6 +78,9 @@ public partial class HourglassViewModel : ViewModelBase
     [ObservableProperty]
     private bool showSandPhysics;
 
+    [ObservableProperty]
+    private bool playSoundsEnabled = true;
+
 
     public double FractionRemaining
     {

@@ -28,6 +28,7 @@ public static class LastSessionPersistence
         public int HourglassDurationMinutes { get; set; }
         public int HourglassDurationSeconds { get; set; }
         public double HourglassOverlayOpacity { get; set; }
+        public bool HourglassPlaySoundsEnabled { get; set; }
 
         public DateTimeOffset SavedAtUtc { get; set; }
     }
@@ -103,6 +104,7 @@ public static class LastSessionPersistence
                 HourglassDurationMinutes = Clamp(ParseInt(vm.Hourglass.DurationMinutesText), 0, 999),
                 HourglassDurationSeconds = Clamp(ParseInt(vm.Hourglass.DurationSecondsText), 0, 59),
                 HourglassOverlayOpacity = Clamp(vm.Hourglass.OverlayOpacity, 0, 1),
+                HourglassPlaySoundsEnabled = vm.Hourglass.PlaySoundsEnabled,
 
                 SavedAtUtc = DateTimeOffset.UtcNow,
             };
@@ -159,6 +161,7 @@ public static class LastSessionPersistence
                 vm.LastEffectsConfigSaveFileName ??= Path.GetFileName(vm.LastEffectsConfigSavePath);
                 vm.AutoSaveInitiativeEnabled = true;
                 vm.AutoSaveEffectsEnabled = true;
+                vm.Hourglass.PlaySoundsEnabled = true;
             }
 
             // Backfill save paths if the state file predates these fields.
@@ -194,6 +197,7 @@ public static class LastSessionPersistence
                 vm.Hourglass.DurationMinutesText = Clamp(state.HourglassDurationMinutes, 0, 999).ToString();
                 vm.Hourglass.DurationSecondsText = Clamp(state.HourglassDurationSeconds, 0, 59).ToString();
                 vm.Hourglass.OverlayOpacity = Clamp(state.HourglassOverlayOpacity, 0, 1);
+                vm.Hourglass.PlaySoundsEnabled = state.HourglassPlaySoundsEnabled;
             }
 
             // Restore selected media (if it exists in the loaded folder).

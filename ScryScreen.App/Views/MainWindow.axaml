@@ -224,6 +224,14 @@
                                                                 ToolTip.Tip="Reset">
                                                             <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                                         </Button>
+
+                                                        <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                                                      Width="28" Height="28" CornerRadius="14"
+                                                                      IsChecked="{Binding DataContext.Hourglass.PlaySoundsEnabled, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                                                      ToolTip.Tip="Play Sounds">
+                                                            <i:Icon Value="mdi-volume-high" FontSize="16"
+                                                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                                        </ToggleButton>
                                                     </StackPanel>
                                                 </StackPanel>
 
@@ -394,6 +402,14 @@
                                                                     ToolTip.Tip="Reset">
                                                                 <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                                             </Button>
+
+                                                            <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                                                          Width="28" Height="28" CornerRadius="14"
+                                                                          IsChecked="{Binding DataContext.Hourglass.PlaySoundsEnabled, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                                                          ToolTip.Tip="Play Sounds">
+                                                                <i:Icon Value="mdi-volume-high" FontSize="16"
+                                                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                                            </ToggleButton>
                                                         </StackPanel>
                                                     </StackPanel>
 
@@ -1699,8 +1715,8 @@
                             </ItemsControl>
 
                             <!-- Hourglass controls (same row as Assign to Portals, like Initiative Tracker) -->
-                            <Grid Grid.Column="2"
-                                    ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto"
+                                <Grid Grid.Column="2"
+                                    ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto"
                                   ColumnSpacing="10"
                                   VerticalAlignment="Center">
 
@@ -1771,8 +1787,16 @@
                                     <i:Icon Value="mdi-restore" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
                                 </Button>
 
+                                <ToggleButton Grid.Column="5"
+                                              Classes="circleSmall noAccent soundToggle"
+                                              IsChecked="{Binding Hourglass.PlaySoundsEnabled, Mode=TwoWay}"
+                                              ToolTip.Tip="Play Sounds">
+                                    <i:Icon Value="mdi-volume-high" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
+
                                 <!-- Opacity (between reset and (123)) -->
-                                <Grid Grid.Column="5" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" VerticalAlignment="Center">
+                                <Grid Grid.Column="6" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                     <TextBlock Grid.Column="0" Text="Overlay" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="1" Text="0%" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
                                     <Slider Grid.Column="2"
@@ -1785,7 +1809,7 @@
                                 </Grid>
 
                                 <!-- (123) far right, icon-sized like other controls -->
-                                <ToggleButton Grid.Column="6"
+                                <ToggleButton Grid.Column="7"
                                               Classes="circleSmall noAccent"
                                               IsChecked="{Binding Hourglass.ShowSandPhysics, Mode=TwoWay}"
                                               ToolTip.Tip="Show Sand Physics">
