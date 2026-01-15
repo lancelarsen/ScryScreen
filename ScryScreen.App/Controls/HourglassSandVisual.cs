@@ -80,6 +80,9 @@ public sealed class HourglassSandVisual : Control
     private double _moveCarry;
     private int _stepParity;
 
+    private bool _wasRunning;
+    private double _timeoutFlowGraceSeconds;
+
     // Visual
     private static readonly IBrush SandBrush = new SolidColorBrush(Color.FromRgb(218, 162, 76));
     private static readonly IBrush GreyBrush = new SolidColorBrush(Color.FromRgb(170, 170, 170));
@@ -267,7 +270,21 @@ public sealed class HourglassSandVisual : Control
 
         EnsureGrid();
 
-        if (IsRunning)
+        // If we just transitioned from running -> stopped at the exact end (fraction ~ 0),
+        // keep neck flow enabled briefly so the last grains can finish dropping.
+        if (_wasRunning && !IsRunning && fracNow <= 0.0001)
+        {
+            _timeoutFlowGraceSeconds = 3.0;
+        }
+
+        if (_timeoutFlowGraceSeconds > 0)
+        {
+            _timeoutFlowGraceSeconds = Math.Max(0, _timeoutFlowGraceSeconds - dt.TotalSeconds);
+        }
+
+        var allowNeckFlow = IsRunning || _timeoutFlowGraceSeconds > 0;
+
+        if (allowNeckFlow)
         {
             // Normal run: flow governed by FractionRemaining.
             UpdateFlowAndSim(dt.TotalSeconds);
@@ -278,6 +295,8 @@ public sealed class HourglassSandVisual : Control
             // but do not allow any new grains to pass through the neck.
             UpdateSettleBelowNeck(dt.TotalSeconds);
         }
+
+        _wasRunning = IsRunning;
 
         InvalidateVisual();
     }

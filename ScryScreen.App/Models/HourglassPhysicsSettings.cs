@@ -2,7 +2,6 @@ namespace ScryScreen.App.Models;
 
 public readonly record struct HourglassPhysicsSettings(
     int ParticleCount,
-    double Gravity,
     double Density,
     double ParticleSize,
     int MaxReleasePerFrame)
@@ -10,7 +9,6 @@ public readonly record struct HourglassPhysicsSettings(
     public static readonly HourglassPhysicsSettings Default = new(
         ParticleCount: 3000,
         // Grid-sand simulation values (units are in "cells" and pixels)
-        Gravity: 90.0,
         Density: 5.0,
         ParticleSize: 4.0,
         // Flow is interpreted as grains/sec in the visual (not "per frame").

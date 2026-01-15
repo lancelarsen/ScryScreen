@@ -30,6 +30,10 @@ public static class LastSessionPersistence
         public double HourglassOverlayOpacity { get; set; }
         public bool HourglassPlaySoundsEnabled { get; set; }
 
+        public int? HourglassParticleCount { get; set; }
+        public double? HourglassDensity { get; set; }
+        public double? HourglassParticleSize { get; set; }
+
         public DateTimeOffset SavedAtUtc { get; set; }
     }
 
@@ -41,6 +45,66 @@ public static class LastSessionPersistence
 
     private static int ParseInt(string? text)
         => int.TryParse(text, out var v) ? v : 0;
+
+    private static LastSessionState BuildState(MainWindowViewModel vm)
+    {
+        var physics = vm.Hourglass.SnapshotState().Physics;
+
+        return new LastSessionState
+        {
+            LastMediaFolderPath = vm.LastMediaFolderPath,
+            LastSelectedMediaPath = vm.LastSelectedMediaPath,
+            LastInitiativeConfigSaveFileName = vm.LastInitiativeConfigSaveFileName,
+            LastEffectsConfigSaveFileName = vm.LastEffectsConfigSaveFileName,
+            LastInitiativeConfigSavePath = vm.LastInitiativeConfigSavePath,
+            LastEffectsConfigSavePath = vm.LastEffectsConfigSavePath,
+            AutoSaveInitiativeEnabled = vm.AutoSaveInitiativeEnabled,
+            AutoSaveEffectsEnabled = vm.AutoSaveEffectsEnabled,
+
+            HourglassDurationMinutes = Clamp(ParseInt(vm.Hourglass.DurationMinutesText), 0, 999),
+            HourglassDurationSeconds = Clamp(ParseInt(vm.Hourglass.DurationSecondsText), 0, 59),
+            HourglassOverlayOpacity = Clamp(vm.Hourglass.OverlayOpacity, 0, 1),
+            HourglassPlaySoundsEnabled = vm.Hourglass.PlaySoundsEnabled,
+
+            HourglassParticleCount = physics.ParticleCount,
+            HourglassDensity = physics.Density,
+            HourglassParticleSize = physics.ParticleSize,
+
+            SavedAtUtc = DateTimeOffset.UtcNow,
+        };
+    }
+
+    private static void WriteStateFile(MainWindowViewModel vm)
+    {
+        var state = BuildState(vm);
+        File.WriteAllText(GetStatePath(), JsonSerializer.Serialize(state, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+        }));
+    }
+
+    public static void SaveStateOnly(MainWindowViewModel vm)
+    {
+        if (vm is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var dir = GetSavesDirectory();
+            if (!TryEnsureDirectory(dir))
+            {
+                return;
+            }
+
+            WriteStateFile(vm);
+        }
+        catch (Exception ex)
+        {
+            ErrorReporter.Report(ex, "Auto-save last session");
+        }
+    }
 
     public static string GetSavesDirectory()
     {
@@ -90,29 +154,7 @@ public static class LastSessionPersistence
                 File.WriteAllText(GetEffectsConfigPath(), effectsJson);
             }
 
-            var state = new LastSessionState
-            {
-                LastMediaFolderPath = vm.LastMediaFolderPath,
-                LastSelectedMediaPath = vm.LastSelectedMediaPath,
-                LastInitiativeConfigSaveFileName = vm.LastInitiativeConfigSaveFileName,
-                LastEffectsConfigSaveFileName = vm.LastEffectsConfigSaveFileName,
-                LastInitiativeConfigSavePath = vm.LastInitiativeConfigSavePath,
-                LastEffectsConfigSavePath = vm.LastEffectsConfigSavePath,
-                AutoSaveInitiativeEnabled = vm.AutoSaveInitiativeEnabled,
-                AutoSaveEffectsEnabled = vm.AutoSaveEffectsEnabled,
-
-                HourglassDurationMinutes = Clamp(ParseInt(vm.Hourglass.DurationMinutesText), 0, 999),
-                HourglassDurationSeconds = Clamp(ParseInt(vm.Hourglass.DurationSecondsText), 0, 59),
-                HourglassOverlayOpacity = Clamp(vm.Hourglass.OverlayOpacity, 0, 1),
-                HourglassPlaySoundsEnabled = vm.Hourglass.PlaySoundsEnabled,
-
-                SavedAtUtc = DateTimeOffset.UtcNow,
-            };
-
-            File.WriteAllText(GetStatePath(), JsonSerializer.Serialize(state, new JsonSerializerOptions
-            {
-                WriteIndented = true,
-            }));
+            WriteStateFile(vm);
         }
         catch (Exception ex)
         {
@@ -198,6 +240,22 @@ public static class LastSessionPersistence
                 vm.Hourglass.DurationSecondsText = Clamp(state.HourglassDurationSeconds, 0, 59).ToString();
                 vm.Hourglass.OverlayOpacity = Clamp(state.HourglassOverlayOpacity, 0, 1);
                 vm.Hourglass.PlaySoundsEnabled = state.HourglassPlaySoundsEnabled;
+
+                // Hourglass: restore sand physics if present (state files prior to these fields should not clobber defaults).
+                if (state.HourglassParticleCount is not null)
+                {
+                    vm.Hourglass.ParticleCountText = Clamp(state.HourglassParticleCount.Value, 50, 8000).ToString();
+                }
+
+                if (state.HourglassDensity is not null)
+                {
+                    vm.Hourglass.DensityText = Clamp(state.HourglassDensity.Value, 0, 10).ToString("0.00");
+                }
+
+                if (state.HourglassParticleSize is not null)
+                {
+                    vm.Hourglass.ParticleSizeText = Clamp(state.HourglassParticleSize.Value, 2, 14).ToString("0.0");
+                }
             }
 
             // Restore selected media (if it exists in the loaded folder).

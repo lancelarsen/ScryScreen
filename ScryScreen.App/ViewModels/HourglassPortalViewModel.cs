@@ -24,9 +24,6 @@ public partial class HourglassPortalViewModel : ViewModelBase
     private bool isRunning;
 
     [ObservableProperty]
-    private double gravity = HourglassPhysicsSettings.Default.Gravity;
-
-    [ObservableProperty]
     private double density = HourglassPhysicsSettings.Default.Density;
 
     [ObservableProperty]
@@ -44,7 +41,6 @@ public partial class HourglassPortalViewModel : ViewModelBase
         RemainingText = Format(state.Remaining);
         IsRunning = state.IsRunning;
 
-        Gravity = state.Physics.Gravity;
         Density = state.Physics.Density;
         ParticleSize = state.Physics.ParticleSize;
         MaxReleasePerFrame = state.Physics.MaxReleasePerFrame;

@@ -22,7 +22,6 @@
         <controls:HourglassSandVisual FractionRemaining="{Binding FractionRemaining}"
                                       IsRunning="{Binding IsRunning}"
                                       ParticleCount="{Binding ParticleCount}"
-                                      Gravity="{Binding Gravity}"
                                       Density="{Binding Density}"
                                       ParticleSize="{Binding ParticleSize}"
                                       MaxReleasePerFrame="{Binding MaxReleasePerFrame}" />

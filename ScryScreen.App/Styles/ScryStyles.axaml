@@ -12,8 +12,12 @@
     <Color x:Key="ScryColorTextMuted">#A7B6CB</Color>
     <!-- Arcane gold accent -->
     <Color x:Key="ScryColorAccent">#D6B25E</Color>
+    <!-- Darker gold for selected-text highlight (keeps white text readable) -->
+    <Color x:Key="ScryColorSelection">#8F7432</Color>
     <Color x:Key="ScryColorSuccess">#36D477</Color>
     <Color x:Key="ScryColorDanger">#E54848</Color>
+    <!-- Light blue used for read-only inputs (still selectable) -->
+    <Color x:Key="ScryColorReadOnly">#142A46</Color>
 
     <SolidColorBrush x:Key="ScryBg0" Color="{DynamicResource ScryColorBg0}" />
     <SolidColorBrush x:Key="ScryBg1" Color="{DynamicResource ScryColorBg1}" />
@@ -27,6 +31,10 @@
     <SolidColorBrush x:Key="ScryBadgeMaroon" Color="{DynamicResource ScryColorDanger}" />
     <SolidColorBrush x:Key="ScrySuccess" Color="{DynamicResource ScryColorSuccess}" />
     <SolidColorBrush x:Key="ScryDanger" Color="{DynamicResource ScryColorDanger}" />
+    <SolidColorBrush x:Key="ScryReadOnly" Color="{DynamicResource ScryColorReadOnly}" />
+
+    <!-- Text selection highlight (darker gold) -->
+    <SolidColorBrush x:Key="ScrySelection" Color="{DynamicResource ScryColorSelection}" />
 
     <Thickness x:Key="ScryPadS">8</Thickness>
     <Thickness x:Key="ScryPadM">12</Thickness>
@@ -327,6 +335,27 @@
   </Style>
 
   <!-- Inputs -->
+  <Style Selector="TextBox">
+    <Setter Property="CaretBrush" Value="{DynamicResource ScryAccent}" />
+    <Setter Property="SelectionBrush" Value="{DynamicResource ScrySelection}" />
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource ScryText}" />
+  </Style>
+
+  <!-- Focus border: force gold highlight (avoids theme/OS accent colors) -->
+  <Style Selector="TextBox:focus /template/ Border">
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+  </Style>
+
+  <Style Selector="TextBox:focus-within /template/ Border">
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+  </Style>
+
+  <!-- Disabled TextBoxes: keep them readable (no theme dimming) -->
+  <Style Selector="TextBox:disabled">
+    <Setter Property="Opacity" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
+  </Style>
+
   <Style Selector="ComboBox">
     <Setter Property="MinHeight" Value="34" />
   </Style>

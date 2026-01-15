@@ -63,6 +63,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private System.Threading.CancellationTokenSource? _initiativeAutoSaveCts;
     private System.Threading.CancellationTokenSource? _effectsAutoSaveCts;
 
+    private System.Threading.CancellationTokenSource? _lastSessionStateAutoSaveCts;
+
     private readonly InitiativeTrackerViewModel _initiativeTracker;
     private readonly HourglassViewModel _hourglass;
 
@@ -98,6 +100,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _hourglass = new HourglassViewModel();
         _hourglass.StateChanged += OnHourglassStateChanged;
+        _hourglass.PropertyChanged += OnHourglassPropertyChangedForLastSession;
 
         _hourglassAudio = new Services.HourglassAudioService(_hourglass);
 
@@ -1296,6 +1299,61 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OnHourglassStateChanged()
     {
         UpdateHourglassOnSelectedPortals();
+    }
+
+    private static bool IsPersistableHourglassProperty(string? propertyName)
+    {
+        return propertyName == nameof(HourglassViewModel.DurationMinutesText) ||
+               propertyName == nameof(HourglassViewModel.DurationSecondsText) ||
+               propertyName == nameof(HourglassViewModel.OverlayOpacity) ||
+               propertyName == nameof(HourglassViewModel.PlaySoundsEnabled) ||
+               propertyName == nameof(HourglassViewModel.ParticleCountText) ||
+               propertyName == nameof(HourglassViewModel.DensityText) ||
+               propertyName == nameof(HourglassViewModel.ParticleSizeText);
+    }
+
+    private void OnHourglassPropertyChangedForLastSession(object? sender, PropertyChangedEventArgs e)
+    {
+        if (IsAutoSaveSuppressed)
+        {
+            return;
+        }
+
+        if (!IsPersistableHourglassProperty(e.PropertyName))
+        {
+            return;
+        }
+
+        ScheduleDebouncedLastSessionStateSave();
+    }
+
+    private void ScheduleDebouncedLastSessionStateSave()
+    {
+        _lastSessionStateAutoSaveCts?.Cancel();
+        _lastSessionStateAutoSaveCts = new System.Threading.CancellationTokenSource();
+        var token = _lastSessionStateAutoSaveCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(750, token).ConfigureAwait(false);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                LastSessionPersistence.SaveStateOnly(this);
+            }
+            catch (OperationCanceledException)
+            {
+                // ignore
+            }
+            catch (Exception ex)
+            {
+                ErrorReporter.Report(ex, "Auto-save last session");
+            }
+        }, token);
     }
 
     private void UpdateHourglassOnSelectedPortals()

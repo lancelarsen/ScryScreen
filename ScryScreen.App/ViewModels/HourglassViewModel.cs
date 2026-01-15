@@ -16,8 +16,6 @@ public partial class HourglassViewModel : ViewModelBase
     public event Action? ResetPerformed;
 
     // Grid-sand simulation tuning
-    private const double MinGravity = 1.0;
-    private const double MaxGravity = 400.0;
     private const double MinDensity = 0.0;
     private const double MaxDensity = 10.0;
     private const double MinParticleSize = 2.0;
@@ -39,7 +37,6 @@ public partial class HourglassViewModel : ViewModelBase
 
         // Physics defaults
         ParticleCountText = HourglassPhysicsSettings.Default.ParticleCount.ToString();
-        GravityText = HourglassPhysicsSettings.Default.Gravity.ToString("0");
         DensityText = HourglassPhysicsSettings.Default.Density.ToString("0.00");
         ParticleSizeText = HourglassPhysicsSettings.Default.ParticleSize.ToString("0.0");
         MaxReleasePerFrameText = HourglassPhysicsSettings.Default.MaxReleasePerFrame.ToString();
@@ -64,9 +61,6 @@ public partial class HourglassViewModel : ViewModelBase
 
     [ObservableProperty]
     private string particleCountText = "1000";
-
-    [ObservableProperty]
-    private string gravityText = "2600";
 
     [ObservableProperty]
     private string densityText = "5.00";
@@ -150,12 +144,6 @@ public partial class HourglassViewModel : ViewModelBase
         StateChanged?.Invoke();
     }
 
-    partial void OnGravityTextChanged(string value)
-    {
-        TryUpdatePhysicsFromText();
-        StateChanged?.Invoke();
-    }
-
     partial void OnDensityTextChanged(string value)
     {
         TryUpdatePhysicsFromText();
@@ -171,6 +159,7 @@ public partial class HourglassViewModel : ViewModelBase
     partial void OnParticleCountTextChanged(string value)
     {
         TryUpdatePhysicsFromText();
+        AutoTuneFlowToDurationIfStopped();
         StateChanged?.Invoke();
     }
 
@@ -291,11 +280,6 @@ public partial class HourglassViewModel : ViewModelBase
         // Keep the user's text and update a cached, clamped numeric settings struct when parsing succeeds.
 
         _physics = _physics with { ParticleCount = Clamp(ParseInt(ParticleCountText), MinParticleCount, MaxParticleCount) };
-
-        if (TryParseDoubleLoose(GravityText, out var gravity))
-        {
-            _physics = _physics with { Gravity = Clamp(gravity, MinGravity, MaxGravity) };
-        }
 
         if (TryParseDoubleLoose(DensityText, out var density))
         {
@@ -475,10 +459,12 @@ public partial class HourglassViewModel : ViewModelBase
     {
         var d = HourglassPhysicsSettings.Default;
         ParticleCountText = d.ParticleCount.ToString();
-        GravityText = d.Gravity.ToString("0");
         DensityText = d.Density.ToString("0.00");
         ParticleSizeText = d.ParticleSize.ToString("0.0");
-        MaxReleasePerFrameText = d.MaxReleasePerFrame.ToString();
+
+        // Flow is derived from ParticleCount ÷ Duration (when stopped) to keep sand/time accurate.
+        // So after restoring defaults, recompute the flow rather than using the struct default.
+        AutoTuneFlowToDurationIfStopped();
 
         _physics = d;
         TryUpdatePhysicsFromText();
