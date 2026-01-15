@@ -54,20 +54,18 @@
             CornerRadius="10"
             Padding="10">
       <StackPanel Spacing="8">
-        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-          <TextBlock Text="Sand Physics" Foreground="{DynamicResource ScryTextMuted}" FontWeight="SemiBold" />
-          <Button Grid.Column="1"
-                  Background="#0A0F18"
-                  BorderBrush="{DynamicResource ScryBorder}"
-                  BorderThickness="1"
-                  CornerRadius="8"
-                  Padding="10,4"
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+          <Button Classes="circleSmall"
+                  ToolTip.Tip="Reset Defaults"
                   Command="{Binding ResetPhysicsCommand}">
-            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-              <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
-              <TextBlock Text="Defaults" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
-            </StackPanel>
+            <i:Icon Value="mdi-autorenew" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
           </Button>
+
+          <TextBlock Grid.Column="1"
+                     Text="Sand Physics"
+                     Foreground="{DynamicResource ScryTextMuted}"
+                     FontWeight="SemiBold"
+                     VerticalAlignment="Center" />
         </Grid>
 
         <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="8">

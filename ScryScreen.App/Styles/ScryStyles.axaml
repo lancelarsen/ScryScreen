@@ -212,6 +212,13 @@
     <Setter Property="Background" Value="#1B2E47" />
   </Style>
 
+  <!-- Active circleSmall buttons: gold outline + gold icon (match effect toggles) -->
+  <Style Selector="Button.circleSmall.active">
+    <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="Foreground" Value="{DynamicResource ScryAccent}" />
+  </Style>
+
   <!-- Circle Button: used for compact icon actions -->
   <Style Selector="Button.circle">
     <Setter Property="Width" Value="44" />

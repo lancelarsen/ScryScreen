@@ -209,12 +209,13 @@
                                                                     IsVisible="{Binding !DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
                                                                 <i:Icon Value="mdi-play" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                                             </Button>
-                                                            <Button Classes="circleSmall"
+                                                            <Button Classes="circleSmall active"
                                                                     Width="28" Height="28" CornerRadius="14"
                                                                     Command="{Binding DataContext.Hourglass.StopCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     ToolTip.Tip="Pause"
                                                                     IsVisible="{Binding DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                                <i:Icon Value="mdi-pause" FontSize="16" Foreground="{DynamicResource ScryAccent}" />
+                                                                <i:Icon Value="mdi-pause" FontSize="16"
+                                                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                             </Button>
                                                         </Grid>
 
@@ -225,7 +226,7 @@
                                                             <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                                         </Button>
 
-                                                        <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                                        <ToggleButton Classes="circleSmall soundToggle"
                                                                       Width="28" Height="28" CornerRadius="14"
                                                                       IsChecked="{Binding DataContext.Hourglass.PlaySoundsEnabled, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
                                                                       ToolTip.Tip="Play Sounds">
@@ -387,12 +388,13 @@
                                                                         IsVisible="{Binding !DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
                                                                     <i:Icon Value="mdi-play" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                                                 </Button>
-                                                                <Button Classes="circleSmall"
+                                                                <Button Classes="circleSmall active"
                                                                         Width="28" Height="28" CornerRadius="14"
                                                                         Command="{Binding DataContext.Hourglass.StopCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                         ToolTip.Tip="Pause"
                                                                         IsVisible="{Binding DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                                    <i:Icon Value="mdi-pause" FontSize="16" Foreground="{DynamicResource ScryAccent}" />
+                                                                    <i:Icon Value="mdi-pause" FontSize="16"
+                                                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                                 </Button>
                                                             </Grid>
 
@@ -403,7 +405,7 @@
                                                                 <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
                                                             </Button>
 
-                                                            <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                                                <ToggleButton Classes="circleSmall soundToggle"
                                                                           Width="28" Height="28" CornerRadius="14"
                                                                           IsChecked="{Binding DataContext.Hourglass.PlaySoundsEnabled, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
                                                                           ToolTip.Tip="Play Sounds">
@@ -1286,7 +1288,7 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Effects.RainMax, Mode=TwoWay}" />
-                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                <ToggleButton Classes="circleSmall soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
@@ -1326,7 +1328,7 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Effects.LightningMax, Mode=TwoWay}" />
-                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                <ToggleButton Classes="circleSmall soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
@@ -1405,7 +1407,7 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Effects.SandMax, Mode=TwoWay}" />
-                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                <ToggleButton Classes="circleSmall soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
@@ -1492,7 +1494,7 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Effects.QuakeMax, Mode=TwoWay}" />
-                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                <ToggleButton Classes="circleSmall soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
@@ -1523,7 +1525,7 @@
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
                                          Text="{Binding Effects.FireMax, Mode=TwoWay}" />
-                                <ToggleButton Classes="circleSmall noAccent soundToggle"
+                                <ToggleButton Classes="circleSmall soundToggle"
                                               Width="28"
                                               Height="28"
                                               CornerRadius="14"
@@ -1774,11 +1776,12 @@
                                             IsVisible="{Binding !Hourglass.IsRunning}">
                                         <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
                                     </Button>
-                                    <Button Classes="circleSmall"
+                                    <Button Classes="circleSmall active"
                                             ToolTip.Tip="Pause"
                                             Command="{Binding Hourglass.StopCommand}"
                                             IsVisible="{Binding Hourglass.IsRunning}">
-                                        <i:Icon Value="mdi-pause" FontSize="18" Foreground="{DynamicResource ScryAccent}" />
+                                        <i:Icon Value="mdi-pause" FontSize="18"
+                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                     </Button>
                                 </Grid>
 
@@ -1790,7 +1793,7 @@
                                 </Button>
 
                                 <ToggleButton Grid.Column="5"
-                                              Classes="circleSmall noAccent soundToggle"
+                                          Classes="circleSmall soundToggle"
                                               IsChecked="{Binding Hourglass.PlaySoundsEnabled, Mode=TwoWay}"
                                               ToolTip.Tip="Play Sounds">
                                     <i:Icon Value="mdi-volume-high" FontSize="18"
@@ -1812,10 +1815,11 @@
 
                                 <!-- (123) far right, icon-sized like other controls -->
                                 <ToggleButton Grid.Column="7"
-                                              Classes="circleSmall noAccent"
+                                          Classes="circleSmall effectToggle"
                                               IsChecked="{Binding Hourglass.ShowSandPhysics, Mode=TwoWay}"
                                               ToolTip.Tip="Show Sand Physics">
-                                    <i:Icon Value="mdi-numeric" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    <i:Icon Value="mdi-numeric" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                             </Grid>
                         </Grid>
