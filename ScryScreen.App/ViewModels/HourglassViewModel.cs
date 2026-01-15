@@ -23,7 +23,7 @@ public partial class HourglassViewModel : ViewModelBase
     private const double MinParticleSize = 2.0;
     private const double MaxParticleSize = 14.0;
     private const int MinMaxRelease = 1;
-    private const int MaxMaxRelease = 5000;
+    private const int MaxMaxRelease = 20000;
 
     private const int MinParticleCount = 50;
     private const int MaxParticleCount = 8000;
@@ -189,6 +189,8 @@ public partial class HourglassViewModel : ViewModelBase
             Remaining = GetDuration();
         }
 
+        AutoTuneFlowToDurationIfStopped();
+
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(FractionRemaining));
         OnPropertyChanged(nameof(RemainingText));
@@ -197,6 +199,37 @@ public partial class HourglassViewModel : ViewModelBase
 
         NotifyCommandStates();
         StateChanged?.Invoke();
+    }
+
+    private void AutoTuneFlowToDurationIfStopped()
+    {
+        if (IsRunning)
+        {
+            return;
+        }
+
+        var duration = GetDuration();
+        if (duration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        var seconds = duration.TotalSeconds;
+        if (seconds <= 0.0001)
+        {
+            return;
+        }
+
+        // Compute the flow needed to move all grains through the neck over the configured time.
+        // This makes short timers (e.g. 30s) visually accurate without requiring manual Flow tuning.
+        var particleCount = Clamp(ParseInt(ParticleCountText), MinParticleCount, MaxParticleCount);
+        var requiredFlow = (int)Math.Ceiling(particleCount / seconds);
+        requiredFlow = Clamp(requiredFlow, MinMaxRelease, MaxMaxRelease);
+
+        if (ParseInt(MaxReleasePerFrameText) != requiredFlow)
+        {
+            MaxReleasePerFrameText = requiredFlow.ToString();
+        }
     }
 
     partial void OnIsRunningChanged(bool value)

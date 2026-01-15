@@ -606,7 +606,23 @@ public sealed class HourglassSandVisual : Control
         var move = (_fallVelocity * dtSeconds) + _moveCarry;
         var steps = (int)Math.Floor(move);
         _moveCarry = move - steps;
-        steps = Clamp(steps, 0, 4);
+
+        // Substep budget: neck throughput is effectively capped at ~1 grain per substep.
+        // For short timers we need more substeps per render frame to keep up with Flow.
+        // Keep this bounded for performance.
+        const int MaxSubstepsPerFrame = 16;
+        if (needed > 0 || _passBudget > 0)
+        {
+            var flowPerSecond = Clamp(MaxReleasePerFrame, 1, 20000);
+            var minStepsForFlow = (int)Math.Ceiling(flowPerSecond * dtSeconds);
+            minStepsForFlow = Clamp(minStepsForFlow, 0, MaxSubstepsPerFrame);
+            if (steps < minStepsForFlow)
+            {
+                steps = minStepsForFlow;
+            }
+        }
+
+        steps = Clamp(steps, 0, MaxSubstepsPerFrame);
 
         var density = Clamp(Density, 0.0, 10.0);
         var slideChance = 1.0 - ((density / 10.0) * 0.75);
