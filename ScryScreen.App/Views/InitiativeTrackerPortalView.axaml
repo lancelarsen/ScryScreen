@@ -164,53 +164,87 @@
                   </Border>
                 </Grid>
 
-                <!-- Name (column-aligned) -->
+                <!-- Name + conditions (column-aligned) -->
                 <Grid Grid.Column="1"
+                      RowDefinitions="Auto,Auto"
+                      RowSpacing="8"
                       HorizontalAlignment="Left"
                       VerticalAlignment="Center">
-                  <!-- Base name (always visible, keeps high contrast) -->
-                  <TextBlock Classes="entry"
-                             Text="{Binding Name}"
-                             TextTrimming="CharacterEllipsis"
-                             FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                             HorizontalAlignment="Left"
-                             VerticalAlignment="Center" />
+                  <Grid Grid.Row="0">
+                    <!-- Base name (always visible, keeps high contrast) -->
+                    <TextBlock Classes="entry"
+                               Text="{Binding Name}"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{Binding NameBrush}"
+                               TextDecorations="{Binding NameDecorations}"
+                               FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Center" />
 
-                  <!-- Active glow overlay (golden glow) -->
-                  <TextBlock Classes="entry"
-                             Text="{Binding Name}"
-                             TextTrimming="CharacterEllipsis"
-                             Foreground="#FFFFFF"
-                             IsVisible="{Binding IsActive}"
-                             FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                             HorizontalAlignment="Left"
-                             VerticalAlignment="Center">
-                    <TextBlock.Effect>
-                      <DropShadowEffect Color="#D4AF37"
-                                        BlurRadius="56"
-                                        OffsetX="0"
-                                        OffsetY="0"
-                                        Opacity="0.95" />
-                    </TextBlock.Effect>
-                  </TextBlock>
+                    <!-- Active glow overlay (golden glow) -->
+                    <TextBlock Classes="entry"
+                               Text="{Binding Name}"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{Binding NameBrush}"
+                               TextDecorations="{Binding NameDecorations}"
+                               IsVisible="{Binding IsActive}"
+                               FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Center">
+                      <TextBlock.Effect>
+                        <DropShadowEffect Color="#D4AF37"
+                                          BlurRadius="56"
+                                          OffsetX="0"
+                                          OffsetY="0"
+                                          Opacity="0.95" />
+                      </TextBlock.Effect>
+                    </TextBlock>
 
-                  <!-- Extra inner glow layer to make the gold aura punchier (still white text) -->
-                  <TextBlock Classes="entry"
-                             Text="{Binding Name}"
-                             TextTrimming="CharacterEllipsis"
-                             Foreground="#FFFFFF"
-                             IsVisible="{Binding IsActive}"
-                             FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                             HorizontalAlignment="Left"
-                             VerticalAlignment="Center">
-                    <TextBlock.Effect>
-                      <DropShadowEffect Color="#FFD36A"
-                                        BlurRadius="26"
-                                        OffsetX="0"
-                                        OffsetY="0"
-                                        Opacity="0.90" />
-                    </TextBlock.Effect>
-                  </TextBlock>
+                    <!-- Extra inner glow layer to make the gold aura punchier -->
+                    <TextBlock Classes="entry"
+                               Text="{Binding Name}"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{Binding NameBrush}"
+                               TextDecorations="{Binding NameDecorations}"
+                               IsVisible="{Binding IsActive}"
+                               FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Center">
+                      <TextBlock.Effect>
+                        <DropShadowEffect Color="#FFD36A"
+                                          BlurRadius="26"
+                                          OffsetX="0"
+                                          OffsetY="0"
+                                          Opacity="0.90" />
+                      </TextBlock.Effect>
+                    </TextBlock>
+                  </Grid>
+
+                  <ItemsControl Grid.Row="1" ItemsSource="{Binding Conditions}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel ItemSpacing="10" LineSpacing="8" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:InitiativePortalConditionTagViewModel" x:CompileBindings="False">
+                        <Border Background="#000000" Opacity="0.85" CornerRadius="10" Padding="10,4">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding ShortTag}"
+                                       Foreground="{Binding Brush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="{Binding DataContext.MoreFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                            <Border IsVisible="{Binding HasTimer}" Background="{Binding Brush}" CornerRadius="8" Padding="6,0">
+                              <TextBlock Text="{Binding RoundsRemaining}"
+                                         Foreground="#000000"
+                                         FontWeight="Black"
+                                         FontSize="{Binding DataContext.MoreFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                            </Border>
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
                 </Grid>
               </Grid>
             </DataTemplate>

@@ -29,4 +29,19 @@ public sealed class InitiativeTrackerConfigEntry
     public bool IsHidden { get; set; }
 
     public string? Notes { get; set; }
+
+    // Stored as text to preserve "blank vs 0" and any in-progress partial edits.
+    public string MaxHp { get; set; } = string.Empty;
+
+    public string CurrentHp { get; set; } = string.Empty;
+
+    public List<InitiativeTrackerConfigEntryCondition> Conditions { get; set; } = new();
+}
+
+public sealed class InitiativeTrackerConfigEntryCondition
+{
+    public Guid ConditionId { get; set; }
+
+    // Null means "manual-only" / no timer.
+    public int? RoundsRemaining { get; set; }
 }

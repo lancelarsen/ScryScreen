@@ -5,9 +5,11 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScryScreen.App.Models;
+using ScryScreen.App.Services;
 using ScryScreen.Core.InitiativeTracker;
 
 namespace ScryScreen.App.ViewModels;
@@ -24,10 +26,15 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     private bool _isReordering;
 
+    private bool _suppressEntrySync;
+
     public event Action? StateChanged;
 
     public InitiativeTrackerViewModel()
     {
+        ConditionLibrary = ConditionLibraryService.LoadOrCreateDefault();
+        RefreshConditionLibraryItems();
+
         // Start with a few blank rows so the tracker feels ready immediately.
         for (var i = 0; i < DefaultRowCount; i++)
         {
@@ -36,7 +43,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
         foreach (var entry in Entries)
         {
-            entry.PropertyChanged += OnEntryPropertyChanged;
+            HookEntry(entry);
         }
 
         Entries.CollectionChanged += OnEntriesCollectionChanged;
@@ -46,6 +53,23 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     }
 
     public ObservableCollection<InitiativeEntryViewModel> Entries { get; } = new();
+
+    public ConditionLibraryService ConditionLibrary { get; }
+
+    public IReadOnlyList<ConditionDefinition> ConditionDefinitions
+        => ConditionLibrary.GetAllDefinitionsAlphabetical();
+
+    public IReadOnlyList<int> ConditionDurations { get; } = Enumerable.Range(1, 10).ToArray();
+
+    public ObservableCollection<ConditionDefinitionViewModel> ConditionLibraryItems { get; } = new();
+
+    public ObservableCollection<ColorSwatchViewModel> ConditionColorSwatches { get; } = new()
+    {
+        new("#FF000000"), new("#FF111827"), new("#FF374151"), new("#FF6B7280"), new("#FF9CA3AF"), new("#FFFFFFFF"),
+        new("#FF7F1D1D"), new("#FFDC2626"), new("#FFF97316"), new("#FFF59E0B"), new("#FFEAB308"), new("#FF84CC16"),
+        new("#FF22C55E"), new("#FF4ADE80"), new("#FF14B8A6"), new("#FF06B6D4"), new("#FF0EA5E9"), new("#FF3B82F6"),
+        new("#FF6366F1"), new("#FF8B5CF6"), new("#FFA855F7"), new("#FFEC4899"), new("#FFFF4FD8"), new("#FFD4AF37"),
+    };
 
     public bool IsEmpty => Entries.Count == 0;
 
@@ -65,6 +89,52 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     [ObservableProperty]
     private InitiativePortalFontSize portalFontSize = InitiativePortalFontSize.Medium;
 
+    [ObservableProperty]
+    private bool showConditionsConfiguration;
+
+    [ObservableProperty]
+    private ConditionDefinitionViewModel? selectedCondition;
+
+    [ObservableProperty]
+    private string selectedConditionNameText = string.Empty;
+
+    [ObservableProperty]
+    private string selectedConditionShortTagText = string.Empty;
+
+    [ObservableProperty]
+    private string selectedConditionColorHexText = "#FFFFFFFF";
+
+    [ObservableProperty]
+    private string selectedColorRText = "255";
+
+    [ObservableProperty]
+    private string selectedColorGText = "255";
+
+    [ObservableProperty]
+    private string selectedColorBText = "255";
+
+    [ObservableProperty]
+    private string newCustomConditionNameText = string.Empty;
+
+    [ObservableProperty]
+    private string newCustomConditionShortTagText = string.Empty;
+
+    [ObservableProperty]
+    private string newCustomConditionColorHexText = "#FFFFFFFF";
+
+    [ObservableProperty]
+    private string newCustomColorRText = "255";
+
+    [ObservableProperty]
+    private string newCustomColorGText = "255";
+
+    [ObservableProperty]
+    private string newCustomColorBText = "255";
+
+    public bool HasSelectedCondition => SelectedCondition is not null;
+    public bool CanDeleteSelectedCondition => SelectedCondition is not null && SelectedCondition.IsCustom;
+    public bool CanEditSelectedConditionIdentity => SelectedCondition is not null && SelectedCondition.CanEditIdentity;
+
     partial void OnOverlayOpacityChanged(double value)
     {
         // Display-only; notify portal clients.
@@ -75,6 +145,31 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     {
         // Display-only; notify portal clients.
         StateChanged?.Invoke();
+    }
+
+    partial void OnSelectedConditionChanged(ConditionDefinitionViewModel? value)
+    {
+        OnPropertyChanged(nameof(HasSelectedCondition));
+        OnPropertyChanged(nameof(CanDeleteSelectedCondition));
+        OnPropertyChanged(nameof(CanEditSelectedConditionIdentity));
+
+        DeleteSelectedCustomConditionCommand.NotifyCanExecuteChanged();
+
+        if (value is null)
+        {
+            SelectedConditionNameText = string.Empty;
+            SelectedConditionShortTagText = string.Empty;
+            SelectedConditionColorHexText = "#FFFFFFFF";
+            SelectedColorRText = "255";
+            SelectedColorGText = "255";
+            SelectedColorBText = "255";
+            return;
+        }
+
+        SelectedConditionNameText = value.Name;
+        SelectedConditionShortTagText = value.ShortTag;
+        SelectedConditionColorHexText = value.ColorHex;
+        UpdateSelectedRgbFromHex(value.ColorHex);
     }
 
     public Guid? ActiveId => _state.ActiveId;
@@ -107,6 +202,15 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
                 Mod = e.Mod ?? string.Empty,
                 IsHidden = e.IsHidden,
                 Notes = e.Notes,
+                MaxHp = e.MaxHp ?? string.Empty,
+                CurrentHp = e.CurrentHp ?? string.Empty,
+                Conditions = e.Conditions
+                    .Select(c => new InitiativeTrackerConfigEntryCondition
+                    {
+                        ConditionId = c.ConditionId,
+                        RoundsRemaining = c.RoundsRemaining,
+                    })
+                    .ToList(),
             }).ToList(),
         };
 
@@ -114,6 +218,234 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         {
             WriteIndented = indented,
         });
+    }
+
+    [RelayCommand]
+    private void SelectColorSwatchForSelected(ColorSwatchViewModel? swatch)
+    {
+        if (SelectedCondition is null || swatch is null)
+        {
+            return;
+        }
+
+        SelectedConditionColorHexText = swatch.Hex;
+        SaveSelectedConditionEdits();
+    }
+
+    [RelayCommand]
+    private void ApplySelectedRgb()
+    {
+        if (SelectedCondition is null)
+        {
+            return;
+        }
+
+        if (!TryBuildHexFromRgb(SelectedColorRText, SelectedColorGText, SelectedColorBText, out var hex))
+        {
+            return;
+        }
+
+        SelectedConditionColorHexText = hex;
+        SaveSelectedConditionEdits();
+    }
+
+    [RelayCommand]
+    private void SaveSelectedConditionEdits()
+    {
+        var selected = SelectedCondition;
+        if (selected is null)
+        {
+            return;
+        }
+
+        if (!TryNormalizeHexColor(SelectedConditionColorHexText, out var normalizedColor))
+        {
+            return;
+        }
+
+        // Built-ins: only color is editable.
+        if (selected.IsBuiltIn)
+        {
+            ConditionLibrary.SetColor(selected.Id, normalizedColor);
+            ConditionLibrary.Save();
+            RefreshConditionLibraryItems(keepSelectedId: selected.Id);
+            RefreshAllEntryConditionAppearance();
+            RaisePortalTextChanged();
+            return;
+        }
+
+        // Customs: name + tag + color.
+        var name = (SelectedConditionNameText ?? string.Empty).Trim();
+        var tag = (SelectedConditionShortTagText ?? string.Empty).Trim();
+        if (name.Length == 0 || tag.Length == 0)
+        {
+            return;
+        }
+
+        if (!ConditionLibrary.TryUpdateCustom(selected.Id, name, tag, normalizedColor))
+        {
+            return;
+        }
+        ConditionLibrary.Save();
+        RefreshConditionLibraryItems(keepSelectedId: selected.Id);
+        RefreshAllEntryConditionAppearance();
+        RaisePortalTextChanged();
+    }
+
+    [RelayCommand]
+    private void SelectColorSwatchForNewCustom(ColorSwatchViewModel? swatch)
+    {
+        if (swatch is null)
+        {
+            return;
+        }
+
+        NewCustomConditionColorHexText = swatch.Hex;
+        UpdateNewCustomRgbFromHex(swatch.Hex);
+    }
+
+    [RelayCommand]
+    private void ApplyNewCustomRgb()
+    {
+        if (!TryBuildHexFromRgb(NewCustomColorRText, NewCustomColorGText, NewCustomColorBText, out var hex))
+        {
+            return;
+        }
+
+        NewCustomConditionColorHexText = hex;
+    }
+
+    [RelayCommand]
+    private void AddCustomCondition()
+    {
+        var name = (NewCustomConditionNameText ?? string.Empty).Trim();
+        var tag = (NewCustomConditionShortTagText ?? string.Empty).Trim();
+
+        if (name.Length == 0 || tag.Length == 0)
+        {
+            return;
+        }
+
+        if (!TryNormalizeHexColor(NewCustomConditionColorHexText, out var normalizedColor))
+        {
+            return;
+        }
+
+        var def = ConditionLibrary.AddCustom(name, tag, normalizedColor);
+        ConditionLibrary.Save();
+
+        NewCustomConditionNameText = string.Empty;
+        NewCustomConditionShortTagText = string.Empty;
+        NewCustomConditionColorHexText = "#FFFFFFFF";
+        NewCustomColorRText = "255";
+        NewCustomColorGText = "255";
+        NewCustomColorBText = "255";
+
+        RefreshConditionLibraryItems(keepSelectedId: def.Id);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanDeleteSelectedCondition))]
+    private void DeleteSelectedCustomCondition()
+    {
+        var selected = SelectedCondition;
+        if (selected is null || selected.IsBuiltIn)
+        {
+            return;
+        }
+
+        if (!ConditionLibrary.DeleteCustom(selected.Id))
+        {
+            return;
+        }
+
+        ConditionLibrary.Save();
+        PurgeConditionFromAllEntries(selected.Id);
+        RefreshConditionLibraryItems(keepSelectedId: null);
+        RaisePortalTextChanged();
+    }
+
+    private void RefreshConditionLibraryItems(Guid? keepSelectedId = null)
+    {
+        ConditionLibraryItems.Clear();
+        foreach (var def in ConditionLibrary.GetAllDefinitionsAlphabetical())
+        {
+            ConditionLibraryItems.Add(new ConditionDefinitionViewModel(def));
+        }
+
+        var toSelect = keepSelectedId;
+        if (toSelect.HasValue)
+        {
+            SelectedCondition = ConditionLibraryItems.FirstOrDefault(c => c.Id == toSelect.Value);
+        }
+
+        // Keep other bindings in sync.
+        OnPropertyChanged(nameof(ConditionDefinitions));
+    }
+
+    private static bool TryNormalizeHexColor(string? hex, out string normalized)
+    {
+        normalized = "#FFFFFFFF";
+        if (string.IsNullOrWhiteSpace(hex))
+        {
+            return false;
+        }
+
+        try
+        {
+            var c = Color.Parse(hex.Trim());
+            normalized = $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void UpdateSelectedRgbFromHex(string? hex)
+    {
+        try
+        {
+            var c = Color.Parse(hex ?? "#FFFFFFFF");
+            SelectedColorRText = c.R.ToString();
+            SelectedColorGText = c.G.ToString();
+            SelectedColorBText = c.B.ToString();
+        }
+        catch
+        {
+            SelectedColorRText = "255";
+            SelectedColorGText = "255";
+            SelectedColorBText = "255";
+        }
+    }
+
+    private void UpdateNewCustomRgbFromHex(string? hex)
+    {
+        try
+        {
+            var c = Color.Parse(hex ?? "#FFFFFFFF");
+            NewCustomColorRText = c.R.ToString();
+            NewCustomColorGText = c.G.ToString();
+            NewCustomColorBText = c.B.ToString();
+        }
+        catch
+        {
+            NewCustomColorRText = "255";
+            NewCustomColorGText = "255";
+            NewCustomColorBText = "255";
+        }
+    }
+
+    private static bool TryBuildHexFromRgb(string? rText, string? gText, string? bText, out string hex)
+    {
+        hex = "#FFFFFFFF";
+        if (!byte.TryParse(rText, out var r) || !byte.TryParse(gText, out var g) || !byte.TryParse(bText, out var b))
+        {
+            return false;
+        }
+
+        hex = $"#FF{r:X2}{g:X2}{b:X2}";
+        return true;
     }
 
     public void ImportConfigJson(string json)
@@ -152,14 +484,47 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
                 seenIds.Add(id);
             }
 
-            Entries.Add(new InitiativeEntryViewModel(id)
+            var vm = new InitiativeEntryViewModel(id)
             {
                 Name = entry.Name ?? string.Empty,
                 Initiative = entry.Initiative ?? string.Empty,
                 Mod = entry.Mod ?? string.Empty,
                 IsHidden = entry.IsHidden,
                 Notes = entry.Notes,
-            });
+                MaxHp = entry.MaxHp ?? string.Empty,
+                CurrentHp = entry.CurrentHp ?? string.Empty,
+            };
+
+            // Back-compat: if MaxHp exists but CurrentHp is missing, keep CurrentHp blank.
+            if (!string.IsNullOrEmpty(vm.MaxHp) && entry.CurrentHp is null)
+            {
+                vm.CurrentHp = string.Empty;
+            }
+
+            var seenConditionIds = new HashSet<Guid>();
+            foreach (var c in entry.Conditions ?? new List<InitiativeTrackerConfigEntryCondition>())
+            {
+                if (c.ConditionId == Guid.Empty || !seenConditionIds.Add(c.ConditionId))
+                {
+                    continue;
+                }
+
+                if (!ConditionLibrary.TryGet(c.ConditionId, out var def))
+                {
+                    continue;
+                }
+
+                var rounds = def.IsManualOnly ? null : NormalizeRoundsOrNull(c.RoundsRemaining);
+                vm.Conditions.Add(new InitiativeEntryConditionViewModel(
+                    owner: vm,
+                    conditionId: def.Id,
+                    shortTag: def.ShortTag,
+                    colorHex: def.ColorHex,
+                    isManualOnly: def.IsManualOnly,
+                    roundsRemaining: rounds));
+            }
+
+            Entries.Add(vm);
         }
 
         if (Entries.Count == 0)
@@ -195,7 +560,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         {
             foreach (var o in e.OldItems.OfType<InitiativeEntryViewModel>())
             {
-                o.PropertyChanged -= OnEntryPropertyChanged;
+                UnhookEntry(o);
             }
         }
 
@@ -203,7 +568,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         {
             foreach (var n in e.NewItems.OfType<InitiativeEntryViewModel>())
             {
-                n.PropertyChanged += OnEntryPropertyChanged;
+                HookEntry(n);
             }
         }
 
@@ -356,6 +721,25 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         var newRound = _state.Round;
         Guid newActive;
 
+        // End-of-turn tick-down: decrement the currently-active eligible entry when advancing forward.
+        // If the current active entry is ineligible/missing, skip tick-down per spec.
+        if (forward && currentIdx >= 0)
+        {
+            var endedTurnId = eligibleIds[currentIdx];
+            if (vmById.TryGetValue(endedTurnId, out var endedVm))
+            {
+                _suppressEntrySync = true;
+                try
+                {
+                    TickDownTimedConditions(endedVm);
+                }
+                finally
+                {
+                    _suppressEntrySync = false;
+                }
+            }
+        }
+
         if (currentIdx < 0)
         {
             newActive = forward ? eligibleIds[0] : eligibleIds[^1];
@@ -387,21 +771,18 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             }
         }
 
-        _state = _state with { ActiveId = newActive, Round = newRound };
-
-        // Update Round without invoking OnRoundChanged (we already updated state).
+        // Update Round without invoking OnRoundChanged (RebuildStateFromEntries will use this).
         _suppressRoundSync = true;
         try
         {
-            Round = _state.Round;
+            Round = newRound;
         }
         finally
         {
             _suppressRoundSync = false;
         }
 
-        UpdateActiveFlags();
-        RaisePortalTextChanged();
+        RebuildStateFromEntries(sort: false, activeIdOverride: newActive);
     }
 
     [RelayCommand]
@@ -452,7 +833,12 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
                 Initiative: ParseIntOrZero(vm.Initiative),
                 Mod: ParseIntOrZero(vm.Mod),
                 IsHidden: vm.IsHidden,
-                Notes: vm.Notes))
+                Notes: vm.Notes,
+                MaxHp: vm.MaxHp ?? string.Empty,
+                CurrentHp: vm.CurrentHp ?? string.Empty,
+                Conditions: vm.Conditions
+                    .Select(c => new AppliedCondition(c.ConditionId, c.RoundsRemaining))
+                    .ToArray()))
             .ToArray();
 
         var next = new InitiativeTrackerState(
@@ -491,7 +877,178 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             Mod = string.Empty,
             IsHidden = false,
             Notes = null,
+            MaxHp = string.Empty,
+            CurrentHp = string.Empty,
         };
+    }
+
+    [RelayCommand]
+    private void AddConditionToEntry(InitiativeEntryViewModel? entry)
+    {
+        if (entry is null || entry.SelectedConditionToAdd is null)
+        {
+            return;
+        }
+
+        var def = entry.SelectedConditionToAdd;
+        var rounds = def.IsManualOnly ? null : (int?)NormalizeRounds(entry.SelectedConditionRoundsToAdd);
+
+        // Re-adding replaces.
+        var existing = entry.Conditions.FirstOrDefault(c => c.ConditionId == def.Id);
+        if (existing is not null)
+        {
+            existing.ShortTag = def.ShortTag;
+            existing.ColorHex = def.ColorHex;
+            existing.RoundsRemaining = rounds;
+        }
+        else
+        {
+            entry.Conditions.Add(new InitiativeEntryConditionViewModel(
+                owner: entry,
+                conditionId: def.Id,
+                shortTag: def.ShortTag,
+                colorHex: def.ColorHex,
+                isManualOnly: def.IsManualOnly,
+                roundsRemaining: rounds));
+        }
+
+        RebuildStateFromEntries(sort: false);
+    }
+
+    [RelayCommand]
+    private void RemoveConditionFromEntry(InitiativeEntryConditionViewModel? condition)
+    {
+        if (condition is null)
+        {
+            return;
+        }
+
+        condition.Owner.Conditions.Remove(condition);
+        RebuildStateFromEntries(sort: false);
+    }
+
+    private void HookEntry(InitiativeEntryViewModel entry)
+    {
+        entry.PropertyChanged += OnEntryPropertyChanged;
+        entry.Conditions.CollectionChanged += OnEntryConditionsCollectionChanged;
+        foreach (var c in entry.Conditions)
+        {
+            c.PropertyChanged += OnEntryConditionPropertyChanged;
+        }
+    }
+
+    private void UnhookEntry(InitiativeEntryViewModel entry)
+    {
+        entry.PropertyChanged -= OnEntryPropertyChanged;
+        entry.Conditions.CollectionChanged -= OnEntryConditionsCollectionChanged;
+        foreach (var c in entry.Conditions)
+        {
+            c.PropertyChanged -= OnEntryConditionPropertyChanged;
+        }
+    }
+
+    private void OnEntryConditionsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_suppressEntrySync)
+        {
+            return;
+        }
+
+        if (e.OldItems is not null)
+        {
+            foreach (var c in e.OldItems.OfType<InitiativeEntryConditionViewModel>())
+            {
+                c.PropertyChanged -= OnEntryConditionPropertyChanged;
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (var c in e.NewItems.OfType<InitiativeEntryConditionViewModel>())
+            {
+                c.PropertyChanged += OnEntryConditionPropertyChanged;
+            }
+        }
+
+        RebuildStateFromEntries(sort: false);
+    }
+
+    private void OnEntryConditionPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_suppressEntrySync)
+        {
+            return;
+        }
+
+        RebuildStateFromEntries(sort: false);
+    }
+
+    private static void TickDownTimedConditions(InitiativeEntryViewModel entry)
+    {
+        for (var i = entry.Conditions.Count - 1; i >= 0; i--)
+        {
+            var c = entry.Conditions[i];
+            if (c.IsManualOnly || !c.RoundsRemaining.HasValue)
+            {
+                continue;
+            }
+
+            var next = c.RoundsRemaining.Value - 1;
+            if (next <= 0)
+            {
+                entry.Conditions.RemoveAt(i);
+            }
+            else
+            {
+                c.RoundsRemaining = next;
+            }
+        }
+    }
+
+    private void RefreshAllEntryConditionAppearance()
+    {
+        foreach (var entry in Entries)
+        {
+            foreach (var c in entry.Conditions)
+            {
+                if (!ConditionLibrary.TryGet(c.ConditionId, out var def))
+                {
+                    continue;
+                }
+
+                c.ShortTag = def.ShortTag;
+                c.ColorHex = def.ColorHex;
+            }
+        }
+    }
+
+    private void PurgeConditionFromAllEntries(Guid conditionId)
+    {
+        foreach (var entry in Entries)
+        {
+            for (var i = entry.Conditions.Count - 1; i >= 0; i--)
+            {
+                if (entry.Conditions[i].ConditionId == conditionId)
+                {
+                    entry.Conditions.RemoveAt(i);
+                }
+            }
+        }
+    }
+
+    private static int NormalizeRounds(int rounds)
+    {
+        return Math.Clamp(rounds, 1, 10);
+    }
+
+    private static int? NormalizeRoundsOrNull(int? rounds)
+    {
+        if (!rounds.HasValue)
+        {
+            return null;
+        }
+
+        return NormalizeRounds(rounds.Value);
     }
 
     private void ReorderCollectionToMatchState()

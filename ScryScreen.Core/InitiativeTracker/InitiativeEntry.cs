@@ -8,7 +8,10 @@ public sealed record InitiativeEntry(
     int Initiative,
     int Mod = 0,
     bool IsHidden = false,
-    string? Notes = null)
+    string? Notes = null,
+    string MaxHp = "",
+    string CurrentHp = "",
+    AppliedCondition[]? Conditions = null)
 {
     public static InitiativeEntry Create(string name, int initiative, int mod = 0, bool isHidden = false, string? notes = null)
     {
@@ -19,5 +22,10 @@ public sealed record InitiativeEntry(
             Mod: mod,
             IsHidden: isHidden,
             Notes: notes);
+    }
+
+    public AppliedCondition[] GetConditionsOrEmpty()
+    {
+        return Conditions ?? Array.Empty<AppliedCondition>();
     }
 }

@@ -16,6 +16,9 @@ public sealed class NumericTextBoxBehavior
     public static readonly AttachedProperty<bool> IsNumericDecimalOnlyProperty =
         AvaloniaProperty.RegisterAttached<NumericTextBoxBehavior, TextBox, bool>("IsNumericDecimalOnly");
 
+    public static readonly AttachedProperty<bool> AllowNegativeProperty =
+        AvaloniaProperty.RegisterAttached<NumericTextBoxBehavior, TextBox, bool>("AllowNegative", defaultValue: true);
+
     private enum NumericMode
     {
         None,
@@ -30,9 +33,11 @@ public sealed class NumericTextBoxBehavior
         AvaloniaProperty.RegisterAttached<NumericTextBoxBehavior, TextBox, string>("LastGoodText", defaultValue: string.Empty);
 
     private static readonly Regex IntegerRegex = new("^-?\\d*$", RegexOptions.Compiled);
+    private static readonly Regex UnsignedIntegerRegex = new("^\\d*$", RegexOptions.Compiled);
 
     // Allow "", "-", "123", "123.", "123.45", "123,45"
     private static readonly Regex DecimalRegex = new("^-?\\d*([\\.,]\\d*)?$", RegexOptions.Compiled);
+    private static readonly Regex UnsignedDecimalRegex = new("^\\d*([\\.,]\\d*)?$", RegexOptions.Compiled);
 
     static NumericTextBoxBehavior()
     {
@@ -47,6 +52,10 @@ public sealed class NumericTextBoxBehavior
     public static bool GetIsNumericDecimalOnly(AvaloniaObject obj) => obj.GetValue(IsNumericDecimalOnlyProperty);
 
     public static void SetIsNumericDecimalOnly(AvaloniaObject obj, bool value) => obj.SetValue(IsNumericDecimalOnlyProperty, value);
+
+    public static bool GetAllowNegative(AvaloniaObject obj) => obj.GetValue(AllowNegativeProperty);
+
+    public static void SetAllowNegative(AvaloniaObject obj, bool value) => obj.SetValue(AllowNegativeProperty, value);
 
     private static void OnIsNumericDecimalOnlyChanged(TextBox textBox, AvaloniaPropertyChangedEventArgs args)
     {
@@ -177,9 +186,15 @@ public sealed class NumericTextBoxBehavior
             e.Handled = true;
         }
 
-        // Allow minus only at start.
+        // Allow minus only at start (and only if negatives are allowed).
         if (e.Key == Key.OemMinus || e.Key == Key.Subtract)
         {
+            if (!textBox.GetValue(AllowNegativeProperty))
+            {
+                e.Handled = true;
+                return;
+            }
+
             if (textBox.SelectionStart != textBox.SelectionEnd)
             {
                 var selectionStart = Math.Min(textBox.SelectionStart, textBox.SelectionEnd);
@@ -225,10 +240,11 @@ public sealed class NumericTextBoxBehavior
     private static bool IsAllowed(TextBox textBox, string text)
     {
         var mode = textBox.GetValue(ModeProperty);
+        var allowNegative = textBox.GetValue(AllowNegativeProperty);
         return mode switch
         {
-            NumericMode.Decimal => DecimalRegex.IsMatch(text),
-            NumericMode.Integer => IntegerRegex.IsMatch(text),
+            NumericMode.Decimal => (allowNegative ? DecimalRegex : UnsignedDecimalRegex).IsMatch(text),
+            NumericMode.Integer => (allowNegative ? IntegerRegex : UnsignedIntegerRegex).IsMatch(text),
             _ => true,
         };
     }
@@ -251,10 +267,12 @@ public sealed class NumericTextBoxBehavior
             return IsAllowedInsertionDecimal(textBox, inserted);
         }
 
+        var allowNegative = textBox.GetValue(AllowNegativeProperty);
+
         // Integer mode: validate prospective text (handles paste and selection replacement cleanly).
         foreach (var ch in inserted)
         {
-            if (char.IsDigit(ch) || ch == '-')
+            if (char.IsDigit(ch) || (allowNegative && ch == '-'))
             {
                 continue;
             }
@@ -263,11 +281,13 @@ public sealed class NumericTextBoxBehavior
         }
 
         var prospective = BuildProspectiveText(textBox, inserted);
-        return IntegerRegex.IsMatch(prospective);
+        return (allowNegative ? IntegerRegex : UnsignedIntegerRegex).IsMatch(prospective);
     }
 
     private static bool IsAllowedInsertionDecimal(TextBox textBox, string inserted)
     {
+        var allowNegative = textBox.GetValue(AllowNegativeProperty);
+
         // Allow digits, optional leading '-', and a single '.' or ',' anywhere after the sign.
         foreach (var ch in inserted)
         {
@@ -283,7 +303,12 @@ public sealed class NumericTextBoxBehavior
 
             if (ch == '-')
             {
-                continue;
+                if (allowNegative)
+                {
+                    continue;
+                }
+
+                return false;
             }
 
             return false;
@@ -291,7 +316,7 @@ public sealed class NumericTextBoxBehavior
 
         // Validate the prospective text (keeps copy/paste sane).
         var prospective = BuildProspectiveText(textBox, inserted);
-        return DecimalRegex.IsMatch(prospective);
+        return (allowNegative ? DecimalRegex : UnsignedDecimalRegex).IsMatch(prospective);
     }
 
     private static string BuildProspectiveText(TextBox textBox, string inserted)

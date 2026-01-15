@@ -1,5 +1,7 @@
 using System;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using ScryScreen.App.Models;
 
 namespace ScryScreen.App.ViewModels;
 
@@ -32,4 +34,18 @@ public sealed partial class InitiativeEntryViewModel : ViewModelBase
 
     [ObservableProperty]
     private string? notes;
+
+    [ObservableProperty]
+    private string maxHp = string.Empty;
+
+    [ObservableProperty]
+    private string currentHp = string.Empty;
+
+    public ObservableCollection<InitiativeEntryConditionViewModel> Conditions { get; } = new();
+
+    [ObservableProperty]
+    private ConditionDefinition? selectedConditionToAdd;
+
+    [ObservableProperty]
+    private int selectedConditionRoundsToAdd = 1;
 }

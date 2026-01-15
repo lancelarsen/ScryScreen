@@ -1628,7 +1628,7 @@
                                 </ToggleButton>
                             </StackPanel>
 
-                            <Grid Grid.Column="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                            <Grid Grid.Column="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
                                 <TextBlock Grid.Column="0" Text="Turn" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -1682,6 +1682,14 @@
                                           FontSize="12"
                                           ItemsSource="{Binding InitiativeTracker.PortalFontSizes}"
                                           SelectedItem="{Binding InitiativeTracker.PortalFontSize, Mode=TwoWay}" />
+
+                                <!-- (123) far right: Initiative conditions configuration -->
+                                <ToggleButton Grid.Column="9"
+                                              Classes="circleSmall noAccent"
+                                              IsChecked="{Binding InitiativeTracker.ShowConditionsConfiguration, Mode=TwoWay}"
+                                              ToolTip.Tip="Show Conditions Configuration">
+                                    <i:Icon Value="mdi-numeric" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                </ToggleButton>
                             </Grid>
                         </Grid>
 

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using ScryScreen.App.Services;
 using ScryScreen.Core.InitiativeTracker;
 
 namespace ScryScreen.App.ViewModels;
@@ -104,6 +106,9 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
     {
         if (state is null) throw new ArgumentNullException(nameof(state));
 
+        // Load on update so portals reflect condition config edits immediately.
+        var conditionLibrary = ConditionLibraryService.LoadOrCreateDefault();
+
         Round = Math.Max(1, state.Round);
 
         var all = state.Entries ?? Array.Empty<InitiativeEntry>();
@@ -130,13 +135,130 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
                 Name: e.Name.Trim(),
                 Initiative: e.Initiative,
                 Mod: e.Mod,
-                IsActive: activeId.HasValue && e.Id == activeId.Value))
+                IsActive: activeId.HasValue && e.Id == activeId.Value,
+                NameColorHex: ComputeNameColorHex(e, conditionLibrary),
+                IsStrikethrough: ComputeNameIsStrikethrough(e, conditionLibrary),
+                Conditions: BuildConditionTags(e, conditionLibrary)))
             .ToArray();
 
         Entries = limited;
         AdditionalEntriesCount = Math.Max(0, visible.Length - limited.Length);
 
         OnPropertyChanged(nameof(HasAdditionalEntries));
+    }
+
+    private static IReadOnlyList<InitiativePortalConditionTagViewModel> BuildConditionTags(
+        InitiativeEntry entry,
+        ConditionLibraryService conditionLibrary)
+    {
+        var applied = entry.GetConditionsOrEmpty();
+        if (applied.Length == 0)
+        {
+            return Array.Empty<InitiativePortalConditionTagViewModel>();
+        }
+
+        var tags = new List<InitiativePortalConditionTagViewModel>(applied.Length);
+        foreach (var c in applied)
+        {
+            if (!conditionLibrary.TryGet(c.ConditionId, out var def))
+            {
+                continue;
+            }
+
+            // Manual-only conditions show no timer badge.
+            var rounds = def.IsManualOnly ? null : c.RoundsRemaining;
+            tags.Add(new InitiativePortalConditionTagViewModel(
+                ShortTag: def.ShortTag,
+                ColorHex: def.ColorHex,
+                RoundsRemaining: rounds));
+        }
+
+        return tags;
+    }
+
+    private static bool HasConditionShortTag(
+        InitiativeEntry entry,
+        ConditionLibraryService conditionLibrary,
+        string shortTag)
+    {
+        foreach (var c in entry.GetConditionsOrEmpty())
+        {
+            if (!conditionLibrary.TryGet(c.ConditionId, out var def))
+            {
+                continue;
+            }
+
+            if (string.Equals(def.ShortTag, shortTag, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ComputeNameIsStrikethrough(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    {
+        // DEAD condition always strikes.
+        if (HasConditionShortTag(entry, conditionLibrary, "DEAD"))
+        {
+            return true;
+        }
+
+        var current = TryParseInt(entry.CurrentHp);
+        if (current.HasValue && current.Value <= 0)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string ComputeNameColorHex(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    {
+        // BLOOD condition forces "at or below 50%" styling.
+        var forceBlood = HasConditionShortTag(entry, conditionLibrary, "BLOOD");
+        if (forceBlood)
+        {
+            return "#FFDC2626";
+        }
+
+        var max = TryParseInt(entry.MaxHp);
+        if (!max.HasValue || max.Value <= 0)
+        {
+            // Unknown max => default styling.
+            return "#FFFFFFFF";
+        }
+
+        var current = TryParseInt(entry.CurrentHp);
+        if (!current.HasValue)
+        {
+            // Max-only implies healthy.
+            return "#FF22C55E";
+        }
+
+        if (current.Value <= 0)
+        {
+            return "#FFDC2626";
+        }
+
+        // 50% is red.
+        if (current.Value * 2 <= max.Value)
+        {
+            return "#FFDC2626";
+        }
+
+        return "#FF22C55E";
+    }
+
+    private static int? TryParseInt(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        return int.TryParse(text.Trim(), out var value) ? value : null;
     }
 }
 
@@ -145,9 +267,30 @@ public sealed record InitiativePortalEntryViewModel(
     string Name,
     int Initiative,
     int Mod,
-    bool IsActive)
+    bool IsActive,
+    string NameColorHex,
+    bool IsStrikethrough,
+    IReadOnlyList<InitiativePortalConditionTagViewModel> Conditions)
 {
     public bool HasMod => Mod != 0;
+
+    public IBrush NameBrush
+    {
+        get
+        {
+            try
+            {
+                return Brush.Parse(NameColorHex);
+            }
+            catch
+            {
+                return Brushes.White;
+            }
+        }
+    }
+
+    public TextDecorationCollection? NameDecorations
+        => IsStrikethrough ? TextDecorations.Strikethrough : null;
 
     public string InitiativeDisplay => Initiative.ToString();
 
@@ -164,4 +307,27 @@ public sealed record InitiativePortalEntryViewModel(
             return $"({modText})";
         }
     }
+}
+
+public sealed record InitiativePortalConditionTagViewModel(
+    string ShortTag,
+    string ColorHex,
+    int? RoundsRemaining)
+{
+    public IBrush Brush
+    {
+        get
+        {
+            try
+            {
+                return Avalonia.Media.Brush.Parse(ColorHex);
+            }
+            catch
+            {
+                return Avalonia.Media.Brushes.White;
+            }
+        }
+    }
+
+    public bool HasTimer => RoundsRemaining.HasValue;
 }
