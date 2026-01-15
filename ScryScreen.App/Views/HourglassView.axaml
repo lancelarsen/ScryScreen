@@ -58,7 +58,8 @@
           <Button Classes="circleSmall"
                   ToolTip.Tip="Reset Defaults"
                   Command="{Binding ResetPhysicsCommand}">
-            <i:Icon Value="mdi-autorenew" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+              <i:Icon Value="mdi-autorenew" FontSize="18"
+                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
           </Button>
 
           <TextBlock Grid.Column="1"

@@ -26,7 +26,8 @@
         </StackPanel>
 
         <Button Grid.Column="1" Classes="circleSmall" ToolTip.Tip="Close" Click="OnClose">
-          <i:Icon Value="mdi-close" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+          <i:Icon Value="mdi-close" FontSize="18"
+                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
         </Button>
       </Grid>
 

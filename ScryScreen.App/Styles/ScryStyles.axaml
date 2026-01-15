@@ -169,10 +169,6 @@
     </Setter>
   </Style>
 
-  <Style Selector="ToggleButton.circle:checked">
-    <Setter Property="Foreground" Value="{DynamicResource ScryAccent}" />
-  </Style>
-
   <!-- Small Circle ToggleButton: used for portal-number target toggles -->
   <Style Selector="ToggleButton.circleSmall">
     <Setter Property="Width" Value="36" />
@@ -217,11 +213,10 @@
     <Setter Property="Background" Value="#1B2E47" />
   </Style>
 
-  <!-- Active circleSmall buttons: gold outline + gold icon (match effect toggles) -->
+  <!-- Active circleSmall buttons: gold outline only (icon color unchanged) -->
   <Style Selector="Button.circleSmall.active">
     <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
     <Setter Property="BorderThickness" Value="2" />
-    <Setter Property="Foreground" Value="{DynamicResource ScryAccent}" />
   </Style>
 
   <!-- Circle Button: used for compact icon actions -->
@@ -256,22 +251,14 @@
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
-  <!-- Effect toggles: use accent (yellow) icon when enabled -->
+  <!-- Effect toggles: gold outline when enabled; icon color unchanged -->
   <Style Selector="ToggleButton.circleSmall.effectToggle">
     <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
   </Style>
 
-  <Style Selector="ToggleButton.circleSmall.effectToggle:checked">
-    <Setter Property="Foreground" Value="{DynamicResource ScryAccent}" />
-  </Style>
-
-  <!-- Sound toggles: highlight icon when enabled, but keep a neutral border (use with .noAccent) -->
+  <!-- Sound toggles: gold outline when enabled; icon color unchanged; add .noAccent if you want a neutral border -->
   <Style Selector="ToggleButton.circleSmall.soundToggle">
     <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
-  </Style>
-
-  <Style Selector="ToggleButton.circleSmall.soundToggle:checked">
-    <Setter Property="Foreground" Value="{DynamicResource ScryAccent}" />
   </Style>
 
   <!-- For icon toggles where "checked" is not a selection (e.g., visibility), keep the neutral border -->

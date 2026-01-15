@@ -249,7 +249,7 @@
         <ItemsControl ItemsSource="{Binding Entries}">
           <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:InitiativeEntryViewModel" x:CompileBindings="False">
-                      <Grid ColumnDefinitions="24,36,Auto,Auto,Auto,Auto,3*,Auto,5*,36,36,36" RowDefinitions="Auto,Auto" ColumnSpacing="4" RowSpacing="6" Margin="0,0,0,10" VerticalAlignment="Center">
+                      <Grid ColumnDefinitions="24,36,Auto,Auto,Auto,Auto,3*,Auto,5*,36,36,36" RowDefinitions="Auto,Auto" ColumnSpacing="4" RowSpacing="0" Margin="0,0,0,2" VerticalAlignment="Center">
               <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
                 Width="20"
                 Height="20"
@@ -260,10 +260,12 @@
 
               <Button Grid.Column="1"
                       Classes="circleSmall"
+                    Foreground="{DynamicResource ScryAccent}"
                       ToolTip.Tip="Roll d20 + Mod"
                       Command="{Binding DataContext.RollInitiativeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                       CommandParameter="{Binding .}">
-                <i:Icon Value="mdi-dice-d20" FontSize="18" Foreground="{DynamicResource ScryAccent}" />
+                  <i:Icon Value="mdi-dice-d20" FontSize="18"
+                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
               </Button>
 
               <TextBox Grid.Column="2" Width="42"
@@ -336,7 +338,8 @@
                         ToolTip.Tip="Add condition"
                         Command="{Binding DataContext.AddConditionToEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         CommandParameter="{Binding .}">
-                  <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                  <i:Icon Value="mdi-plus" FontSize="18"
+                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                 </Button>
               </StackPanel>
 
@@ -362,11 +365,17 @@
                       IsVisible="{Binding IsLast}"
                       ToolTip.Tip="Add Row"
                       Command="{Binding DataContext.AddEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                <i:Icon Value="mdi-plus" FontSize="18"
+                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
               </Button>
 
               <!-- Applied conditions shown beneath the row, starting under Init -->
-              <ItemsControl Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="7" ItemsSource="{Binding Conditions}">
+              <ItemsControl Grid.Row="1"
+                            Grid.Column="2"
+                            Grid.ColumnSpan="7"
+                            ItemsSource="{Binding Conditions}"
+                            IsVisible="{Binding Conditions.Count, Converter={StaticResource NotZeroToBoolConverter}}"
+                            Margin="0,4,0,0">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <WrapPanel ItemSpacing="6" LineSpacing="6" />
@@ -390,7 +399,8 @@
                                 ToolTip.Tip="Remove"
                                 Command="{Binding DataContext.RemoveConditionFromEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding .}">
-                          <i:Icon Value="mdi-close" FontSize="14" Foreground="{DynamicResource ScryTextMuted}" />
+                          <i:Icon Value="mdi-close" FontSize="14"
+                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                         </Button>
                       </StackPanel>
                     </Border>
@@ -425,7 +435,8 @@
                   Command="{Binding AddEntryCommand}"
                   VerticalAlignment="Center"
                   ToolTip.Tip="Add">
-            <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+              <i:Icon Value="mdi-plus" FontSize="18"
+                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
           </Button>
 
           <TextBlock Grid.Column="2"

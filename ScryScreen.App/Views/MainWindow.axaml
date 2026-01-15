@@ -89,11 +89,13 @@
                     </ToggleButton>
 
                     <Button Classes="circle" ToolTip.Tip="About ScryScreen" Click="OnShowAbout">
-                        <i:Icon Value="mdi-information-outline" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                        <i:Icon Value="mdi-information-outline" FontSize="20"
+                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                     </Button>
 
                     <Button Classes="circle" ToolTip.Tip="Close ScryScreen" Click="OnCloseApp">
-                        <i:Icon Value="mdi-close" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                        <i:Icon Value="mdi-close" FontSize="20"
+                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                     </Button>
                 </StackPanel>
             </Grid>
@@ -190,13 +192,15 @@
                                                                 Width="28" Height="28" CornerRadius="14"
                                                                 Command="{Binding DataContext.InitiativeTracker.PreviousTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 ToolTip.Tip="Previous Turn">
-                                                            <i:Icon Value="mdi-chevron-left" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            <i:Icon Value="mdi-chevron-left" FontSize="16"
+                                                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                         </Button>
                                                         <Button Classes="circleSmall"
                                                                 Width="28" Height="28" CornerRadius="14"
                                                                 Command="{Binding DataContext.InitiativeTracker.NextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 ToolTip.Tip="Next Turn">
-                                                            <i:Icon Value="mdi-chevron-right" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            <i:Icon Value="mdi-chevron-right" FontSize="16"
+                                                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                         </Button>
                                                     </StackPanel>
 
@@ -207,7 +211,8 @@
                                                                     Command="{Binding DataContext.Hourglass.StartCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     ToolTip.Tip="Play"
                                                                     IsVisible="{Binding !DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                                <i:Icon Value="mdi-play" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                                <i:Icon Value="mdi-play" FontSize="16"
+                                                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                             </Button>
                                                             <Button Classes="circleSmall active"
                                                                     Width="28" Height="28" CornerRadius="14"
@@ -223,7 +228,8 @@
                                                                 Width="28" Height="28" CornerRadius="14"
                                                                 Command="{Binding DataContext.Hourglass.ResetCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 ToolTip.Tip="Reset">
-                                                            <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            <i:Icon Value="mdi-restore" FontSize="16"
+                                                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                         </Button>
 
                                                         <ToggleButton Classes="circleSmall soundToggle"
@@ -369,13 +375,15 @@
                                                                     Width="28" Height="28" CornerRadius="14"
                                                                     Command="{Binding DataContext.InitiativeTracker.PreviousTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     ToolTip.Tip="Previous Turn">
-                                                                <i:Icon Value="mdi-chevron-left" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                                <i:Icon Value="mdi-chevron-left" FontSize="16"
+                                                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                             </Button>
                                                             <Button Classes="circleSmall"
                                                                     Width="28" Height="28" CornerRadius="14"
                                                                     Command="{Binding DataContext.InitiativeTracker.NextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     ToolTip.Tip="Next Turn">
-                                                                <i:Icon Value="mdi-chevron-right" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                                <i:Icon Value="mdi-chevron-right" FontSize="16"
+                                                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                             </Button>
                                                         </StackPanel>
 
@@ -386,7 +394,8 @@
                                                                         Command="{Binding DataContext.Hourglass.StartCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                         ToolTip.Tip="Play"
                                                                         IsVisible="{Binding !DataContext.Hourglass.IsRunning, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                                    <i:Icon Value="mdi-play" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                                    <i:Icon Value="mdi-play" FontSize="16"
+                                                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                                 </Button>
                                                                 <Button Classes="circleSmall active"
                                                                         Width="28" Height="28" CornerRadius="14"
@@ -402,7 +411,8 @@
                                                                     Width="28" Height="28" CornerRadius="14"
                                                                     Command="{Binding DataContext.Hourglass.ResetCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     ToolTip.Tip="Reset">
-                                                                <i:Icon Value="mdi-restore" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                                                <i:Icon Value="mdi-restore" FontSize="16"
+                                                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                             </Button>
 
                                                                 <ToggleButton Classes="circleSmall soundToggle"
@@ -614,7 +624,8 @@
                                                                 ToolTip.Tip="Play/Pause"
                                                                 Command="{Binding ToggleVideoPlayPauseCommand}"
                                                                 IsVisible="{Binding !IsVideoPlaying}">
-                                                            <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                            <i:Icon Value="mdi-play" FontSize="18"
+                                                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                         </Button>
                                                         <Button Classes="circleSmall active"
                                                                 ToolTip.Tip="Play/Pause"
@@ -628,7 +639,8 @@
                                                     <Button Classes="circleSmall"
                                                             ToolTip.Tip="Restart"
                                                             Command="{Binding RestartVideoCommand}">
-                                                        <i:Icon Value="mdi-restart" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                        <i:Icon Value="mdi-restart" FontSize="18"
+                                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                                     </Button>
 
                                                     <ToggleButton Classes="circleSmall effectToggle"
@@ -929,10 +941,13 @@
                                                                         HorizontalContentAlignment="Center"
                                                                         VerticalContentAlignment="Center"
                                                                         ToolTip.Tip="Play/Stop"
+                                                                        Classes.active="{Binding IsAudioPlaying}"
                                                                         Command="{Binding DataContext.ToggleAudioPlayCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                         CommandParameter="{Binding .}">
                                                                     <Grid>
-                                                                        <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsAudioPlaying}" />
+                                                                        <i:Icon Value="mdi-play" FontSize="18"
+                                                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                                IsVisible="{Binding !IsAudioPlaying}" />
                                                                         <i:Icon Value="mdi-stop" FontSize="18" Foreground="{DynamicResource ScryDanger}" IsVisible="{Binding IsAudioPlaying}" />
                                                                     </Grid>
                                                                 </Button>
@@ -945,7 +960,8 @@
                                                                               IsChecked="{Binding IsAudioLoopEnabled, Mode=OneWay}"
                                                                               Command="{Binding DataContext.ToggleAudioLoopCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                               CommandParameter="{Binding .}">
-                                                                    <i:Icon Value="mdi-repeat" FontSize="18" />
+                                                                    <i:Icon Value="mdi-repeat" FontSize="18"
+                                                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                                                 </ToggleButton>
                                                             </StackPanel>
 
@@ -1217,17 +1233,8 @@
                             IsVisible="{Binding IsImagesOrVideoTabSelected}">
                             <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,6">
                                 <TextBlock Grid.Column="0" Text="Effects" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
-                                <ToggleButton Grid.Column="1"
-                                              Classes="circleSmall noAccent"
-                                              Width="28"
-                                              Height="28"
-                                              CornerRadius="14"
-                                              IsChecked="{Binding ShowEffectSliderBounds, Mode=TwoWay}"
-                                              ToolTip.Tip="Show Slider Min/Max Fields">
-                                    <i:Icon Value="mdi-numeric" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
-                                </ToggleButton>
 
-                                <Button Grid.Column="2"
+                                <Button Grid.Column="1"
                                         Background="#0A0F18"
                                         BorderBrush="{DynamicResource ScryBorder}"
                                         BorderThickness="1"
@@ -1246,7 +1253,7 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button Grid.Column="3"
+                                <Button Grid.Column="2"
                                         Background="#0A0F18"
                                         BorderBrush="{DynamicResource ScryBorder}"
                                         BorderThickness="1"
@@ -1265,13 +1272,21 @@
                                     </StackPanel>
                                 </Button>
 
-                                <ToggleButton Grid.Column="4"
+                                <ToggleButton Grid.Column="3"
                                               Classes="circleSmall"
                                               IsChecked="{Binding AutoSaveEffectsEnabled, Mode=TwoWay}"
                                               Checked="OnAutoSaveEffectsChecked"
                                               Unchecked="OnAutoSaveEffectsUnchecked"
                                               ToolTip.Tip="Auto-Save to Last Save File">
-                                    <i:Icon Value="mdi-autorenew" FontSize="18"
+                                    <i:Icon Value="mdi-content-save-cog" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </ToggleButton>
+
+                                <ToggleButton Grid.Column="4"
+                                          Classes="circleSmall effectToggle"
+                                              IsChecked="{Binding ShowEffectSliderBounds, Mode=TwoWay}"
+                                              ToolTip.Tip="Show Slider Min/Max Fields">
+                                    <i:Icon Value="mdi-numeric" FontSize="18"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                             </Grid>
@@ -1334,7 +1349,8 @@
                                         IsEnabled="{Binding !IsLightningTriggerCooldown}"
                                         Command="{Binding TriggerLightningCommand}"
                                         ToolTip.Tip="Trigger Lightning Flash">
-                                    <i:Icon Value="mdi-flash" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                    <i:Icon Value="mdi-flash" FontSize="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                 </Button>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
@@ -1500,7 +1516,8 @@
                                         IsEnabled="{Binding !IsQuakeTriggerCooldown}"
                                         Command="{Binding TriggerQuakeCommand}"
                                         ToolTip.Tip="Trigger Quake">
-                                    <i:Icon Value="mdi-vibrate" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+                                    <i:Icon Value="mdi-vibrate" FontSize="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                 </Button>
                                 <TextBox Classes="sliderBound"
                                          IsVisible="{Binding ShowEffectSliderBounds}"
@@ -1644,10 +1661,12 @@
 
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                     <Button Classes="circleSmall" Command="{Binding InitiativeTracker.PreviousTurnCommand}" ToolTip.Tip="Previous Turn">
-                                        <i:Icon Value="mdi-chevron-left" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                        <i:Icon Value="mdi-chevron-left" FontSize="18"
+                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                     </Button>
                                     <Button Classes="circleSmall" Command="{Binding InitiativeTracker.NextTurnCommand}" ToolTip.Tip="Next Turn">
-                                        <i:Icon Value="mdi-chevron-right" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                        <i:Icon Value="mdi-chevron-right" FontSize="18"
+                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                     </Button>
                                 </StackPanel>
 
@@ -1660,13 +1679,16 @@
 
                                 <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                     <Button Classes="circleSmall" Command="{Binding InitiativeTracker.IncrementRoundCommand}" ToolTip.Tip="Increment Round">
-                                        <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                        <i:Icon Value="mdi-plus" FontSize="18"
+                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                     </Button>
                                     <Button Classes="circleSmall" Command="{Binding InitiativeTracker.DecrementRoundCommand}" ToolTip.Tip="Decrement Round">
-                                        <i:Icon Value="mdi-minus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                        <i:Icon Value="mdi-minus" FontSize="18"
+                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                     </Button>
                                     <Button Classes="circleSmall" Command="{Binding InitiativeTracker.ResetRoundCommand}" ToolTip.Tip="Reset Round">
-                                        <i:Icon Value="mdi-restore" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                        <i:Icon Value="mdi-restore" FontSize="18"
+                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                     </Button>
                                 </StackPanel>
 
@@ -1696,10 +1718,11 @@
 
                                 <!-- (123) far right: Initiative conditions configuration -->
                                 <ToggleButton Grid.Column="9"
-                                              Classes="circleSmall noAccent"
+                                              Classes="circleSmall effectToggle"
                                               IsChecked="{Binding InitiativeTracker.ShowConditionsConfiguration, Mode=TwoWay}"
                                               ToolTip.Tip="Show Conditions Configuration">
-                                    <i:Icon Value="mdi-numeric" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    <i:Icon Value="mdi-numeric" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                             </Grid>
                         </Grid>
@@ -1793,7 +1816,8 @@
                                             ToolTip.Tip="Play"
                                             Command="{Binding Hourglass.StartCommand}"
                                             IsVisible="{Binding !Hourglass.IsRunning}">
-                                        <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                        <i:Icon Value="mdi-play" FontSize="18"
+                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                     </Button>
                                     <Button Classes="circleSmall active"
                                             ToolTip.Tip="Pause"
@@ -1808,7 +1832,8 @@
                                         Classes="circleSmall"
                                         ToolTip.Tip="Reset"
                                         Command="{Binding Hourglass.ResetCommand}">
-                                    <i:Icon Value="mdi-restore" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    <i:Icon Value="mdi-restore" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                 </Button>
 
                                 <ToggleButton Grid.Column="5"

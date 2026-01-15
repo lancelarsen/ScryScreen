@@ -8,6 +8,7 @@
 
     <Application.Resources>
         <conv:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+        <conv:NotZeroToBoolConverter x:Key="NotZeroToBoolConverter" />
         <conv:MultiplyDoubleConverter x:Key="MultiplyDoubleConverter" />
     </Application.Resources>
 

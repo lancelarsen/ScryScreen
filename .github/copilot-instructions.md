@@ -20,13 +20,13 @@ These are the “house rules” for building new controls so they match the exis
 
 ### Icon buttons + toggles
 - Prefer `Classes="circleSmall"` for compact icon buttons and icon toggles.
-- **Active state for Buttons (not ToggleButtons):** add `active` to the classes (e.g., `Classes="circleSmall active"`). Ensure the icon binds to the parent foreground, e.g. `Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"`, so the active style drives the icon.
-- **Toggle “selected” state (gold outline + gold icon):**
-  - Don’t use `noAccent` on toggles that represent a selection/active mode.
-  - Bind icon foreground to the toggle’s foreground: `Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"`.
+- **Active state for Buttons (not ToggleButtons):** add `active` to the classes (e.g., `Classes="circleSmall active"`) for a gold outline. Icons keep their normal color.
+- **Toggle “selected” state (gold outline only):**
+  - Don’t use `noAccent` on toggles that represent a selection/active mode (unless you explicitly want a neutral border).
+  - Bind icon foreground to the toggle’s foreground (even if the foreground doesn’t change today): `Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"`.
   - Use the existing toggle flavor classes:
-    - `effectToggle`: checked icon becomes gold.
-    - `soundToggle`: checked icon becomes gold.
+    - `effectToggle`: checked outline becomes gold.
+    - `soundToggle`: checked outline becomes gold.
 - **Neutral-border toggles:** if “checked” is *not* a selection (pure visibility/options), keep the border neutral by adding `noAccent`.
 
 ### Sizes + layout density
@@ -51,7 +51,7 @@ These are the “house rules” for building new controls so they match the exis
 ### State semantics
 - Keep a strict distinction between:
   - **Disabled**: not clickable/selectable (use `IsEnabled="False"`).
-  - **Active/selected**: gold outline + gold icon (toggle checked w/o `noAccent`, or button with `active`).
+  - **Active/selected**: gold outline only (toggle checked w/o `noAccent`, or button with `active`). Icons keep their normal color.
 
 ## Error handling + diagnostics
 - UI/background exception reporting is centralized in `ScryScreen.App/Services/ErrorReporter.cs` (shows an Avalonia `ErrorDialog`). Prefer `ErrorReporter.Report(ex, "context")` over throwing in event handlers.
