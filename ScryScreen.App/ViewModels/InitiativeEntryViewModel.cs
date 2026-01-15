@@ -47,5 +47,11 @@ public sealed partial class InitiativeEntryViewModel : ViewModelBase
     private ConditionDefinition? selectedConditionToAdd;
 
     [ObservableProperty]
-    private int selectedConditionRoundsToAdd = 1;
+    private int? selectedConditionRoundsToAdd;
+
+    partial void OnSelectedConditionToAddChanged(ConditionDefinition? value)
+    {
+        // Default duration to "-" (no timer) whenever a new condition is selected.
+        SelectedConditionRoundsToAdd = null;
+    }
 }

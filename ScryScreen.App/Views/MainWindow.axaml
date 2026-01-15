@@ -52,8 +52,8 @@
                                   IsChecked="{Binding IsPortalsSectionVisible}"
                                   ToolTip.Tip="Show/Hide Portals">
                         <Grid>
-                            <i:Icon IsVisible="{Binding IsPortalsSectionVisible}" Value="mdi-monitor" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
-                            <i:Icon IsVisible="{Binding !IsPortalsSectionVisible}" Value="mdi-monitor-off" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                            <i:Icon IsVisible="{Binding IsPortalsSectionVisible}" Value="mdi-monitor" FontSize="20" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                            <i:Icon IsVisible="{Binding !IsPortalsSectionVisible}" Value="mdi-monitor-off" FontSize="20" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                         </Grid>
                     </ToggleButton>
 
@@ -62,8 +62,8 @@
                                   IsChecked="{Binding IsLibrarySectionVisible}"
                                   ToolTip.Tip="Show/Hide Media &amp; Apps">
                         <Grid>
-                            <i:Icon IsVisible="{Binding IsLibrarySectionVisible}" Value="mdi-image-plus" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
-                            <i:Icon IsVisible="{Binding !IsLibrarySectionVisible}" Value="mdi-image-off" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                            <i:Icon IsVisible="{Binding IsLibrarySectionVisible}" Value="mdi-image-plus" FontSize="20" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                            <i:Icon IsVisible="{Binding !IsLibrarySectionVisible}" Value="mdi-image-off" FontSize="20" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                         </Grid>
                     </ToggleButton>
 
@@ -72,8 +72,8 @@
                                   IsChecked="{Binding IsControlsSectionVisible}"
                                   ToolTip.Tip="Show/Hide Controls">
                         <Grid>
-                            <i:Icon IsVisible="{Binding IsControlsSectionVisible}" Value="mdi-cog" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
-                            <i:Icon IsVisible="{Binding !IsControlsSectionVisible}" Value="mdi-cog-off" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                            <i:Icon IsVisible="{Binding IsControlsSectionVisible}" Value="mdi-cog" FontSize="20" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                            <i:Icon IsVisible="{Binding !IsControlsSectionVisible}" Value="mdi-cog-off" FontSize="20" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                         </Grid>
                     </ToggleButton>
                 </StackPanel>
@@ -83,8 +83,8 @@
                                   IsChecked="{Binding IsAlwaysOnTop}"
                                   ToolTip.Tip="Always on Top">
                         <Grid>
-                            <i:Icon IsVisible="{Binding IsAlwaysOnTop}" Value="mdi-pin" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
-                            <i:Icon IsVisible="{Binding !IsAlwaysOnTop}" Value="mdi-pin-outline" FontSize="20" Foreground="{DynamicResource ScryTextMuted}" />
+                            <i:Icon IsVisible="{Binding IsAlwaysOnTop}" Value="mdi-pin" FontSize="20" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                            <i:Icon IsVisible="{Binding !IsAlwaysOnTop}" Value="mdi-pin-outline" FontSize="20" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                         </Grid>
                     </ToggleButton>
 
@@ -609,14 +609,21 @@
 
                                                 <!-- Controls: directly under time bar -->
                                                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                                                    <Button Classes="circleSmall"
-                                                            ToolTip.Tip="Play/Pause"
-                                                            Command="{Binding ToggleVideoPlayPauseCommand}">
-                                                        <Grid>
-                                                            <i:Icon IsVisible="{Binding !IsVideoPlaying}" Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                                                            <i:Icon IsVisible="{Binding IsVideoPlaying}" Value="mdi-pause" FontSize="18" Foreground="{DynamicResource ScryAccent}" />
-                                                        </Grid>
-                                                    </Button>
+                                                    <Grid Width="36" Height="36">
+                                                        <Button Classes="circleSmall"
+                                                                ToolTip.Tip="Play/Pause"
+                                                                Command="{Binding ToggleVideoPlayPauseCommand}"
+                                                                IsVisible="{Binding !IsVideoPlaying}">
+                                                            <i:Icon Value="mdi-play" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                        </Button>
+                                                        <Button Classes="circleSmall active"
+                                                                ToolTip.Tip="Play/Pause"
+                                                                Command="{Binding ToggleVideoPlayPauseCommand}"
+                                                                IsVisible="{Binding IsVideoPlaying}">
+                                                            <i:Icon Value="mdi-pause" FontSize="18"
+                                                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                                        </Button>
+                                                    </Grid>
 
                                                     <Button Classes="circleSmall"
                                                             ToolTip.Tip="Restart"
@@ -624,10 +631,11 @@
                                                         <i:Icon Value="mdi-restart" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
                                                     </Button>
 
-                                                    <ToggleButton Classes="circleSmall"
+                                                    <ToggleButton Classes="circleSmall effectToggle"
                                                                   IsChecked="{Binding IsVideoLoop, Mode=TwoWay}"
                                                                   ToolTip.Tip="Loop">
-                                                        <i:Icon Value="mdi-repeat" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                                        <i:Icon Value="mdi-repeat" FontSize="18"
+                                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                                     </ToggleButton>
                                                 </StackPanel>
                                             </StackPanel>
@@ -732,18 +740,20 @@
                                 <!-- View mode: grouped vs flat (Media only) -->
                                 <ToggleButton Grid.Column="3"
                                               IsVisible="{Binding IsImagesOrVideoTabSelected}"
-                                              Classes="circleSmall"
+                                              Classes="circleSmall effectToggle"
                                               ToolTip.Tip="View by Folder"
                                               IsChecked="{Binding Media.IsGroupedView, Mode=TwoWay}">
-                                    <i:Icon Value="mdi-folder-multiple-image" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    <i:Icon Value="mdi-folder-multiple-image" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
 
                                 <ToggleButton Grid.Column="4"
                                               IsVisible="{Binding IsImagesOrVideoTabSelected}"
-                                              Classes="circleSmall"
+                                              Classes="circleSmall effectToggle"
                                               ToolTip.Tip="View Tiles"
                                               IsChecked="{Binding Media.IsFlatView, Mode=TwoWay}">
-                                    <i:Icon Value="mdi-view-grid" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    <i:Icon Value="mdi-view-grid" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                             </Grid>
 
@@ -1191,10 +1201,11 @@
 
                             <!-- Video options -->
                             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsSelectedMediaVideo}" Margin="0,6,0,0">
-                                <ToggleButton Classes="circleSmall"
+                                <ToggleButton Classes="circleSmall effectToggle"
                                               IsChecked="{Binding IsVideoLoop, Mode=TwoWay}"
                                               ToolTip.Tip="Loop">
-                                    <i:Icon Value="mdi-repeat" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                                    <i:Icon Value="mdi-repeat" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                             </StackPanel>
                         </StackPanel>

@@ -59,7 +59,9 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     public IReadOnlyList<ConditionDefinition> ConditionDefinitions
         => ConditionLibrary.GetAllDefinitionsAlphabetical();
 
-    public IReadOnlyList<int> ConditionDurations { get; } = Enumerable.Range(1, 10).ToArray();
+    public IReadOnlyList<int?> ConditionDurationOptions { get; } = new int?[] { null }
+        .Concat(Enumerable.Range(1, 10).Select(x => (int?)x))
+        .ToArray();
 
     public ObservableCollection<ConditionDefinitionViewModel> ConditionLibraryItems { get; } = new();
 
@@ -518,7 +520,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
                 vm.Conditions.Add(new InitiativeEntryConditionViewModel(
                     owner: vm,
                     conditionId: def.Id,
-                    shortTag: def.ShortTag,
+                    shortTag: def.Name,
                     colorHex: def.ColorHex,
                     isManualOnly: def.IsManualOnly,
                     roundsRemaining: rounds));
@@ -891,13 +893,13 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         }
 
         var def = entry.SelectedConditionToAdd;
-        var rounds = def.IsManualOnly ? null : (int?)NormalizeRounds(entry.SelectedConditionRoundsToAdd);
+        var rounds = def.IsManualOnly ? null : NormalizeRoundsOrNull(entry.SelectedConditionRoundsToAdd);
 
         // Re-adding replaces.
         var existing = entry.Conditions.FirstOrDefault(c => c.ConditionId == def.Id);
         if (existing is not null)
         {
-            existing.ShortTag = def.ShortTag;
+            existing.ShortTag = def.Name;
             existing.ColorHex = def.ColorHex;
             existing.RoundsRemaining = rounds;
         }
@@ -906,7 +908,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             entry.Conditions.Add(new InitiativeEntryConditionViewModel(
                 owner: entry,
                 conditionId: def.Id,
-                shortTag: def.ShortTag,
+                shortTag: def.Name,
                 colorHex: def.ColorHex,
                 isManualOnly: def.IsManualOnly,
                 roundsRemaining: rounds));
@@ -1016,7 +1018,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
                     continue;
                 }
 
-                c.ShortTag = def.ShortTag;
+                c.ShortTag = def.Name;
                 c.ColorHex = def.ColorHex;
             }
         }

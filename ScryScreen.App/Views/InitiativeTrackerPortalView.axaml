@@ -164,13 +164,13 @@
                   </Border>
                 </Grid>
 
-                <!-- Name + conditions (column-aligned) -->
+                <!-- Name + conditions (inline; wraps if needed) -->
                 <Grid Grid.Column="1"
-                      RowDefinitions="Auto,Auto"
-                      RowSpacing="8"
+                      ColumnDefinitions="Auto,*"
+                      ColumnSpacing="18"
                       HorizontalAlignment="Left"
                       VerticalAlignment="Center">
-                  <Grid Grid.Row="0">
+                  <Grid Grid.Column="0">
                     <!-- Base name (always visible, keeps high contrast) -->
                     <TextBlock Classes="entry"
                                Text="{Binding Name}"
@@ -220,7 +220,7 @@
                     </TextBlock>
                   </Grid>
 
-                  <ItemsControl Grid.Row="1" ItemsSource="{Binding Conditions}">
+                  <ItemsControl Grid.Column="1" ItemsSource="{Binding Conditions}" HorizontalAlignment="Left" VerticalAlignment="Center">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate>
                         <WrapPanel ItemSpacing="10" LineSpacing="8" />
@@ -230,7 +230,7 @@
                       <DataTemplate x:DataType="vm:InitiativePortalConditionTagViewModel" x:CompileBindings="False">
                         <Border Background="#000000" Opacity="0.85" CornerRadius="10" Padding="10,4">
                           <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{Binding ShortTag}"
+                            <TextBlock Text="{Binding Name}"
                                        Foreground="{Binding Brush}"
                                        FontWeight="SemiBold"
                                        FontSize="{Binding DataContext.MoreFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}" />

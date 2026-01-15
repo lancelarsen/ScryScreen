@@ -90,16 +90,19 @@ public sealed class InitiativeConditionTickDownTests
     {
         var vm = new InitiativeTrackerViewModel();
 
+        // Make the tag unique to avoid collisions with any persisted user condition library.
+        var tag = $"MYC-{Guid.NewGuid():N}";
+
         var entry = vm.Entries[0];
         entry.Name = "Alice";
         entry.Initiative = "10";
 
         vm.NewCustomConditionNameText = "My Custom";
-        vm.NewCustomConditionShortTagText = "MYC";
+        vm.NewCustomConditionShortTagText = tag;
         vm.NewCustomConditionColorHexText = "#FF3B82F6";
         vm.AddCustomConditionCommand.Execute(null);
 
-        var custom = vm.ConditionDefinitions.Single(d => d.ShortTag == "MYC");
+        var custom = vm.ConditionDefinitions.Single(d => d.ShortTag == tag);
         entry.SelectedConditionToAdd = custom;
         entry.SelectedConditionRoundsToAdd = 2;
         vm.AddConditionToEntryCommand.Execute(entry);

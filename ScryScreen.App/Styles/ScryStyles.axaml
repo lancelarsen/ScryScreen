@@ -153,6 +153,7 @@
     <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource ScryTextMuted}" />
     <Setter Property="Template">
       <ControlTemplate>
         <Border Background="#0A0F18"
@@ -166,6 +167,10 @@
         </Border>
       </ControlTemplate>
     </Setter>
+  </Style>
+
+  <Style Selector="ToggleButton.circle:checked">
+    <Setter Property="Foreground" Value="{DynamicResource ScryAccent}" />
   </Style>
 
   <!-- Small Circle ToggleButton: used for portal-number target toggles -->

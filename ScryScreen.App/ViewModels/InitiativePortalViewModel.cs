@@ -168,7 +168,7 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
             // Manual-only conditions show no timer badge.
             var rounds = def.IsManualOnly ? null : c.RoundsRemaining;
             tags.Add(new InitiativePortalConditionTagViewModel(
-                ShortTag: def.ShortTag,
+                Name: def.Name,
                 ColorHex: def.ColorHex,
                 RoundsRemaining: rounds));
         }
@@ -310,7 +310,7 @@ public sealed record InitiativePortalEntryViewModel(
 }
 
 public sealed record InitiativePortalConditionTagViewModel(
-    string ShortTag,
+    string Name,
     string ColorHex,
     int? RoundsRemaining)
 {

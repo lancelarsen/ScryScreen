@@ -33,6 +33,23 @@
       <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
     </Style>
 
+    <Style Selector="ComboBox">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Background" Value="#0A0F18" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="ComboBox:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    </Style>
+    <Style Selector="ComboBox:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    </Style>
+
     <!-- FluentTheme uses a template border; override it explicitly to avoid red focus outlines -->
     <Style Selector="TextBox:focus /template/ Border">
       <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
@@ -231,8 +248,8 @@
       <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <ItemsControl ItemsSource="{Binding Entries}">
           <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:InitiativeEntryViewModel" x:CompileBindings="False">
-                  <Grid ColumnDefinitions="24,36,Auto,Auto,Auto,Auto,3*,4*,5*,36,36,36" ColumnSpacing="4" Margin="0,0,0,8" VerticalAlignment="Center">
+                    <DataTemplate x:DataType="vm:InitiativeEntryViewModel" x:CompileBindings="False">
+                      <Grid ColumnDefinitions="24,36,Auto,Auto,Auto,Auto,3*,Auto,5*,36,36,36" RowDefinitions="Auto,Auto" ColumnSpacing="4" RowSpacing="6" Margin="0,0,0,10" VerticalAlignment="Center">
               <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
                 Width="20"
                 Height="20"
@@ -273,84 +290,54 @@
                        HorizontalAlignment="Center"
                        TextAlignment="Center"
                        HorizontalContentAlignment="Center"
-                       Watermark="HP"
-                       beh:NumericTextBoxBehavior.IsNumericOnly="True"
-                       beh:NumericTextBoxBehavior.AllowNegative="False"
-                       beh:SelectAllOnFocusBehavior.IsEnabled="True"
-                       Text="{Binding CurrentHp, Mode=TwoWay}" />
-
-              <TextBox Grid.Column="5"
-                       Width="56"
-                       HorizontalAlignment="Center"
-                       TextAlignment="Center"
-                       HorizontalContentAlignment="Center"
                        Watermark="Max"
                        beh:NumericTextBoxBehavior.IsNumericOnly="True"
                        beh:NumericTextBoxBehavior.AllowNegative="False"
                        beh:SelectAllOnFocusBehavior.IsEnabled="True"
                        Text="{Binding MaxHp, Mode=TwoWay}" />
 
+              <TextBox Grid.Column="5"
+                       Width="56"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       HorizontalContentAlignment="Center"
+                       Watermark="HP"
+                       beh:NumericTextBoxBehavior.IsNumericOnly="True"
+                       beh:NumericTextBoxBehavior.AllowNegative="False"
+                       beh:SelectAllOnFocusBehavior.IsEnabled="True"
+                       Text="{Binding CurrentHp, Mode=TwoWay}" />
+
               <TextBox Grid.Column="6" Watermark="Name" Text="{Binding Name, Mode=TwoWay}" />
 
-              <StackPanel Grid.Column="7" Spacing="6">
-                <ItemsControl ItemsSource="{Binding Conditions}">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <WrapPanel ItemSpacing="6" LineSpacing="6" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:InitiativeEntryConditionViewModel" x:CompileBindings="False">
-                      <Border Background="#0A0F18" BorderBrush="{Binding ColorBrush}" BorderThickness="1" CornerRadius="12" Padding="8,4">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                          <TextBlock Text="{Binding ShortTag}" Foreground="{Binding ColorBrush}" FontWeight="SemiBold" />
-
-                          <Border IsVisible="{Binding HasTimer}" Background="{Binding ColorBrush}" CornerRadius="8" Padding="4,0">
-                            <TextBlock Text="{Binding RoundsRemaining}"
-                                       Foreground="#0A0F18"
-                                       FontSize="10"
-                                       FontWeight="Bold" />
-                          </Border>
-
-                          <Button Classes="circleSmall noAccent"
-                                  Width="22" Height="22"
-                                  ToolTip.Tip="Remove"
-                                  Command="{Binding DataContext.RemoveConditionFromEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                  CommandParameter="{Binding .}">
-                            <i:Icon Value="mdi-close" FontSize="14" Foreground="{DynamicResource ScryTextMuted}" />
-                          </Button>
-                        </StackPanel>
-                      </Border>
+              <!-- Add-condition controls stay on the main row to keep scanning fast. -->
+              <StackPanel Grid.Column="7" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <ComboBox Width="140"
+                          ItemsSource="{Binding DataContext.ConditionDefinitions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          SelectedItem="{Binding SelectedConditionToAdd, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource ScryTextMuted}" />
                     </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
 
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <ComboBox Width="170"
-                            ItemsSource="{Binding DataContext.ConditionDefinitions, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            SelectedItem="{Binding SelectedConditionToAdd, Mode=TwoWay}">
-                    <ComboBox.ItemTemplate>
-                      <DataTemplate>
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                          <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource ScryTextMuted}" />
-                          <TextBlock Grid.Column="1" Text="{Binding ShortTag}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" />
-                        </Grid>
-                      </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                  </ComboBox>
+                <ComboBox Width="64"
+                          ItemsSource="{Binding DataContext.ConditionDurationOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          SelectedItem="{Binding SelectedConditionRoundsToAdd, Mode=TwoWay}"
+                          IsVisible="{Binding SelectedConditionToAdd.IsManualOnly, Converter={StaticResource InverseBooleanConverter}}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding ., TargetNullValue=-}" Foreground="{DynamicResource ScryTextMuted}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
 
-                  <ComboBox Width="64"
-                            ItemsSource="{Binding DataContext.ConditionDurations, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            SelectedItem="{Binding SelectedConditionRoundsToAdd, Mode=TwoWay}"
-                            IsVisible="{Binding SelectedConditionToAdd.IsManualOnly, Converter={StaticResource InverseBooleanConverter}}" />
-
-                  <Button Classes="circleSmall"
-                          ToolTip.Tip="Add condition"
-                          Command="{Binding DataContext.AddConditionToEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                          CommandParameter="{Binding .}">
-                    <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
-                  </Button>
-                </StackPanel>
+                <Button Classes="circleSmall"
+                        ToolTip.Tip="Add condition"
+                        Command="{Binding DataContext.AddConditionToEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        CommandParameter="{Binding .}">
+                  <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                </Button>
               </StackPanel>
 
               <TextBox Grid.Column="8" Watermark="GM Notes" Text="{Binding Notes, Mode=TwoWay}" />
@@ -377,6 +364,39 @@
                       Command="{Binding DataContext.AddEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                 <i:Icon Value="mdi-plus" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
               </Button>
+
+              <!-- Applied conditions shown beneath the row, starting under Init -->
+              <ItemsControl Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="7" ItemsSource="{Binding Conditions}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel ItemSpacing="6" LineSpacing="6" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:InitiativeEntryConditionViewModel" x:CompileBindings="False">
+                    <Border Background="#0A0F18" BorderBrush="{Binding ColorBrush}" BorderThickness="1" CornerRadius="12" Padding="8,4">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{Binding ShortTag}" Foreground="{Binding ColorBrush}" FontWeight="SemiBold" />
+
+                        <Border IsVisible="{Binding HasTimer}" Background="{Binding ColorBrush}" CornerRadius="8" Padding="4,0">
+                          <TextBlock Text="{Binding RoundsRemaining}"
+                                     Foreground="#0A0F18"
+                                     FontSize="10"
+                                     FontWeight="Bold" />
+                        </Border>
+
+                        <Button Classes="circleSmall noAccent"
+                                Width="22" Height="22"
+                                ToolTip.Tip="Remove"
+                                Command="{Binding DataContext.RemoveConditionFromEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding .}">
+                          <i:Icon Value="mdi-close" FontSize="14" Foreground="{DynamicResource ScryTextMuted}" />
+                        </Button>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
