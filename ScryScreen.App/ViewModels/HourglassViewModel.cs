@@ -12,6 +12,8 @@ public partial class HourglassViewModel : ViewModelBase
     private DateTime _lastTickUtc;
 
     public event Action? StateChanged;
+    public event Action? TimedOut;
+    public event Action? ResetPerformed;
 
     // Grid-sand simulation tuning
     private const double MinGravity = 1.0;
@@ -42,7 +44,7 @@ public partial class HourglassViewModel : ViewModelBase
         ParticleSizeText = HourglassPhysicsSettings.Default.ParticleSize.ToString("0.0");
         MaxReleasePerFrameText = HourglassPhysicsSettings.Default.MaxReleasePerFrame.ToString();
 
-        Reset();
+        ResetInternal(raiseResetEvent: false);
     }
 
     [ObservableProperty]
@@ -309,6 +311,7 @@ public partial class HourglassViewModel : ViewModelBase
             Remaining = TimeSpan.Zero;
             StopInternal();
             // Caller can interpret Remaining==0 && !IsRunning as timeout.
+            TimedOut?.Invoke();
         }
 
         OnPropertyChanged(nameof(FractionRemaining));
@@ -415,6 +418,11 @@ public partial class HourglassViewModel : ViewModelBase
     [RelayCommand]
     private void Reset()
     {
+        ResetInternal(raiseResetEvent: true);
+    }
+
+    private void ResetInternal(bool raiseResetEvent)
+    {
         StopInternal();
         Remaining = GetDuration();
         OnPropertyChanged(nameof(FractionRemaining));
@@ -422,6 +430,11 @@ public partial class HourglassViewModel : ViewModelBase
         OnPropertyChanged(nameof(DurationText));
         OnPropertyChanged(nameof(RemainingOverDurationText));
         StateChanged?.Invoke();
+
+        if (raiseResetEvent)
+        {
+            ResetPerformed?.Invoke();
+        }
     }
 
     [RelayCommand]

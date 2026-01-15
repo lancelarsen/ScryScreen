@@ -18,15 +18,13 @@ internal sealed class HourglassAudioService : IDisposable
     private readonly Dictionary<string, LoopHandle> _loops = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<OneShotHandle> _oneShots = new();
 
-    private bool _lastIsRunning;
-    private TimeSpan _lastRemaining;
-    private bool _hasSnapshot;
-
     public HourglassAudioService(HourglassViewModel hourglass)
     {
         _hourglass = hourglass ?? throw new ArgumentNullException(nameof(hourglass));
         _hourglass.StateChanged += OnHourglassStateChanged;
         _hourglass.PropertyChanged += OnHourglassPropertyChanged;
+        _hourglass.TimedOut += OnHourglassTimedOut;
+        _hourglass.ResetPerformed += OnHourglassResetPerformed;
 
         SnapshotAndApply();
     }
@@ -35,6 +33,8 @@ internal sealed class HourglassAudioService : IDisposable
     {
         _hourglass.StateChanged -= OnHourglassStateChanged;
         _hourglass.PropertyChanged -= OnHourglassPropertyChanged;
+        _hourglass.TimedOut -= OnHourglassTimedOut;
+        _hourglass.ResetPerformed -= OnHourglassResetPerformed;
 
         foreach (var kvp in _loops)
         {
@@ -48,6 +48,22 @@ internal sealed class HourglassAudioService : IDisposable
 
         _loops.Clear();
         _oneShots.Clear();
+    }
+
+    private void OnHourglassTimedOut()
+    {
+        if (_hourglass.PlaySoundsEnabled)
+        {
+            PlayOneShot("hourglass_gong", volume: 0.95f);
+        }
+    }
+
+    private void OnHourglassResetPerformed()
+    {
+        if (_hourglass.PlaySoundsEnabled)
+        {
+            PlayOneShot("hourglass_reset", volume: 0.80f);
+        }
     }
 
     private void OnHourglassStateChanged()
@@ -67,13 +83,6 @@ internal sealed class HourglassAudioService : IDisposable
         var remaining = _hourglass.Remaining;
         var sounds = _hourglass.PlaySoundsEnabled;
 
-        var prevIsRunning = _hasSnapshot && _lastIsRunning;
-        var prevRemaining = _hasSnapshot ? _lastRemaining : remaining;
-
-        _lastIsRunning = isRunning;
-        _lastRemaining = remaining;
-        _hasSnapshot = true;
-
         if (!sounds)
         {
             StopLoop("hourglass");
@@ -84,29 +93,12 @@ internal sealed class HourglassAudioService : IDisposable
         if (isRunning && remaining > TimeSpan.Zero)
         {
             // Gentle loop; should sit behind most table audio.
-            SetLoop("hourglass", "hourglass_sand_loop", volume: 0.35f);
+            SetLoop("hourglass", "hourglass_sand_loop", volume: 1.05f);
         }
         else
         {
             StopLoop("hourglass");
         }
-
-        // Out-of-time gong: only when we transition from >0 to ==0.
-        if (prevRemaining > TimeSpan.Zero && remaining <= TimeSpan.Zero)
-        {
-            PlayOneShot("hourglass_gong", volume: 0.95f);
-            return;
-        }
-
-        // Reset: only when stopped, and Remaining jumps upward noticeably.
-        // This avoids firing during ticking or minor adjustments.
-        if (!isRunning && prevRemaining + TimeSpan.FromMilliseconds(250) < remaining)
-        {
-            PlayOneShot("hourglass_reset", volume: 0.80f);
-            return;
-        }
-
-        _ = prevIsRunning; // reserved for future (start/pause sounds)
     }
 
     private void SetLoop(string key, string assetBaseName, float volume)
