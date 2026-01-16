@@ -55,25 +55,22 @@
                 PointerMoved="OnEditorPointerMoved"
                 PointerReleased="OnEditorPointerReleased">
           <Grid>
-            <Canvas x:Name="PreviewCanvas">
-              <!-- We position/scale this image in code-behind to match portal crop settings. -->
+            <!-- Portal-aspect area: we position/scale image + mask to match the portal's screen aspect ratio. -->
+            <Canvas x:Name="PortalCanvas">
               <Image x:Name="PreviewImage" Source="{Binding SourceImage}" Stretch="Fill" />
-            </Canvas>
+              <Image x:Name="MaskImage"
+                     Source="{Binding MaskBitmap}"
+                     Opacity="{Binding OverlayOpacity}"
+                     Stretch="Fill" />
 
-            <!-- Full overlay mask that gets erased with the mouse. -->
-            <Image Source="{Binding MaskBitmap}"
-                   Opacity="{Binding OverlayOpacity}"
-                   Stretch="Fill" />
-
-            <!-- Eraser cursor indicator (GM-only editor). -->
-            <Canvas x:Name="EraserCursorLayer" IsHitTestVisible="False">
               <Ellipse x:Name="EraserCursor"
                        Width="{Binding EraserDiameter}"
                        Height="{Binding EraserDiameter}"
                        Stroke="{DynamicResource ScryAccent}"
                        StrokeThickness="2"
                        Fill="#20000000"
-                       IsVisible="False" />
+                       IsVisible="False"
+                       IsHitTestVisible="False" />
             </Canvas>
 
             <Border IsVisible="{Binding !HasSourceImage}"

@@ -1500,17 +1500,19 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (portal is null)
         {
-            _mapMaster.SetPreviewSource(null, _mapMaster.PreviewScaleMode, _mapMaster.PreviewAlign);
+            _mapMaster.SetPreviewSource(null, _mapMaster.PreviewScaleMode, _mapMaster.PreviewAlign, _mapMaster.PreviewPortalAspectRatio);
             return;
         }
 
         _mapMasterPreviewPortalNumber = portal.PortalNumber;
 
         var canPreview = !portal.IsVideoAssigned && !string.IsNullOrWhiteSpace(portal.AssignedMediaFilePath);
+        var aspect = portal.SelectedScreen?.AspectRatio ?? _mapMaster.PreviewPortalAspectRatio;
         _mapMaster.SetPreviewSource(
             canPreview ? portal.AssignedMediaFilePath : null,
             portal.ScaleMode,
-            portal.Align);
+            portal.Align,
+            aspect);
     }
 
     private void OnDiceRollerStateChanged()

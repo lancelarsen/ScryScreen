@@ -62,6 +62,9 @@ public partial class MapMasterViewModel : ViewModelBase
     private MediaAlign previewAlign;
 
     [ObservableProperty]
+    private double previewPortalAspectRatio = 16.0 / 9.0;
+
+    [ObservableProperty]
     private WriteableBitmap maskBitmap;
 
     public Bitmap? SourceImage
@@ -85,10 +88,14 @@ public partial class MapMasterViewModel : ViewModelBase
 
     public MapMasterOverlayState SnapshotState() => new(MaskBitmap, OverlayOpacity);
 
-    public void SetPreviewSource(string? imagePath, MediaScaleMode scaleMode, MediaAlign align)
+    public void SetPreviewSource(string? imagePath, MediaScaleMode scaleMode, MediaAlign align, double portalAspectRatio)
     {
         PreviewScaleMode = scaleMode;
         PreviewAlign = align;
+        if (portalAspectRatio > 0 && !double.IsNaN(portalAspectRatio) && !double.IsInfinity(portalAspectRatio))
+        {
+            PreviewPortalAspectRatio = portalAspectRatio;
+        }
 
         if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
         {
@@ -146,6 +153,14 @@ public partial class MapMasterViewModel : ViewModelBase
         radius = Math.Max(radius, 1);
 
         EraseCircleAndSwapBuffers(x, y, radius);
+    }
+
+    public void CommitMaskEdits()
+    {
+        // We throttle during pointer-drag to keep things smooth, but we always want the
+        // portals to receive the final mask state when the user finishes a stroke.
+        _lastMaskChangeNotifyTickMs = Environment.TickCount64;
+        StateChanged?.Invoke();
     }
 
     partial void OnOverlayOpacityChanged(double value)
