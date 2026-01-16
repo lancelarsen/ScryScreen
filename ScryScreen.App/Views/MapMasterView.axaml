@@ -17,7 +17,7 @@
       <StackPanel Spacing="10">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
           <Button Classes="circleSmall"
-                  ToolTip.Tip="Reset Reveal"
+                  ToolTip.Tip="Reset Mask"
                   Command="{Binding ResetRevealToDefaultCommand}">
             <i:Icon Value="mdi-autorenew" FontSize="18"
                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
@@ -31,27 +31,65 @@
                      VerticalAlignment="Center" />
         </Grid>
 
-        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="8">
-          <TextBlock Grid.Row="0" Grid.Column="0" Text="Mask" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-          <Slider Grid.Row="0" Grid.Column="1" Classes="portalTimeline" Minimum="0" Maximum="1" Value="{Binding OverlayOpacity, Mode=TwoWay}" />
-          <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,*,Auto" RowDefinitions="Auto" ColumnSpacing="10" RowSpacing="8">
+          <TextBlock Grid.Column="0" Text="Eraser" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <Slider Grid.Column="1" Classes="portalTimeline" Minimum="6" Maximum="200" Value="{Binding EraserDiameter, Mode=TwoWay}" />
+          <TextBlock Grid.Column="2" Text="{Binding EraserDiameter, StringFormat={}{0:0}px}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
 
-          <TextBlock Grid.Row="1" Grid.Column="0" Text="X" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-          <Slider Grid.Row="1" Grid.Column="1" Classes="portalTimeline" Minimum="0" Maximum="1" Value="{Binding RevealX, Mode=TwoWay}" />
-          <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding RevealX, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
-
-          <TextBlock Grid.Row="2" Grid.Column="0" Text="Y" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-          <Slider Grid.Row="2" Grid.Column="1" Classes="portalTimeline" Minimum="0" Maximum="1" Value="{Binding RevealY, Mode=TwoWay}" />
-          <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding RevealY, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
-
-          <TextBlock Grid.Row="3" Grid.Column="0" Text="W" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-          <Slider Grid.Row="3" Grid.Column="1" Classes="portalTimeline" Minimum="0.02" Maximum="1" Value="{Binding RevealWidth, Mode=TwoWay}" />
-          <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding RevealWidth, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
-
-          <TextBlock Grid.Row="4" Grid.Column="0" Text="H" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-          <Slider Grid.Row="4" Grid.Column="1" Classes="portalTimeline" Minimum="0.02" Maximum="1" Value="{Binding RevealHeight, Mode=TwoWay}" />
-          <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding RevealHeight, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="3" Text="Mask" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <Slider Grid.Column="4" Classes="portalTimeline" Minimum="0" Maximum="1" Value="{Binding OverlayOpacity, Mode=TwoWay}" />
+          <TextBlock Grid.Column="5" Text="{Binding OverlayOpacity, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
         </Grid>
+
+        <Border x:Name="EditorSurface"
+                Height="320"
+                Background="#000000"
+                BorderBrush="{DynamicResource ScryBorder}"
+                BorderThickness="1"
+                CornerRadius="10"
+                ClipToBounds="True"
+                Cursor="Cross"
+                PointerEntered="OnEditorPointerEntered"
+                PointerExited="OnEditorPointerExited"
+                PointerPressed="OnEditorPointerPressed"
+                PointerMoved="OnEditorPointerMoved"
+                PointerReleased="OnEditorPointerReleased">
+          <Grid>
+            <Canvas x:Name="PreviewCanvas">
+              <!-- We position/scale this image in code-behind to match portal crop settings. -->
+              <Image x:Name="PreviewImage" Source="{Binding SourceImage}" Stretch="Fill" />
+            </Canvas>
+
+            <!-- Full overlay mask that gets erased with the mouse. -->
+            <Image Source="{Binding MaskBitmap}"
+                   Opacity="{Binding OverlayOpacity}"
+                   Stretch="Fill" />
+
+            <!-- Eraser cursor indicator (GM-only editor). -->
+            <Canvas x:Name="EraserCursorLayer" IsHitTestVisible="False">
+              <Ellipse x:Name="EraserCursor"
+                       Width="{Binding EraserDiameter}"
+                       Height="{Binding EraserDiameter}"
+                       Stroke="{DynamicResource ScryAccent}"
+                       StrokeThickness="2"
+                       Fill="#20000000"
+                       IsVisible="False" />
+            </Canvas>
+
+            <Border IsVisible="{Binding !HasSourceImage}"
+                    Background="#AA000000"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
+              <TextBlock Text="Select a portal with an image assigned to edit its map."
+                         Foreground="{DynamicResource ScryTextMuted}"
+                         FontSize="14"
+                         TextAlignment="Center"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         TextWrapping="Wrap" />
+            </Border>
+          </Grid>
+        </Border>
       </StackPanel>
     </Border>
   </Grid>

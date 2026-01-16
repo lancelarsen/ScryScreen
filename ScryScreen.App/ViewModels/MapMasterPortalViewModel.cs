@@ -1,11 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using ScryScreen.App.Models;
+using Avalonia.Media.Imaging;
 
 namespace ScryScreen.App.ViewModels;
 
 public partial class MapMasterPortalViewModel : ViewModelBase
 {
-    public MapMasterPortalViewModel(MapMasterState state)
+    public MapMasterPortalViewModel(MapMasterOverlayState state)
     {
         Update(state);
     }
@@ -14,23 +15,24 @@ public partial class MapMasterPortalViewModel : ViewModelBase
     private double overlayOpacity;
 
     [ObservableProperty]
-    private double revealX;
+    private WriteableBitmap? maskBitmap;
 
-    [ObservableProperty]
-    private double revealY;
+    public bool HasMask => MaskBitmap is not null;
 
-    [ObservableProperty]
-    private double revealWidth;
+    partial void OnMaskBitmapChanged(WriteableBitmap? value) => OnPropertyChanged(nameof(HasMask));
 
-    [ObservableProperty]
-    private double revealHeight;
-
-    public void Update(MapMasterState state)
+    public void Update(MapMasterOverlayState state)
     {
         OverlayOpacity = state.OverlayOpacity;
-        RevealX = state.RevealX;
-        RevealY = state.RevealY;
-        RevealWidth = state.RevealWidth;
-        RevealHeight = state.RevealHeight;
+
+        if (ReferenceEquals(MaskBitmap, state.MaskBitmap))
+        {
+            // Bitmap pixels were edited in-place; force bindings to refresh.
+            OnPropertyChanged(nameof(MaskBitmap));
+        }
+        else
+        {
+            MaskBitmap = state.MaskBitmap;
+        }
     }
 }

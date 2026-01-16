@@ -111,12 +111,9 @@
 
       <!-- Map Master reveal mask -->
       <Grid IsVisible="{Binding IsShowingMapMaster}" IsHitTestVisible="False">
-        <controls:MapRevealMask
-          OverlayOpacity="{Binding MapMaster.OverlayOpacity}"
-          RevealX="{Binding MapMaster.RevealX}"
-          RevealY="{Binding MapMaster.RevealY}"
-          RevealWidth="{Binding MapMaster.RevealWidth}"
-          RevealHeight="{Binding MapMaster.RevealHeight}" />
+        <Image Source="{Binding MapMaster.MaskBitmap}"
+               Opacity="{Binding MapMaster.OverlayOpacity}"
+               Stretch="Fill" />
       </Grid>
 
       <!-- Dice Roller overlay -->

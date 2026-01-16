@@ -276,7 +276,7 @@ public sealed class PortalHostService
         }
     }
 
-    public void SetContentMapMasterOverlay(int portalNumber, MapMasterState state)
+    public void SetContentMapMasterOverlay(int portalNumber, MapMasterOverlayState state)
     {
         if (_portals.TryGetValue(portalNumber, out var controller))
         {

@@ -70,6 +70,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly MapMasterViewModel _mapMaster;
     private readonly DiceRollerViewModel _diceRoller;
 
+    private int? _mapMasterPreviewPortalNumber;
+
     private readonly Services.HourglassAudioService _hourglassAudio;
 
     public enum AppSelection
@@ -483,6 +485,7 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 portal.IsSelectedForMapMaster = false;
                 _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
+                UpdateMapMasterPreviewSourceAfterPortalDeselected(portal.PortalNumber);
             }
 
             if (portal.IsSelectedForDiceRoller)
@@ -660,6 +663,7 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 portal.IsSelectedForMapMaster = false;
                 _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
+                UpdateMapMasterPreviewSourceAfterPortalDeselected(portal.PortalNumber);
             }
 
             if (portal.IsSelectedForDiceRoller)
@@ -708,10 +712,14 @@ public partial class MainWindowViewModel : ViewModelBase
             }
 
             ApplyMapMasterToPortal(portal);
+
+            _mapMasterPreviewPortalNumber = portal.PortalNumber;
+            UpdateMapMasterPreviewSource();
         }
         else
         {
             _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
+            UpdateMapMasterPreviewSourceAfterPortalDeselected(portal.PortalNumber);
         }
     }
 
@@ -744,6 +752,7 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 portal.IsSelectedForMapMaster = false;
                 _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
+                UpdateMapMasterPreviewSourceAfterPortalDeselected(portal.PortalNumber);
             }
 
             ApplyDiceRollerToPortal(portal);
@@ -834,6 +843,8 @@ public partial class MainWindowViewModel : ViewModelBase
             portal.Align = SelectedAlign;
             _portalHost.SetDisplayOptions(portal.PortalNumber, portal.ScaleMode, portal.Align);
         }
+
+        UpdateMapMasterPreviewSource();
     }
 
     [ObservableProperty]
@@ -1439,6 +1450,12 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         portal.IsVisible = true;
 
+        if (portal.IsSelectedForMapMaster)
+        {
+            _mapMasterPreviewPortalNumber ??= portal.PortalNumber;
+            UpdateMapMasterPreviewSource();
+        }
+
         UpdateEffectsAudioMix();
     }
 
@@ -1456,6 +1473,44 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OnMapMasterStateChanged()
     {
         UpdateMapMasterOnSelectedPortals();
+    }
+
+    private void UpdateMapMasterPreviewSourceAfterPortalDeselected(int portalNumber)
+    {
+        if (_mapMasterPreviewPortalNumber == portalNumber)
+        {
+            _mapMasterPreviewPortalNumber = null;
+        }
+
+        UpdateMapMasterPreviewSource();
+    }
+
+    private void UpdateMapMasterPreviewSource()
+    {
+        PortalRowViewModel? preferred = null;
+
+        if (_mapMasterPreviewPortalNumber is int preferredNumber)
+        {
+            preferred = Portals.FirstOrDefault(p => p.PortalNumber == preferredNumber);
+        }
+
+        var portal = preferred is not null && preferred.IsSelectedForMapMaster
+            ? preferred
+            : Portals.FirstOrDefault(p => p.IsSelectedForMapMaster);
+
+        if (portal is null)
+        {
+            _mapMaster.SetPreviewSource(null, _mapMaster.PreviewScaleMode, _mapMaster.PreviewAlign);
+            return;
+        }
+
+        _mapMasterPreviewPortalNumber = portal.PortalNumber;
+
+        var canPreview = !portal.IsVideoAssigned && !string.IsNullOrWhiteSpace(portal.AssignedMediaFilePath);
+        _mapMaster.SetPreviewSource(
+            canPreview ? portal.AssignedMediaFilePath : null,
+            portal.ScaleMode,
+            portal.Align);
     }
 
     private void OnDiceRollerStateChanged()

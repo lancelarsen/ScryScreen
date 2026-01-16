@@ -562,7 +562,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         Hourglass = null;
     }
 
-    public void SetMapMasterOverlay(MapMasterState state)
+    public void SetMapMasterOverlay(MapMasterOverlayState state)
     {
         if (MapMaster is null)
         {
