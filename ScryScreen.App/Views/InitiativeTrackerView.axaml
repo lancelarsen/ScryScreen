@@ -67,59 +67,36 @@
               BorderThickness="1"
               CornerRadius="10"
               Padding="12">
-        <Grid ColumnDefinitions="280,16,*" RowDefinitions="Auto,*" RowSpacing="10">
-          <TextBlock Grid.Row="0" Grid.ColumnSpan="3"
+        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+          <TextBlock Grid.Row="0"
                      Text="Conditions Configuration"
                      Foreground="{DynamicResource ScryTextMuted}"
                      FontWeight="SemiBold" />
 
-          <!-- Condition list -->
-          <Border Grid.Row="1" Grid.Column="0"
-                  Background="#0A0F18"
-                  BorderBrush="{DynamicResource ScryBorder}"
-                  BorderThickness="1"
-                  CornerRadius="10"
-                  Padding="8">
-            <ListBox ItemsSource="{Binding ConditionLibraryItems}"
-                     SelectedItem="{Binding SelectedCondition, Mode=TwoWay}"
-                     Background="Transparent"
-                     BorderThickness="0">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:ConditionDefinitionViewModel" x:CompileBindings="False">
-                  <Grid ColumnDefinitions="22,*" ColumnSpacing="8" Margin="2,4">
-                    <Border Grid.Column="0" Width="16" Height="16" CornerRadius="8" Background="{Binding ColorBrush}" />
-                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Foreground="{DynamicResource ScryTextMuted}" />
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </Border>
-
           <!-- Editor -->
-          <Border Grid.Row="1" Grid.Column="2"
-                  Background="#0A0F18"
-                  BorderBrush="{DynamicResource ScryBorder}"
-                  BorderThickness="1"
-                  CornerRadius="10"
-                  Padding="10">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*" RowSpacing="8">
-              <TextBlock Text="Select a condition to edit its color (and custom name)."
-                         Foreground="{DynamicResource ScryTextMuted}"
-                         IsVisible="{Binding HasSelectedCondition, Converter={StaticResource InverseBooleanConverter}}" />
+          <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="10">
+            <!-- Row 0: condition selector + swatches + RGB + Save/Delete icons -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto"
+                  ColumnSpacing="10"
+                  VerticalAlignment="Center">
+              <ComboBox Grid.Column="0"
+                        MinWidth="200"
+                        ItemsSource="{Binding ConditionLibraryItems}"
+                        SelectedItem="{Binding SelectedCondition, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ConditionDefinitionViewModel" x:CompileBindings="False">
+                    <Grid ColumnDefinitions="22,*" ColumnSpacing="8" Margin="2,4">
+                      <Border Grid.Column="0" Width="16" Height="16" CornerRadius="8" Background="{Binding ColorBrush}" />
+                      <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Foreground="{DynamicResource ScryTextMuted}" />
+                    </Grid>
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
 
-              <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding HasSelectedCondition}">
-                <TextBlock Text="Name" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1"
-                         Text="{Binding SelectedConditionNameText, Mode=TwoWay}"
-                         IsEnabled="{Binding CanEditSelectedConditionIdentity}" />
-              </Grid>
-
-              <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto" ColumnSpacing="10" IsVisible="{Binding HasSelectedCondition}">
-                <TextBlock Text="Color" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                <Border Grid.Column="1" Width="28" Height="28" CornerRadius="14" Background="{Binding SelectedCondition.ColorBrush}" />
-              </Grid>
-
-              <ItemsControl Grid.Row="3" IsVisible="{Binding HasSelectedCondition}" ItemsSource="{Binding ConditionColorSwatches}">
+              <ItemsControl Grid.Column="1"
+                            ItemsSource="{Binding ConditionColorSwatchesPicker}"
+                            IsEnabled="{Binding HasSelectedCondition}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <WrapPanel ItemSpacing="6" LineSpacing="6" />
@@ -136,99 +113,48 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding HasSelectedCondition}">
-                <TextBlock Text="RGB" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" Width="54" TextAlignment="Center" Text="{Binding SelectedColorRText, Mode=TwoWay}" beh:NumericTextBoxBehavior.IsNumericOnly="True" beh:NumericTextBoxBehavior.AllowNegative="False" />
-                <TextBox Grid.Column="2" Width="54" TextAlignment="Center" Text="{Binding SelectedColorGText, Mode=TwoWay}" beh:NumericTextBoxBehavior.IsNumericOnly="True" beh:NumericTextBoxBehavior.AllowNegative="False" />
-                <TextBox Grid.Column="3" Width="54" TextAlignment="Center" Text="{Binding SelectedColorBText, Mode=TwoWay}" beh:NumericTextBoxBehavior.IsNumericOnly="True" beh:NumericTextBoxBehavior.AllowNegative="False" />
-              </Grid>
+              <TextBox Grid.Column="2" Width="54" TextAlignment="Center" Text="{Binding SelectedColorRText, Mode=TwoWay}" IsEnabled="{Binding HasSelectedCondition}" beh:NumericTextBoxBehavior.IsNumericOnly="True" beh:NumericTextBoxBehavior.AllowNegative="False" />
+              <TextBox Grid.Column="3" Width="54" TextAlignment="Center" Text="{Binding SelectedColorGText, Mode=TwoWay}" IsEnabled="{Binding HasSelectedCondition}" beh:NumericTextBoxBehavior.IsNumericOnly="True" beh:NumericTextBoxBehavior.AllowNegative="False" />
+              <TextBox Grid.Column="4" Width="54" TextAlignment="Center" Text="{Binding SelectedColorBText, Mode=TwoWay}" IsEnabled="{Binding HasSelectedCondition}" beh:NumericTextBoxBehavior.IsNumericOnly="True" beh:NumericTextBoxBehavior.AllowNegative="False" />
 
-              <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasSelectedCondition}">
-                <Button Background="#0A0F18"
-                        BorderBrush="{DynamicResource ScryBorder}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="10,4"
-                        Command="{Binding ApplySelectedRgbCommand}">
-                  <TextBlock Text="Apply RGB" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
-                </Button>
+              <Button Grid.Column="5"
+                      Classes="circleSmall"
+                      ToolTip.Tip="Save"
+                      IsEnabled="{Binding HasSelectedCondition}"
+                      Command="{Binding SaveSelectedConditionEditsCommand}">
+                <i:Icon Value="mdi-content-save" FontSize="18"
+                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+              </Button>
 
-                <Button Background="#0A0F18"
-                        BorderBrush="{DynamicResource ScryBorder}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="10,4"
-                        Command="{Binding SaveSelectedConditionEditsCommand}">
-                  <TextBlock Text="Save" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
-                </Button>
-
-                <Button Background="#0A0F18"
-                        BorderBrush="{DynamicResource ScryBorder}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="10,4"
-                        Command="{Binding DeleteSelectedCustomConditionCommand}"
-                        IsEnabled="{Binding CanDeleteSelectedCondition}">
-                  <TextBlock Text="Delete Custom" Foreground="{DynamicResource ScryDanger}" FontSize="12" />
-                </Button>
-              </StackPanel>
-
-              <Border Grid.Row="6" Height="1" Background="{DynamicResource ScryBorder}" Opacity="0.6" Margin="0,8,0,0" />
-
-              <StackPanel Grid.Row="7" Spacing="8">
-                <TextBlock Text="Add Custom Condition" Foreground="{DynamicResource ScryTextMuted}" FontWeight="SemiBold" />
-
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                  <TextBlock Text="Name" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                  <TextBox Grid.Column="1" Text="{Binding NewCustomConditionNameText, Mode=TwoWay}" />
-                </Grid>
-
-                <ItemsControl ItemsSource="{Binding ConditionColorSwatches}">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <WrapPanel ItemSpacing="6" LineSpacing="6" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ColorSwatchViewModel" x:CompileBindings="False">
-                      <Button Classes="circleSmall" Width="28" Height="28"
-                              Command="{Binding DataContext.SelectColorSwatchForNewCustomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                              CommandParameter="{Binding .}">
-                        <Border Width="16" Height="16" CornerRadius="8" Background="{Binding Brush}" />
-                      </Button>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8">
-                  <TextBlock Text="RGB" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-                  <TextBox Grid.Column="1" Width="54" TextAlignment="Center" Text="{Binding NewCustomColorRText, Mode=TwoWay}" beh:NumericTextBoxBehavior.IsNumericOnly="True" beh:NumericTextBoxBehavior.AllowNegative="False" />
-                  <TextBox Grid.Column="2" Width="54" TextAlignment="Center" Text="{Binding NewCustomColorGText, Mode=TwoWay}" beh:NumericTextBoxBehavior.IsNumericOnly="True" beh:NumericTextBoxBehavior.AllowNegative="False" />
-                  <TextBox Grid.Column="3" Width="54" TextAlignment="Center" Text="{Binding NewCustomColorBText, Mode=TwoWay}" beh:NumericTextBoxBehavior.IsNumericOnly="True" beh:NumericTextBoxBehavior.AllowNegative="False" />
-                </Grid>
-
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Button Background="#0A0F18"
-                          BorderBrush="{DynamicResource ScryBorder}"
-                          BorderThickness="1"
-                          CornerRadius="8"
-                          Padding="10,4"
-                          Command="{Binding ApplyNewCustomRgbCommand}">
-                    <TextBlock Text="Use RGB" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
-                  </Button>
-
-                  <Button Background="#0A0F18"
-                          BorderBrush="{DynamicResource ScryBorder}"
-                          BorderThickness="1"
-                          CornerRadius="8"
-                          Padding="10,4"
-                          Command="{Binding AddCustomConditionCommand}">
-                    <TextBlock Text="Add" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" />
-                  </Button>
-                </StackPanel>
-              </StackPanel>
+              <Button Grid.Column="6"
+                      Classes="circleSmall"
+                      ToolTip.Tip="Delete Custom"
+                      IsEnabled="{Binding CanDeleteSelectedCondition}"
+                      Command="{Binding DeleteSelectedCustomConditionCommand}">
+                <i:Icon Value="mdi-delete" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
+              </Button>
             </Grid>
-          </Border>
+
+            <!-- Row 1: add custom condition name + save icon -->
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+              <TextBlock Grid.Column="0"
+                         Text="Custom Condition"
+                         Foreground="{DynamicResource ScryTextMuted}"
+                         VerticalAlignment="Center" />
+
+              <TextBox Grid.Column="1"
+                       Watermark="Name"
+                       Text="{Binding NewCustomConditionNameText, Mode=TwoWay}" />
+
+              <Button Grid.Column="2"
+                      Classes="circleSmall"
+                      ToolTip.Tip="Add Custom Condition"
+                      Command="{Binding AddCustomConditionFromSelectedCommand}">
+                <i:Icon Value="mdi-content-save" FontSize="18"
+                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+              </Button>
+            </Grid>
+          </Grid>
         </Grid>
       </Border>
 

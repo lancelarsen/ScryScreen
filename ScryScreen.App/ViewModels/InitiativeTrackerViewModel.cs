@@ -73,6 +73,14 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         new("#FF6366F1"), new("#FF8B5CF6"), new("#FFA855F7"), new("#FFEC4899"), new("#FFFF4FD8"), new("#FFD4AF37"),
     };
 
+    public IReadOnlyList<ColorSwatchViewModel> ConditionColorSwatchesPicker
+        => ConditionColorSwatches.Skip(3).ToArray();
+
+    private const string DefaultCustomConditionColorHex = "#FFF97316";
+
+    private bool _suppressSelectedColorSync;
+    private bool _suppressNewCustomColorSync;
+
     public bool IsEmpty => Entries.Count == 0;
 
     [ObservableProperty]
@@ -116,16 +124,16 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     private string newCustomConditionNameText = string.Empty;
 
     [ObservableProperty]
-    private string newCustomConditionColorHexText = "#FFFFFFFF";
+    private string newCustomConditionColorHexText = DefaultCustomConditionColorHex;
 
     [ObservableProperty]
-    private string newCustomColorRText = "255";
+    private string newCustomColorRText = "249";
 
     [ObservableProperty]
-    private string newCustomColorGText = "255";
+    private string newCustomColorGText = "115";
 
     [ObservableProperty]
-    private string newCustomColorBText = "255";
+    private string newCustomColorBText = "22";
 
     public bool HasSelectedCondition => SelectedCondition is not null;
     public bool CanDeleteSelectedCondition => SelectedCondition is not null && SelectedCondition.IsCustom;
@@ -165,6 +173,14 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         SelectedConditionColorHexText = value.ColorHex;
         UpdateSelectedRgbFromHex(value.ColorHex);
     }
+
+    partial void OnSelectedColorRTextChanged(string value) => UpdateSelectedColorPreviewFromRgb();
+    partial void OnSelectedColorGTextChanged(string value) => UpdateSelectedColorPreviewFromRgb();
+    partial void OnSelectedColorBTextChanged(string value) => UpdateSelectedColorPreviewFromRgb();
+
+    partial void OnNewCustomColorRTextChanged(string value) => UpdateNewCustomColorPreviewFromRgb();
+    partial void OnNewCustomColorGTextChanged(string value) => UpdateNewCustomColorPreviewFromRgb();
+    partial void OnNewCustomColorBTextChanged(string value) => UpdateNewCustomColorPreviewFromRgb();
 
     public Guid? ActiveId => _state.ActiveId;
 
@@ -223,7 +239,8 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         }
 
         SelectedConditionColorHexText = swatch.Hex;
-        SaveSelectedConditionEdits();
+        SelectedCondition.ColorHex = swatch.Hex;
+        UpdateSelectedRgbFromHex(swatch.Hex);
     }
 
     [RelayCommand]
@@ -240,7 +257,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         }
 
         SelectedConditionColorHexText = hex;
-        SaveSelectedConditionEdits();
+        SelectedCondition.ColorHex = hex;
     }
 
     [RelayCommand]
@@ -326,11 +343,31 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         ConditionLibrary.Save();
 
         NewCustomConditionNameText = string.Empty;
-        NewCustomConditionColorHexText = "#FFFFFFFF";
-        NewCustomColorRText = "255";
-        NewCustomColorGText = "255";
-        NewCustomColorBText = "255";
+        NewCustomConditionColorHexText = DefaultCustomConditionColorHex;
+        UpdateNewCustomRgbFromHex(DefaultCustomConditionColorHex);
 
+        RefreshConditionLibraryItems(keepSelectedId: def.Id);
+    }
+
+    [RelayCommand]
+    private void AddCustomConditionFromSelected()
+    {
+        var name = (NewCustomConditionNameText ?? string.Empty).Trim();
+        if (name.Length == 0)
+        {
+            return;
+        }
+
+        var colorSource = HasSelectedCondition ? SelectedConditionColorHexText : DefaultCustomConditionColorHex;
+        if (!TryNormalizeHexColor(colorSource, out var normalizedColor))
+        {
+            return;
+        }
+
+        var def = ConditionLibrary.AddCustom(name, normalizedColor);
+        ConditionLibrary.Save();
+
+        NewCustomConditionNameText = string.Empty;
         RefreshConditionLibraryItems(keepSelectedId: def.Id);
     }
 
@@ -397,15 +434,19 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         try
         {
             var c = Color.Parse(hex ?? "#FFFFFFFF");
+            _suppressSelectedColorSync = true;
             SelectedColorRText = c.R.ToString();
             SelectedColorGText = c.G.ToString();
             SelectedColorBText = c.B.ToString();
+            _suppressSelectedColorSync = false;
         }
         catch
         {
+            _suppressSelectedColorSync = true;
             SelectedColorRText = "255";
             SelectedColorGText = "255";
             SelectedColorBText = "255";
+            _suppressSelectedColorSync = false;
         }
     }
 
@@ -414,16 +455,51 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         try
         {
             var c = Color.Parse(hex ?? "#FFFFFFFF");
+            _suppressNewCustomColorSync = true;
             NewCustomColorRText = c.R.ToString();
             NewCustomColorGText = c.G.ToString();
             NewCustomColorBText = c.B.ToString();
+            _suppressNewCustomColorSync = false;
         }
         catch
         {
+            _suppressNewCustomColorSync = true;
             NewCustomColorRText = "255";
             NewCustomColorGText = "255";
             NewCustomColorBText = "255";
+            _suppressNewCustomColorSync = false;
         }
+    }
+
+    private void UpdateSelectedColorPreviewFromRgb()
+    {
+        if (_suppressSelectedColorSync || SelectedCondition is null)
+        {
+            return;
+        }
+
+        if (!TryBuildHexFromRgb(SelectedColorRText, SelectedColorGText, SelectedColorBText, out var hex))
+        {
+            return;
+        }
+
+        SelectedConditionColorHexText = hex;
+        SelectedCondition.ColorHex = hex;
+    }
+
+    private void UpdateNewCustomColorPreviewFromRgb()
+    {
+        if (_suppressNewCustomColorSync)
+        {
+            return;
+        }
+
+        if (!TryBuildHexFromRgb(NewCustomColorRText, NewCustomColorGText, NewCustomColorBText, out var hex))
+        {
+            return;
+        }
+
+        NewCustomConditionColorHexText = hex;
     }
 
     private static bool TryBuildHexFromRgb(string? rText, string? gText, string? bText, out string hex)
