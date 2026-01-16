@@ -136,7 +136,7 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
                 Initiative: e.Initiative,
                 Mod: e.Mod,
                 IsActive: activeId.HasValue && e.Id == activeId.Value,
-                NameColorHex: ComputeNameColorHex(e, conditionLibrary),
+                HealthDotColorHex: ComputeHealthDotColorHex(e, conditionLibrary),
                 IsStrikethrough: ComputeNameIsStrikethrough(e, conditionLibrary),
                 Conditions: BuildConditionTags(e, conditionLibrary)))
             .ToArray();
@@ -176,31 +176,13 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
         return tags;
     }
 
-    private static bool HasConditionShortTag(
-        InitiativeEntry entry,
-        ConditionLibraryService conditionLibrary,
-        string shortTag)
-    {
-        foreach (var c in entry.GetConditionsOrEmpty())
-        {
-            if (!conditionLibrary.TryGet(c.ConditionId, out var def))
-            {
-                continue;
-            }
-
-            if (string.Equals(def.ShortTag, shortTag, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool HasConditionId(InitiativeEntry entry, Guid conditionId)
+        => entry.GetConditionsOrEmpty().Any(c => c.ConditionId == conditionId);
 
     private static bool ComputeNameIsStrikethrough(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
     {
         // DEAD condition always strikes.
-        if (HasConditionShortTag(entry, conditionLibrary, "DEAD"))
+        if (HasConditionId(entry, ConditionLibraryService.DeadId))
         {
             return true;
         }
@@ -214,11 +196,16 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
         return false;
     }
 
-    private static string ComputeNameColorHex(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    private static string? ComputeHealthDotColorHex(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
     {
-        // BLOOD condition forces "at or below 50%" styling.
-        var forceBlood = HasConditionShortTag(entry, conditionLibrary, "BLOOD");
-        if (forceBlood)
+        // DEAD takes precedence.
+        if (HasConditionId(entry, ConditionLibraryService.DeadId))
+        {
+            return "#FF9CA3AF";
+        }
+
+        // BLOOD condition forces bloodied.
+        if (HasConditionId(entry, ConditionLibraryService.BloodiedId))
         {
             return "#FFDC2626";
         }
@@ -226,14 +213,14 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
         var max = TryParseInt(entry.MaxHp);
         if (!max.HasValue || max.Value <= 0)
         {
-            // Unknown max => default styling.
-            return "#FFFFFFFF";
+            // Unknown max => show no dot.
+            return null;
         }
 
         var current = TryParseInt(entry.CurrentHp);
         if (!current.HasValue)
         {
-            // Max-only implies healthy.
+            // Max-only implies full/healthy.
             return "#FF22C55E";
         }
 
@@ -242,13 +229,20 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
             return "#FFDC2626";
         }
 
-        // 50% is red.
+        // Full HP.
+        if (current.Value >= max.Value)
+        {
+            return "#FF22C55E";
+        }
+
+        // 50% is bloodied.
         if (current.Value * 2 <= max.Value)
         {
             return "#FFDC2626";
         }
 
-        return "#FF22C55E";
+        // Injured (above 50% but not full).
+        return "#FFF59E0B";
     }
 
     private static int? TryParseInt(string? text)
@@ -268,23 +262,30 @@ public sealed record InitiativePortalEntryViewModel(
     int Initiative,
     int Mod,
     bool IsActive,
-    string NameColorHex,
+    string? HealthDotColorHex,
     bool IsStrikethrough,
     IReadOnlyList<InitiativePortalConditionTagViewModel> Conditions)
 {
     public bool HasMod => Mod != 0;
 
-    public IBrush NameBrush
+    public bool HasHealthDot => !string.IsNullOrWhiteSpace(HealthDotColorHex);
+
+    public IBrush HealthDotBrush
     {
         get
         {
+            if (string.IsNullOrWhiteSpace(HealthDotColorHex))
+            {
+                return Brushes.Transparent;
+            }
+
             try
             {
-                return Brush.Parse(NameColorHex);
+                return Brush.Parse(HealthDotColorHex);
             }
             catch
             {
-                return Brushes.White;
+                return Brushes.Transparent;
             }
         }
     }

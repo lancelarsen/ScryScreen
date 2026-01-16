@@ -42,8 +42,8 @@
 
     <Grid RowDefinitions="*,Auto" Margin="32,32,32,6">
       <!-- Row 0 takes remaining space; center the whole table vertically in it. -->
-      <Border VerticalAlignment="Center"
-              HorizontalAlignment="Stretch"
+            <Border VerticalAlignment="Center"
+              HorizontalAlignment="Center"
               MaxWidth="1400"
               Background="Transparent"
               CornerRadius="18">
@@ -54,17 +54,26 @@
                   CornerRadius="18"
                   IsHitTestVisible="False" />
 
-          <ItemsControl ItemsSource="{Binding Entries}" HorizontalAlignment="Stretch" Margin="28,22">
+          <ItemsControl ItemsSource="{Binding Entries}" HorizontalAlignment="Center" Margin="28,22" Grid.IsSharedSizeScope="True">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel HorizontalAlignment="Stretch" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:InitiativePortalEntryViewModel" x:CompileBindings="False">
               <Grid Margin="0,0,0,8"
-                ColumnDefinitions="320,*"
                     ColumnSpacing="22"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" SharedSizeGroup="InitColumn" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-                    <!-- Initiative group (initiative + mod + diamond), right-aligned so digits stay column-aligned -->
-                    <Grid ColumnDefinitions="Auto,Auto,Auto"
+                      <!-- Column 0: Initiative group (initiative + mod + diamond), right-aligned so digits stay column-aligned -->
+                      <Grid Grid.Column="0"
+                        ColumnDefinitions="Auto,Auto,Auto"
                   ColumnSpacing="14"
                   HorizontalAlignment="Right"
                   VerticalAlignment="Center">
@@ -164,18 +173,29 @@
                   </Border>
                 </Grid>
 
-                <!-- Name + conditions (inline; wraps if needed) -->
-                <Grid Grid.Column="1"
+                    <!-- Column 1: Name + conditions (inline; wraps if needed) -->
+                    <Grid Grid.Column="1"
                       ColumnDefinitions="Auto,*"
                       ColumnSpacing="18"
                       HorizontalAlignment="Left"
                       VerticalAlignment="Center">
-                  <Grid Grid.Column="0">
+                  <Grid Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <!-- Health indicator dot (full/injured/bloodied) -->
+                        <Border Grid.Column="0"
+                          Width="22"
+                          Height="22"
+                          CornerRadius="11"
+                            Background="{Binding HealthDotBrush}"
+                            IsVisible="{Binding HasHealthDot}"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Left" />
+
+                    <Grid Grid.Column="1">
                     <!-- Base name (always visible, keeps high contrast) -->
                     <TextBlock Classes="entry"
                                Text="{Binding Name}"
                                TextTrimming="CharacterEllipsis"
-                               Foreground="{Binding NameBrush}"
+                               Foreground="#FFFFFF"
                                TextDecorations="{Binding NameDecorations}"
                                FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                HorizontalAlignment="Left"
@@ -185,7 +205,7 @@
                     <TextBlock Classes="entry"
                                Text="{Binding Name}"
                                TextTrimming="CharacterEllipsis"
-                               Foreground="{Binding NameBrush}"
+                               Foreground="#FFFFFF"
                                TextDecorations="{Binding NameDecorations}"
                                IsVisible="{Binding IsActive}"
                                FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -204,7 +224,7 @@
                     <TextBlock Classes="entry"
                                Text="{Binding Name}"
                                TextTrimming="CharacterEllipsis"
-                               Foreground="{Binding NameBrush}"
+                               Foreground="#FFFFFF"
                                TextDecorations="{Binding NameDecorations}"
                                IsVisible="{Binding IsActive}"
                                FontSize="{Binding DataContext.EntryFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -218,6 +238,7 @@
                                           Opacity="0.90" />
                       </TextBlock.Effect>
                     </TextBlock>
+                    </Grid>
                   </Grid>
 
                   <ItemsControl Grid.Column="1" ItemsSource="{Binding Conditions}" HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -228,13 +249,13 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:InitiativePortalConditionTagViewModel" x:CompileBindings="False">
-                        <Border Background="#000000" Opacity="0.85" CornerRadius="10" Padding="10,4">
+                        <Border Background="{Binding Brush}" Opacity="0.95" CornerRadius="10" Padding="10,4">
                           <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{Binding Name}"
-                                       Foreground="{Binding Brush}"
+                                       Foreground="#000000"
                                        FontWeight="SemiBold"
                                        FontSize="{Binding DataContext.MoreFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-                            <Border IsVisible="{Binding HasTimer}" Background="{Binding Brush}" CornerRadius="8" Padding="6,0">
+                            <Border IsVisible="{Binding HasTimer}" Background="#FFFFFF" Opacity="0.65" CornerRadius="8" Padding="6,0">
                               <TextBlock Text="{Binding RoundsRemaining}"
                                          Foreground="#000000"
                                          FontWeight="Black"

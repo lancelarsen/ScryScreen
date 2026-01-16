@@ -20,7 +20,7 @@ public sealed class InitiativeConditionTickDownTests
         entry.Conditions.Add(new InitiativeEntryConditionViewModel(
             owner: entry,
             conditionId: def.Id,
-            shortTag: def.ShortTag,
+            name: def.DisplayName,
             colorHex: def.ColorHex,
             isManualOnly: def.IsManualOnly,
             roundsRemaining: 2));
@@ -50,7 +50,7 @@ public sealed class InitiativeConditionTickDownTests
         ineligible.Conditions.Add(new InitiativeEntryConditionViewModel(
             owner: ineligible,
             conditionId: def.Id,
-            shortTag: def.ShortTag,
+            name: def.DisplayName,
             colorHex: def.ColorHex,
             isManualOnly: def.IsManualOnly,
             roundsRemaining: 2));
@@ -90,19 +90,18 @@ public sealed class InitiativeConditionTickDownTests
     {
         var vm = new InitiativeTrackerViewModel();
 
-        // Make the tag unique to avoid collisions with any persisted user condition library.
-        var tag = $"MYC-{Guid.NewGuid():N}";
+        // Make the name unique to avoid collisions with any persisted user condition library.
+        var name = $"My Custom {Guid.NewGuid():N}";
 
         var entry = vm.Entries[0];
         entry.Name = "Alice";
         entry.Initiative = "10";
 
-        vm.NewCustomConditionNameText = "My Custom";
-        vm.NewCustomConditionShortTagText = tag;
+        vm.NewCustomConditionNameText = name;
         vm.NewCustomConditionColorHexText = "#FF3B82F6";
         vm.AddCustomConditionCommand.Execute(null);
 
-        var custom = vm.ConditionDefinitions.Single(d => d.ShortTag == tag);
+        var custom = vm.ConditionDefinitions.Single(d => d.Name == name);
         entry.SelectedConditionToAdd = custom;
         entry.SelectedConditionRoundsToAdd = 2;
         vm.AddConditionToEntryCommand.Execute(entry);

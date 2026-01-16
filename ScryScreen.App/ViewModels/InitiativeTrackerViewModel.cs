@@ -101,9 +101,6 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     private string selectedConditionNameText = string.Empty;
 
     [ObservableProperty]
-    private string selectedConditionShortTagText = string.Empty;
-
-    [ObservableProperty]
     private string selectedConditionColorHexText = "#FFFFFFFF";
 
     [ObservableProperty]
@@ -117,9 +114,6 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
     [ObservableProperty]
     private string newCustomConditionNameText = string.Empty;
-
-    [ObservableProperty]
-    private string newCustomConditionShortTagText = string.Empty;
 
     [ObservableProperty]
     private string newCustomConditionColorHexText = "#FFFFFFFF";
@@ -160,7 +154,6 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         if (value is null)
         {
             SelectedConditionNameText = string.Empty;
-            SelectedConditionShortTagText = string.Empty;
             SelectedConditionColorHexText = "#FFFFFFFF";
             SelectedColorRText = "255";
             SelectedColorGText = "255";
@@ -169,7 +162,6 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         }
 
         SelectedConditionNameText = value.Name;
-        SelectedConditionShortTagText = value.ShortTag;
         SelectedConditionColorHexText = value.ColorHex;
         UpdateSelectedRgbFromHex(value.ColorHex);
     }
@@ -278,13 +270,12 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 
         // Customs: name + tag + color.
         var name = (SelectedConditionNameText ?? string.Empty).Trim();
-        var tag = (SelectedConditionShortTagText ?? string.Empty).Trim();
-        if (name.Length == 0 || tag.Length == 0)
+        if (name.Length == 0)
         {
             return;
         }
 
-        if (!ConditionLibrary.TryUpdateCustom(selected.Id, name, tag, normalizedColor))
+        if (!ConditionLibrary.TryUpdateCustom(selected.Id, name, normalizedColor))
         {
             return;
         }
@@ -321,9 +312,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
     private void AddCustomCondition()
     {
         var name = (NewCustomConditionNameText ?? string.Empty).Trim();
-        var tag = (NewCustomConditionShortTagText ?? string.Empty).Trim();
-
-        if (name.Length == 0 || tag.Length == 0)
+        if (name.Length == 0)
         {
             return;
         }
@@ -333,11 +322,10 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             return;
         }
 
-        var def = ConditionLibrary.AddCustom(name, tag, normalizedColor);
+        var def = ConditionLibrary.AddCustom(name, normalizedColor);
         ConditionLibrary.Save();
 
         NewCustomConditionNameText = string.Empty;
-        NewCustomConditionShortTagText = string.Empty;
         NewCustomConditionColorHexText = "#FFFFFFFF";
         NewCustomColorRText = "255";
         NewCustomColorGText = "255";
@@ -520,7 +508,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
                 vm.Conditions.Add(new InitiativeEntryConditionViewModel(
                     owner: vm,
                     conditionId: def.Id,
-                    shortTag: def.Name,
+                    name: def.DisplayName,
                     colorHex: def.ColorHex,
                     isManualOnly: def.IsManualOnly,
                     roundsRemaining: rounds));
@@ -899,7 +887,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         var existing = entry.Conditions.FirstOrDefault(c => c.ConditionId == def.Id);
         if (existing is not null)
         {
-            existing.ShortTag = def.Name;
+            existing.Name = def.DisplayName;
             existing.ColorHex = def.ColorHex;
             existing.RoundsRemaining = rounds;
         }
@@ -908,7 +896,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             entry.Conditions.Add(new InitiativeEntryConditionViewModel(
                 owner: entry,
                 conditionId: def.Id,
-                shortTag: def.Name,
+                name: def.DisplayName,
                 colorHex: def.ColorHex,
                 isManualOnly: def.IsManualOnly,
                 roundsRemaining: rounds));
@@ -1018,7 +1006,7 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
                     continue;
                 }
 
-                c.ShortTag = def.Name;
+                c.Name = def.DisplayName;
                 c.ColorHex = def.ColorHex;
             }
         }

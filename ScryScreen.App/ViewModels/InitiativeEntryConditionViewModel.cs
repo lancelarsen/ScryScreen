@@ -9,14 +9,14 @@ public sealed partial class InitiativeEntryConditionViewModel : ViewModelBase
     public InitiativeEntryConditionViewModel(
         InitiativeEntryViewModel owner,
         Guid conditionId,
-        string shortTag,
+        string name,
         string colorHex,
         bool isManualOnly,
         int? roundsRemaining)
     {
         Owner = owner ?? throw new ArgumentNullException(nameof(owner));
         ConditionId = conditionId;
-        ShortTag = shortTag ?? string.Empty;
+        Name = name ?? string.Empty;
         ColorHex = colorHex ?? "#FFFFFFFF";
         IsManualOnly = isManualOnly;
         this.roundsRemaining = roundsRemaining;
@@ -30,7 +30,7 @@ public sealed partial class InitiativeEntryConditionViewModel : ViewModelBase
     public bool IsManualOnly { get; }
 
     [ObservableProperty]
-    private string shortTag;
+    private string name;
 
     [ObservableProperty]
     private string colorHex;

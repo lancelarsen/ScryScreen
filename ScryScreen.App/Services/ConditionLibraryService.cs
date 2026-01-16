@@ -7,6 +7,11 @@ namespace ScryScreen.App.Services;
 
 public sealed class ConditionLibraryService
 {
+    // Stable IDs for a couple of “semantic” built-ins.
+    public static readonly Guid BlindedId = Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf01");
+    public static readonly Guid BloodiedId = Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf02");
+    public static readonly Guid DeadId = Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf04");
+
     private readonly Dictionary<Guid, ConditionDefinition> _builtInsById;
     private readonly Dictionary<Guid, ConditionDefinition> _customById;
 
@@ -50,10 +55,9 @@ public sealed class ConditionLibraryService
             }
 
             var name = (cc.Name ?? string.Empty).Trim();
-            var tag = (cc.ShortTag ?? string.Empty).Trim();
             var color = (cc.ColorHex ?? string.Empty).Trim();
 
-            if (name.Length == 0 || tag.Length == 0 || color.Length == 0)
+            if (name.Length == 0 || color.Length == 0)
             {
                 continue;
             }
@@ -61,7 +65,6 @@ public sealed class ConditionLibraryService
             var def = new ConditionDefinition(
                 Id: id,
                 Name: name,
-                ShortTag: tag,
                 ColorHex: color,
                 IsBuiltIn: false,
                 IsManualOnly: false);
@@ -119,21 +122,18 @@ public sealed class ConditionLibraryService
         }
     }
 
-    public ConditionDefinition AddCustom(string name, string shortTag, string colorHex)
+    public ConditionDefinition AddCustom(string name, string colorHex)
     {
         var n = (name ?? string.Empty).Trim();
-        var t = (shortTag ?? string.Empty).Trim();
         var c = (colorHex ?? string.Empty).Trim();
 
         if (n.Length == 0) throw new ArgumentException("Name is required", nameof(name));
-        if (t.Length == 0) throw new ArgumentException("ShortTag is required", nameof(shortTag));
         if (c.Length == 0) throw new ArgumentException("ColorHex is required", nameof(colorHex));
 
         var id = Guid.NewGuid();
         var def = new ConditionDefinition(
             Id: id,
             Name: n,
-            ShortTag: t,
             ColorHex: c,
             IsBuiltIn: false,
             IsManualOnly: false);
@@ -142,7 +142,7 @@ public sealed class ConditionLibraryService
         return def;
     }
 
-    public bool TryUpdateCustom(Guid id, string name, string shortTag, string colorHex)
+    public bool TryUpdateCustom(Guid id, string name, string colorHex)
     {
         if (!_customById.TryGetValue(id, out var existing))
         {
@@ -150,15 +150,14 @@ public sealed class ConditionLibraryService
         }
 
         var n = (name ?? string.Empty).Trim();
-        var t = (shortTag ?? string.Empty).Trim();
         var c = (colorHex ?? string.Empty).Trim();
 
-        if (n.Length == 0 || t.Length == 0 || c.Length == 0)
+        if (n.Length == 0 || c.Length == 0)
         {
             return false;
         }
 
-        _customById[id] = existing with { Name = n, ShortTag = t, ColorHex = c };
+        _customById[id] = existing with { Name = n, ColorHex = c };
         return true;
     }
 
@@ -187,7 +186,6 @@ public sealed class ConditionLibraryService
             {
                 Id = d.Id,
                 Name = d.Name,
-                ShortTag = d.ShortTag,
                 ColorHex = d.ColorHex,
             })
             .ToList();
@@ -208,28 +206,28 @@ public sealed class ConditionLibraryService
         // Colors are just defaults; user can override in Conditions Configuration.
         return new[]
         {
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf01"), "Blinded", "BLIND", "#FFB0B0B0", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf02"), "Bloodied", "BLOOD", "#FFFFA500", true, true),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf03"), "Charmed", "CHARM", "#FFFF4FD8", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf04"), "Dead", "DEAD", "#FF888888", true, true),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf05"), "Deafened", "DEAF", "#FF8FB3FF", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf06"), "Exhaustion (1)", "EXHAUST 1", "#FFD4AF37", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf07"), "Exhaustion (2)", "EXHAUST 2", "#FFD4AF37", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf08"), "Exhaustion (3)", "EXHAUST 3", "#FFD4AF37", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf09"), "Exhaustion (4)", "EXHAUST 4", "#FFD4AF37", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0a"), "Exhaustion (5)", "EXHAUST 5", "#FFD4AF37", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0b"), "Exhaustion (6)", "EXHAUST 6", "#FFD4AF37", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0c"), "Frightened", "FRIGHT", "#FFB388FF", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0d"), "Grappled", "GRAPPLED", "#FF6EE7B7", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0e"), "Incapacitated", "INCAP", "#FFFFC857", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0f"), "Invisible", "INVIS", "#FF9BE7FF", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf10"), "Paralyzed", "PARALYZED", "#FFFF6B6B", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf11"), "Petrified", "PETRIFIED", "#FFB5C18E", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf12"), "Poisoned", "POISON", "#FF4ADE80", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf13"), "Prone", "PRONE", "#FF93C5FD", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf14"), "Restrained", "RESTRAIN", "#FF60A5FA", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf15"), "Stunned", "STUN", "#FFF59E0B", true, false),
-            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf16"), "Unconscious", "UNCON", "#FF9CA3AF", true, false),
+            new ConditionDefinition(BlindedId, "Blinded", "#FFB0B0B0", true, false),
+            new ConditionDefinition(BloodiedId, "Bloodied", "#FFFFA500", true, true),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf03"), "Charmed", "#FFFF4FD8", true, false),
+            new ConditionDefinition(DeadId, "Dead", "#FF888888", true, true),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf05"), "Deafened", "#FF8FB3FF", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf06"), "Exhaustion 1", "#FFD4AF37", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf07"), "Exhaustion 2", "#FFD4AF37", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf08"), "Exhaustion 3", "#FFD4AF37", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf09"), "Exhaustion 4", "#FFD4AF37", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0a"), "Exhaustion 5", "#FFD4AF37", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0b"), "Exhaustion 6", "#FFD4AF37", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0c"), "Frightened", "#FFB388FF", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0d"), "Grappled", "#FF6EE7B7", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0e"), "Incapacitated", "#FFFFC857", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf0f"), "Invisible", "#FF9BE7FF", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf10"), "Paralyzed", "#FFFF6B6B", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf11"), "Petrified", "#FFB5C18E", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf12"), "Poisoned", "#FF4ADE80", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf13"), "Prone", "#FF93C5FD", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf14"), "Restrained", "#FF60A5FA", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf15"), "Stunned", "#FFF59E0B", true, false),
+            new ConditionDefinition(Guid.Parse("d0a70a1b-4d49-4cc8-8f4b-1e1c2a7abf16"), "Unconscious", "#FF9CA3AF", true, false),
         };
     }
 }

@@ -5,7 +5,6 @@ namespace ScryScreen.App.Models;
 public sealed record ConditionDefinition(
     Guid Id,
     string Name,
-    string ShortTag,
     string ColorHex,
     bool IsBuiltIn,
     bool IsManualOnly)
@@ -24,11 +23,6 @@ public sealed record ConditionDefinition(
         if (string.IsNullOrWhiteSpace(Name))
         {
             throw new ArgumentException("ConditionDefinition.Name cannot be blank", nameof(Name));
-        }
-
-        if (string.IsNullOrWhiteSpace(ShortTag))
-        {
-            throw new ArgumentException("ConditionDefinition.ShortTag cannot be blank", nameof(ShortTag));
         }
 
         if (string.IsNullOrWhiteSpace(ColorHex))

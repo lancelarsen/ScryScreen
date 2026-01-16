@@ -25,7 +25,5 @@ public sealed class CustomConditionConfig
 
     public string Name { get; set; } = string.Empty;
 
-    public string ShortTag { get; set; } = string.Empty;
-
     public string ColorHex { get; set; } = "#FFFFFFFF";
 }

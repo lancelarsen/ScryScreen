@@ -15,7 +15,6 @@ public sealed partial class ConditionDefinitionViewModel : ViewModelBase
         IsBuiltIn = definition.IsBuiltIn;
         IsManualOnly = definition.IsManualOnly;
         Name = definition.Name;
-        ShortTag = definition.ShortTag;
         ColorHex = definition.ColorHex;
     }
 
@@ -35,9 +34,6 @@ public sealed partial class ConditionDefinitionViewModel : ViewModelBase
     private string name = string.Empty;
 
     [ObservableProperty]
-    private string shortTag = string.Empty;
-
-    [ObservableProperty]
     private string colorHex = "#FFFFFFFF";
 
     public IBrush ColorBrush
@@ -54,7 +50,7 @@ public sealed partial class ConditionDefinitionViewModel : ViewModelBase
     }
 
     public ConditionDefinition ToModel()
-        => new(Id, Name, ShortTag, ColorHex, IsBuiltIn, IsManualOnly);
+        => new(Id, Name, ColorHex, IsBuiltIn, IsManualOnly);
 
     partial void OnNameChanged(string value) => OnPropertyChanged(nameof(DisplayName));
 
