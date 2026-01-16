@@ -1651,7 +1651,7 @@
                                               Checked="OnAutoSaveInitiativeChecked"
                                               Unchecked="OnAutoSaveInitiativeUnchecked"
                                               ToolTip.Tip="Auto-Save to Last Save File">
-                                    <i:Icon Value="mdi-autorenew" FontSize="18"
+                                    <i:Icon Value="mdi-content-save-cog" FontSize="18"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                             </StackPanel>
