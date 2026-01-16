@@ -109,6 +109,21 @@
         <views:HourglassPortalView DataContext="{Binding Hourglass}" />
       </Grid>
 
+      <!-- Map Master reveal mask -->
+      <Grid IsVisible="{Binding IsShowingMapMaster}" IsHitTestVisible="False">
+        <controls:MapRevealMask
+          OverlayOpacity="{Binding MapMaster.OverlayOpacity}"
+          RevealX="{Binding MapMaster.RevealX}"
+          RevealY="{Binding MapMaster.RevealY}"
+          RevealWidth="{Binding MapMaster.RevealWidth}"
+          RevealHeight="{Binding MapMaster.RevealHeight}" />
+      </Grid>
+
+      <!-- Dice Roller overlay -->
+      <Grid IsVisible="{Binding IsShowingDiceRoller}" IsHitTestVisible="False">
+        <views:DiceRollerPortalView DataContext="{Binding DiceRoller}" />
+      </Grid>
+
       <!-- Identify overlay -->
       <Border IsVisible="{Binding IsIdentifyOverlayVisible}"
               Background="#AA000000">

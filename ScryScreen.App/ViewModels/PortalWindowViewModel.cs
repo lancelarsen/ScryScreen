@@ -29,6 +29,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     private bool _pendingPrimeFrame;
     private InitiativePortalViewModel? _initiative;
     private HourglassPortalViewModel? _hourglass;
+    private MapMasterPortalViewModel? _mapMaster;
+    private DiceRollerPortalViewModel? _diceRoller;
 
     public PortalWindowViewModel(int portalNumber)
     {
@@ -184,6 +186,10 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public bool HasHourglass => _hourglass is not null;
 
+    public bool HasMapMaster => _mapMaster is not null;
+
+    public bool HasDiceRoller => _diceRoller is not null;
+
     public InitiativePortalViewModel? Initiative
     {
         get => _initiative;
@@ -219,6 +225,40 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(IsShowingText));
             OnPropertyChanged(nameof(IsShowingIdleLogo));
             OnPropertyChanged(nameof(IsShowingNonIdleText));
+        }
+    }
+
+    public MapMasterPortalViewModel? MapMaster
+    {
+        get => _mapMaster;
+        private set
+        {
+            if (ReferenceEquals(_mapMaster, value))
+            {
+                return;
+            }
+
+            _mapMaster = value;
+            OnPropertyChanged(nameof(MapMaster));
+            OnPropertyChanged(nameof(HasMapMaster));
+            OnPropertyChanged(nameof(IsShowingMapMaster));
+        }
+    }
+
+    public DiceRollerPortalViewModel? DiceRoller
+    {
+        get => _diceRoller;
+        private set
+        {
+            if (ReferenceEquals(_diceRoller, value))
+            {
+                return;
+            }
+
+            _diceRoller = value;
+            OnPropertyChanged(nameof(DiceRoller));
+            OnPropertyChanged(nameof(HasDiceRoller));
+            OnPropertyChanged(nameof(IsShowingDiceRoller));
         }
     }
 
@@ -289,6 +329,10 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsShowingHourglass => !IsSetup && HasHourglass;
 
+    public bool IsShowingMapMaster => !IsSetup && HasMapMaster;
+
+    public bool IsShowingDiceRoller => !IsSetup && HasDiceRoller;
+
     public bool IsShowingText => !IsSetup && !HasInitiative && !HasHourglass && !HasImage && !HasVideo;
 
     public bool IsShowingIdleLogo =>
@@ -305,6 +349,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsShowingVideo));
         OnPropertyChanged(nameof(IsShowingInitiative));
         OnPropertyChanged(nameof(IsShowingHourglass));
+        OnPropertyChanged(nameof(IsShowingMapMaster));
+        OnPropertyChanged(nameof(IsShowingDiceRoller));
         OnPropertyChanged(nameof(IsShowingText));
         OnPropertyChanged(nameof(IsShowingIdleLogo));
         OnPropertyChanged(nameof(IsShowingNonIdleText));
@@ -514,6 +560,60 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         }
 
         Hourglass = null;
+    }
+
+    public void SetMapMasterOverlay(MapMasterState state)
+    {
+        if (MapMaster is null)
+        {
+            MapMaster = new MapMasterPortalViewModel(state);
+        }
+        else
+        {
+            MapMaster.Update(state);
+        }
+
+        IsSetup = false;
+    }
+
+    public void ClearMapMasterOverlay()
+    {
+        if (MapMaster is null)
+        {
+            return;
+        }
+
+        MapMaster = null;
+    }
+
+    public void SetDiceRollerOverlay(DiceRollerState state)
+    {
+        if (string.IsNullOrWhiteSpace(state.Text))
+        {
+            ClearDiceRollerOverlay();
+            return;
+        }
+
+        if (DiceRoller is null)
+        {
+            DiceRoller = new DiceRollerPortalViewModel(state);
+        }
+        else
+        {
+            DiceRoller.Update(state);
+        }
+
+        IsSetup = false;
+    }
+
+    public void ClearDiceRollerOverlay()
+    {
+        if (DiceRoller is null)
+        {
+            return;
+        }
+
+        DiceRoller = null;
     }
 
     public void SetVideoLoop(bool loop)
@@ -748,9 +848,12 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
     {
         ContentTitle = title;
         Initiative = null;
+        Hourglass = null;
+        MapMaster = null;
+        DiceRoller = null;
         ContentImage = null;
         ClearVideoInternal();
-            OverlayEffects = OverlayEffectsState.None;
+        OverlayEffects = OverlayEffectsState.None;
         IsSetup = true;
     }
 

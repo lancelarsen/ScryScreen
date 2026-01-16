@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ScryScreen.App.ViewModels"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             mc:Ignorable="d"
+             x:Class="ScryScreen.App.Views.MapMasterView"
+             x:DataType="vm:MapMasterViewModel">
+
+  <Grid RowDefinitions="Auto" ColumnDefinitions="*" RowSpacing="8">
+    <Border Background="#0A0F18"
+            BorderBrush="{DynamicResource ScryBorder}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Padding="10">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+          <Button Classes="circleSmall"
+                  ToolTip.Tip="Reset Reveal"
+                  Command="{Binding ResetRevealToDefaultCommand}">
+            <i:Icon Value="mdi-autorenew" FontSize="18"
+                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+          </Button>
+
+          <TextBlock Grid.Column="1"
+                     Text="Map Master"
+                     Foreground="{DynamicResource ScryTextMuted}"
+                     FontSize="12"
+                     FontWeight="SemiBold"
+                     VerticalAlignment="Center" />
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="8">
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="Mask" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <Slider Grid.Row="0" Grid.Column="1" Classes="portalTimeline" Minimum="0" Maximum="1" Value="{Binding OverlayOpacity, Mode=TwoWay}" />
+          <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="X" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <Slider Grid.Row="1" Grid.Column="1" Classes="portalTimeline" Minimum="0" Maximum="1" Value="{Binding RevealX, Mode=TwoWay}" />
+          <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding RevealX, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="Y" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <Slider Grid.Row="2" Grid.Column="1" Classes="portalTimeline" Minimum="0" Maximum="1" Value="{Binding RevealY, Mode=TwoWay}" />
+          <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding RevealY, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+
+          <TextBlock Grid.Row="3" Grid.Column="0" Text="W" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <Slider Grid.Row="3" Grid.Column="1" Classes="portalTimeline" Minimum="0.02" Maximum="1" Value="{Binding RevealWidth, Mode=TwoWay}" />
+          <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding RevealWidth, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+
+          <TextBlock Grid.Row="4" Grid.Column="0" Text="H" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+          <Slider Grid.Row="4" Grid.Column="1" Classes="portalTimeline" Minimum="0.02" Maximum="1" Value="{Binding RevealHeight, Mode=TwoWay}" />
+          <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding RevealHeight, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+        </Grid>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

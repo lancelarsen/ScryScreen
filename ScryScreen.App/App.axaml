@@ -10,6 +10,7 @@
         <conv:InverseBooleanConverter x:Key="InverseBooleanConverter" />
         <conv:NotZeroToBoolConverter x:Key="NotZeroToBoolConverter" />
         <conv:MultiplyDoubleConverter x:Key="MultiplyDoubleConverter" />
+        <conv:StringNotNullOrEmptyConverter x:Key="StringNotNullOrEmptyConverter" />
     </Application.Resources>
 
     <Application.DataTemplates>

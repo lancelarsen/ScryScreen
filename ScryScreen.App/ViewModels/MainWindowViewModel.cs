@@ -67,6 +67,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private readonly InitiativeTrackerViewModel _initiativeTracker;
     private readonly HourglassViewModel _hourglass;
+    private readonly MapMasterViewModel _mapMaster;
+    private readonly DiceRollerViewModel _diceRoller;
 
     private readonly Services.HourglassAudioService _hourglassAudio;
 
@@ -74,6 +76,8 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         InitiativeTracker,
         Hourglass,
+        MapMaster,
+        DiceRoller,
     }
 
     public EffectsSettingsViewModel Effects { get; }
@@ -101,6 +105,12 @@ public partial class MainWindowViewModel : ViewModelBase
         _hourglass = new HourglassViewModel();
         _hourglass.StateChanged += OnHourglassStateChanged;
         _hourglass.PropertyChanged += OnHourglassPropertyChangedForLastSession;
+
+        _mapMaster = new MapMasterViewModel();
+        _mapMaster.StateChanged += OnMapMasterStateChanged;
+
+        _diceRoller = new DiceRollerViewModel();
+        _diceRoller.StateChanged += OnDiceRollerStateChanged;
 
         _hourglassAudio = new Services.HourglassAudioService(_hourglass);
 
@@ -421,6 +431,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public HourglassViewModel Hourglass => _hourglass;
 
+    public MapMasterViewModel MapMaster => _mapMaster;
+
+    public DiceRollerViewModel DiceRoller => _diceRoller;
+
     [ObservableProperty]
     private AppSelection selectedApp = AppSelection.InitiativeTracker;
 
@@ -428,12 +442,20 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool IsHourglassAppSelected => SelectedApp == AppSelection.Hourglass;
 
+    public bool IsMapMasterAppSelected => SelectedApp == AppSelection.MapMaster;
+
+    public bool IsDiceRollerAppSelected => SelectedApp == AppSelection.DiceRoller;
+
     partial void OnSelectedAppChanged(AppSelection value)
     {
         OnPropertyChanged(nameof(IsInitiativeTrackerAppSelected));
         OnPropertyChanged(nameof(IsHourglassAppSelected));
+        OnPropertyChanged(nameof(IsMapMasterAppSelected));
+        OnPropertyChanged(nameof(IsDiceRollerAppSelected));
         OnPropertyChanged(nameof(IsInitiativeControlsVisible));
         OnPropertyChanged(nameof(IsHourglassControlsVisible));
+        OnPropertyChanged(nameof(IsMapMasterControlsVisible));
+        OnPropertyChanged(nameof(IsDiceRollerControlsVisible));
     }
 
     [RelayCommand]
@@ -455,6 +477,18 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 portal.IsSelectedForHourglass = false;
                 _portalHost.ClearHourglassOverlay(portal.PortalNumber);
+            }
+
+            if (portal.IsSelectedForMapMaster)
+            {
+                portal.IsSelectedForMapMaster = false;
+                _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
+            }
+
+            if (portal.IsSelectedForDiceRoller)
+            {
+                portal.IsSelectedForDiceRoller = false;
+                _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
             }
 
             PushSnapshot(portal);
@@ -499,6 +533,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public string AppsTabHeader => $"Apps ({AppsCount})";
     public bool IsInitiativeControlsVisible => IsAppsTabSelected && IsInitiativeTrackerAppSelected;
     public bool IsHourglassControlsVisible => IsAppsTabSelected && IsHourglassAppSelected;
+    public bool IsMapMasterControlsVisible => IsAppsTabSelected && IsMapMasterAppSelected;
+    public bool IsDiceRollerControlsVisible => IsAppsTabSelected && IsDiceRollerAppSelected;
 
     partial void OnSelectedLibraryTabChanged(LibraryTab value)
     {
@@ -510,6 +546,8 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsImagesOrVideoTabSelected));
         OnPropertyChanged(nameof(IsInitiativeControlsVisible));
         OnPropertyChanged(nameof(IsHourglassControlsVisible));
+        OnPropertyChanged(nameof(IsMapMasterControlsVisible));
+        OnPropertyChanged(nameof(IsDiceRollerControlsVisible));
 
         if (value == LibraryTab.Images)
         {
@@ -574,6 +612,30 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void SelectMapMasterApp()
+    {
+        SelectedLibraryTab = LibraryTab.Apps;
+        SelectedApp = AppSelection.MapMaster;
+
+        if (!IsControlsSectionVisible)
+        {
+            IsControlsSectionVisible = true;
+        }
+    }
+
+    [RelayCommand]
+    private void SelectDiceRollerApp()
+    {
+        SelectedLibraryTab = LibraryTab.Apps;
+        SelectedApp = AppSelection.DiceRoller;
+
+        if (!IsControlsSectionVisible)
+        {
+            IsControlsSectionVisible = true;
+        }
+    }
+
+    [RelayCommand]
     private void ToggleHourglassForPortal(PortalRowViewModel? portal)
     {
         if (portal is null)
@@ -594,11 +656,101 @@ public partial class MainWindowViewModel : ViewModelBase
                 RestorePreviousContent(portal);
             }
 
+            if (portal.IsSelectedForMapMaster)
+            {
+                portal.IsSelectedForMapMaster = false;
+                _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
+            }
+
+            if (portal.IsSelectedForDiceRoller)
+            {
+                portal.IsSelectedForDiceRoller = false;
+                _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
+            }
+
             ApplyHourglassToPortal(portal);
         }
         else
         {
             _portalHost.ClearHourglassOverlay(portal.PortalNumber);
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleMapMasterForPortal(PortalRowViewModel? portal)
+    {
+        if (portal is null)
+        {
+            return;
+        }
+
+        var shouldSelect = !portal.IsSelectedForMapMaster;
+        portal.IsSelectedForMapMaster = shouldSelect;
+
+        if (shouldSelect)
+        {
+            if (portal.IsSelectedForInitiative)
+            {
+                portal.IsSelectedForInitiative = false;
+                RestorePreviousContent(portal);
+            }
+
+            if (portal.IsSelectedForHourglass)
+            {
+                portal.IsSelectedForHourglass = false;
+                _portalHost.ClearHourglassOverlay(portal.PortalNumber);
+            }
+
+            if (portal.IsSelectedForDiceRoller)
+            {
+                portal.IsSelectedForDiceRoller = false;
+                _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
+            }
+
+            ApplyMapMasterToPortal(portal);
+        }
+        else
+        {
+            _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleDiceRollerForPortal(PortalRowViewModel? portal)
+    {
+        if (portal is null)
+        {
+            return;
+        }
+
+        var shouldSelect = !portal.IsSelectedForDiceRoller;
+        portal.IsSelectedForDiceRoller = shouldSelect;
+
+        if (shouldSelect)
+        {
+            if (portal.IsSelectedForInitiative)
+            {
+                portal.IsSelectedForInitiative = false;
+                RestorePreviousContent(portal);
+            }
+
+            if (portal.IsSelectedForHourglass)
+            {
+                portal.IsSelectedForHourglass = false;
+                _portalHost.ClearHourglassOverlay(portal.PortalNumber);
+            }
+
+            if (portal.IsSelectedForMapMaster)
+            {
+                portal.IsSelectedForMapMaster = false;
+                _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
+            }
+
+            ApplyDiceRollerToPortal(portal);
+        }
+        else
+        {
+            _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
         }
     }
 
@@ -1301,6 +1453,16 @@ public partial class MainWindowViewModel : ViewModelBase
         UpdateHourglassOnSelectedPortals();
     }
 
+    private void OnMapMasterStateChanged()
+    {
+        UpdateMapMasterOnSelectedPortals();
+    }
+
+    private void OnDiceRollerStateChanged()
+    {
+        UpdateDiceRollerOnSelectedPortals();
+    }
+
     private static bool IsPersistableHourglassProperty(string? propertyName)
     {
         return propertyName == nameof(HourglassViewModel.DurationMinutesText) ||
@@ -1371,6 +1533,61 @@ public partial class MainWindowViewModel : ViewModelBase
                 state,
                 overlayOpacity: Hourglass.OverlayOpacity);
         }
+    }
+
+    private void UpdateMapMasterOnSelectedPortals()
+    {
+        var state = MapMaster.SnapshotState();
+        foreach (var portal in Portals)
+        {
+            if (!portal.IsSelectedForMapMaster)
+            {
+                continue;
+            }
+
+            _portalHost.SetContentMapMasterOverlay(portal.PortalNumber, state);
+        }
+    }
+
+    private void ApplyMapMasterToPortal(PortalRowViewModel portal)
+    {
+        _portalHost.SetContentMapMasterOverlay(portal.PortalNumber, MapMaster.SnapshotState());
+        _portalHost.SetVisibility(portal.PortalNumber, true);
+        portal.IsVisible = true;
+    }
+
+    private void UpdateDiceRollerOnSelectedPortals()
+    {
+        var state = DiceRoller.SnapshotState();
+        foreach (var portal in Portals)
+        {
+            if (!portal.IsSelectedForDiceRoller)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(state.Text))
+            {
+                _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
+            }
+            else
+            {
+                _portalHost.SetContentDiceRollerOverlay(portal.PortalNumber, state);
+            }
+        }
+    }
+
+    private void ApplyDiceRollerToPortal(PortalRowViewModel portal)
+    {
+        var state = DiceRoller.SnapshotState();
+        if (string.IsNullOrWhiteSpace(state.Text))
+        {
+            state = new DiceRollerState("Dice Roller", state.OverlayOpacity);
+        }
+
+        _portalHost.SetContentDiceRollerOverlay(portal.PortalNumber, state);
+        _portalHost.SetVisibility(portal.PortalNumber, true);
+        portal.IsVisible = true;
     }
 
     private void ApplyHourglassToPortal(PortalRowViewModel portal)
@@ -1672,6 +1889,9 @@ public partial class MainWindowViewModel : ViewModelBase
         portal.AssignedPreview = null;
         portal.IsSelectedForCurrentMedia = false;
         portal.IsSelectedForInitiative = false;
+        portal.IsSelectedForHourglass = false;
+        portal.IsSelectedForMapMaster = false;
+        portal.IsSelectedForDiceRoller = false;
         portal.IsVideoPlaying = false;
         portal.IsVideoLoop = false;
 

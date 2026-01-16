@@ -1091,6 +1091,58 @@
                                                     </Grid>
                                                 </Border>
                                             </Button>
+
+                                            <Button Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    Command="{Binding SelectMapMasterAppCommand}"
+                                                    ToolTip.Tip="Reveal a map to players using a movable blackout mask.">
+                                                <Border Classes="appsTile"
+                                                        Classes.selected="{Binding IsMapMasterAppSelected}"
+                                                        Width="140"
+                                                        Height="140">
+                                                    <Grid>
+                                                        <!-- watermark icon -->
+                                                        <i:Icon Value="mdi-map" FontSize="110"
+                                                                Foreground="{DynamicResource ScryTextMuted}"
+                                                                Opacity="0.12"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center" />
+
+                                                        <!-- centered title -->
+                                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                                            <TextBlock Text="Map" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" />
+                                                            <TextBlock Text="Master" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </Button>
+
+                                            <Button Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    Command="{Binding SelectDiceRollerAppCommand}"
+                                                    ToolTip.Tip="Roll dice and show results on selected portals.">
+                                                <Border Classes="appsTile"
+                                                        Classes.selected="{Binding IsDiceRollerAppSelected}"
+                                                        Width="140"
+                                                        Height="140">
+                                                    <Grid>
+                                                        <!-- watermark icon -->
+                                                        <i:Icon Value="mdi-dice-multiple" FontSize="110"
+                                                                Foreground="{DynamicResource ScryTextMuted}"
+                                                                Opacity="0.12"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center" />
+
+                                                        <!-- centered title -->
+                                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                                            <TextBlock Text="Dice" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" />
+                                                            <TextBlock Text="Roller" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </Button>
                                         </ItemsControl>
                                     </ScrollViewer>
                                 </Grid>
@@ -1871,6 +1923,83 @@
                         <views:HourglassView Grid.Row="1" DataContext="{Binding Hourglass}" />
                     </Grid>
                 </Border>
+
+                    <!-- Apps controls (Map Master) -->
+                    <Border Classes="card" Padding="10" IsVisible="{Binding IsMapMasterControlsVisible}">
+                        <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
+                                <TextBlock Text="Assign to Portals" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+
+                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Portals}" HorizontalAlignment="Left">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
+                                            <ToggleButton Classes="circleSmall"
+                                                          Content="{Binding PortalNumber}"
+                                                          ToolTip.Tip="Show Map Master on this Portal"
+                                                          IsChecked="{Binding IsSelectedForMapMaster, Mode=OneWay}"
+                                                          Command="{Binding DataContext.ToggleMapMasterForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          CommandParameter="{Binding .}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Grid.Column="2"
+                                           Text="Use the sliders below to reveal the map."
+                                           Foreground="{DynamicResource ScryTextMuted}"
+                                           FontSize="12"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+
+                            <views:MapMasterView Grid.Row="1" DataContext="{Binding MapMaster}" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Apps controls (Dice Roller) -->
+                    <Border Classes="card" Padding="10" IsVisible="{Binding IsDiceRollerControlsVisible}">
+                        <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
+                                <TextBlock Text="Assign to Portals" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+
+                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Portals}" HorizontalAlignment="Left">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
+                                            <ToggleButton Classes="circleSmall"
+                                                          Content="{Binding PortalNumber}"
+                                                          ToolTip.Tip="Show Dice Roller on this Portal"
+                                                          IsChecked="{Binding IsSelectedForDiceRoller, Mode=OneWay}"
+                                                          Command="{Binding DataContext.ToggleDiceRollerForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          CommandParameter="{Binding .}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="Overlay" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1"
+                                            Classes="portalTimeline"
+                                            Width="120"
+                                            Minimum="0"
+                                            Maximum="1"
+                                            Value="{Binding DiceRoller.OverlayOpacity, Mode=TwoWay}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding DiceRoller.OverlayOpacity, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+                                </Grid>
+                            </Grid>
+
+                            <views:DiceRollerView Grid.Row="1" DataContext="{Binding DiceRoller}" />
+                        </Grid>
+                    </Border>
             </Grid>
         </Border>
     </Grid>

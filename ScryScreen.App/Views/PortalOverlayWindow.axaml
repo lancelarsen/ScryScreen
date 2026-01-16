@@ -54,6 +54,19 @@
         <views:HourglassPortalView DataContext="{Binding Hourglass}" />
       </Grid>
 
+      <Grid IsVisible="{Binding IsShowingMapMaster}" IsHitTestVisible="False">
+        <controls:MapRevealMask
+          OverlayOpacity="{Binding MapMaster.OverlayOpacity}"
+          RevealX="{Binding MapMaster.RevealX}"
+          RevealY="{Binding MapMaster.RevealY}"
+          RevealWidth="{Binding MapMaster.RevealWidth}"
+          RevealHeight="{Binding MapMaster.RevealHeight}" />
+      </Grid>
+
+      <Grid IsVisible="{Binding IsShowingDiceRoller}" IsHitTestVisible="False">
+        <views:DiceRollerPortalView DataContext="{Binding DiceRoller}" />
+      </Grid>
+
       <!-- Identify overlay (needed because this window sits above the native video surface) -->
       <Border IsVisible="{Binding IsIdentifyOverlayVisible}"
               Background="#AA000000">

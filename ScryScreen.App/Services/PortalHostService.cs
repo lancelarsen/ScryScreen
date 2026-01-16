@@ -276,6 +276,40 @@ public sealed class PortalHostService
         }
     }
 
+    public void SetContentMapMasterOverlay(int portalNumber, MapMasterState state)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.SetMapMasterOverlay(state);
+            controller.ViewModel.IsContentVisible = true;
+        }
+    }
+
+    public void ClearMapMasterOverlay(int portalNumber)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.ClearMapMasterOverlay();
+        }
+    }
+
+    public void SetContentDiceRollerOverlay(int portalNumber, DiceRollerState state)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.SetDiceRollerOverlay(state);
+            controller.ViewModel.IsContentVisible = true;
+        }
+    }
+
+    public void ClearDiceRollerOverlay(int portalNumber)
+    {
+        if (_portals.TryGetValue(portalNumber, out var controller))
+        {
+            controller.ViewModel.ClearDiceRollerOverlay();
+        }
+    }
+
     public void ClearHourglassOverlay(int portalNumber)
     {
         if (_portals.TryGetValue(portalNumber, out var controller))

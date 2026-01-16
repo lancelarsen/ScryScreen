@@ -150,6 +150,12 @@ public partial class PortalRowViewModel : ViewModelBase, IDisposable
     private bool isSelectedForHourglass;
 
     [ObservableProperty]
+    private bool isSelectedForMapMaster;
+
+    [ObservableProperty]
+    private bool isSelectedForDiceRoller;
+
+    [ObservableProperty]
     private Bitmap? assignedPreview;
 
     [ObservableProperty]
