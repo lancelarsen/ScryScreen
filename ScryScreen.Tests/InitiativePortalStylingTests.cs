@@ -36,11 +36,13 @@ public sealed class InitiativePortalStylingTests
 
         var vm = new InitiativePortalViewModel(new InitiativeTrackerState(new[] { entry }, Round: 1, ActiveId: entry.Id));
         Assert.True(vm.Entries[0].HasHealthDot);
+        Assert.Null(vm.Entries[0].HealthIconValue);
+        Assert.Equal("/Assets/Icons/sword_rose.svg", vm.Entries[0].HealthSvgPath);
         Assert.Equal("#FF22C55E", vm.Entries[0].HealthDotColorHex);
     }
 
     [Fact]
-    public void AtOrBelowHalf_UsesRed_AndZeroStrikesThrough()
+    public void AtOrBelowHalf_UsesBloodiedRed_AndZeroUsesDeadSkull()
     {
         var half = new InitiativeEntry(
             Id: Guid.NewGuid(),
@@ -57,8 +59,13 @@ public sealed class InitiativePortalStylingTests
             CurrentHp: "0");
 
         var vm = new InitiativePortalViewModel(new InitiativeTrackerState(new[] { half, zero }, Round: 1, ActiveId: half.Id));
+        Assert.Null(vm.Entries.Single(e => e.Name == "A").HealthIconValue);
+        Assert.Equal("/Assets/Icons/water_drop.svg", vm.Entries.Single(e => e.Name == "A").HealthSvgPath);
         Assert.Equal("#FFDC2626", vm.Entries.Single(e => e.Name == "A").HealthDotColorHex);
-        Assert.Equal("#FFDC2626", vm.Entries.Single(e => e.Name == "B").HealthDotColorHex);
+
+        Assert.Null(vm.Entries.Single(e => e.Name == "B").HealthIconValue);
+        Assert.Equal("/Assets/Icons/skull.svg", vm.Entries.Single(e => e.Name == "B").HealthSvgPath);
+        Assert.Equal("#FFFFFFFF", vm.Entries.Single(e => e.Name == "B").HealthDotColorHex);
         Assert.True(vm.Entries.Single(e => e.Name == "B").IsStrikethrough);
     }
 
@@ -74,6 +81,8 @@ public sealed class InitiativePortalStylingTests
             Conditions: new[] { new AppliedCondition(ConditionLibraryService.BloodiedId, null) });
 
         var vm = new InitiativePortalViewModel(new InitiativeTrackerState(new[] { entry }, Round: 1, ActiveId: entry.Id));
+        Assert.Null(vm.Entries[0].HealthIconValue);
+        Assert.Equal("/Assets/Icons/water_drop.svg", vm.Entries[0].HealthSvgPath);
         Assert.Equal("#FFDC2626", vm.Entries[0].HealthDotColorHex);
     }
 
@@ -90,6 +99,24 @@ public sealed class InitiativePortalStylingTests
 
         var vm = new InitiativePortalViewModel(new InitiativeTrackerState(new[] { entry }, Round: 1, ActiveId: entry.Id));
         Assert.True(vm.Entries[0].IsStrikethrough);
-        Assert.Equal("#FF9CA3AF", vm.Entries[0].HealthDotColorHex);
+        Assert.Null(vm.Entries[0].HealthIconValue);
+        Assert.Equal("/Assets/Icons/skull.svg", vm.Entries[0].HealthSvgPath);
+        Assert.Equal("#FFFFFFFF", vm.Entries[0].HealthDotColorHex);
+    }
+
+    [Fact]
+    public void AboveHalfButNotFull_UsesAmber()
+    {
+        var entry = new InitiativeEntry(
+            Id: Guid.NewGuid(),
+            Name: "A",
+            Initiative: 10,
+            MaxHp: "10",
+            CurrentHp: "7");
+
+        var vm = new InitiativePortalViewModel(new InitiativeTrackerState(new[] { entry }, Round: 1, ActiveId: entry.Id));
+        Assert.Null(vm.Entries[0].HealthIconValue);
+        Assert.Equal("/Assets/Icons/healing.svg", vm.Entries[0].HealthSvgPath);
+        Assert.Equal("#FFF59E0B", vm.Entries[0].HealthDotColorHex);
     }
 }

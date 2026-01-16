@@ -136,6 +136,10 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
                 Initiative: e.Initiative,
                 Mod: e.Mod,
                 IsActive: activeId.HasValue && e.Id == activeId.Value,
+                HealthIconValue: ComputeHealthIconValue(e, conditionLibrary),
+                HealthIconFontSize: ComputeHealthIconFontSize(e, conditionLibrary),
+                HealthSvgPath: ComputeHealthSvgPath(e, conditionLibrary),
+                HealthSvgSize: ComputeHealthSvgSize(e, conditionLibrary),
                 HealthDotColorHex: ComputeHealthDotColorHex(e, conditionLibrary),
                 IsStrikethrough: ComputeNameIsStrikethrough(e, conditionLibrary),
                 Conditions: BuildConditionTags(e, conditionLibrary)))
@@ -196,53 +200,108 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
         return false;
     }
 
-    private static string? ComputeHealthDotColorHex(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    private enum HealthIndicatorKind
     {
-        // DEAD takes precedence.
+        None,
+        Dead,
+        Bloodied,
+        Injured,
+        Healthy,
+    }
+
+    private static HealthIndicatorKind ComputeHealthIndicatorKind(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    {
+        // Dead takes precedence.
         if (HasConditionId(entry, ConditionLibraryService.DeadId))
         {
-            return "#FF9CA3AF";
+            return HealthIndicatorKind.Dead;
         }
 
-        // BLOOD condition forces bloodied.
+        var current = TryParseInt(entry.CurrentHp);
+        if (current.HasValue && current.Value <= 0)
+        {
+            return HealthIndicatorKind.Dead;
+        }
+
+        // Bloodied condition forces bloodied.
         if (HasConditionId(entry, ConditionLibraryService.BloodiedId))
         {
-            return "#FFDC2626";
+            return HealthIndicatorKind.Bloodied;
         }
 
         var max = TryParseInt(entry.MaxHp);
         if (!max.HasValue || max.Value <= 0)
         {
-            // Unknown max => show no dot.
-            return null;
+            // Unknown max => show no indicator.
+            return HealthIndicatorKind.None;
         }
 
-        var current = TryParseInt(entry.CurrentHp);
         if (!current.HasValue)
         {
             // Max-only implies full/healthy.
-            return "#FF22C55E";
-        }
-
-        if (current.Value <= 0)
-        {
-            return "#FFDC2626";
+            return HealthIndicatorKind.Healthy;
         }
 
         // Full HP.
         if (current.Value >= max.Value)
         {
-            return "#FF22C55E";
+            return HealthIndicatorKind.Healthy;
         }
 
         // 50% is bloodied.
         if (current.Value * 2 <= max.Value)
         {
-            return "#FFDC2626";
+            return HealthIndicatorKind.Bloodied;
         }
 
         // Injured (above 50% but not full).
-        return "#FFF59E0B";
+        return HealthIndicatorKind.Injured;
+    }
+
+    private static string? ComputeHealthIconValue(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    {
+        return null;
+    }
+
+    private static double ComputeHealthIconFontSize(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    {
+        return 0;
+    }
+
+    private static string? ComputeHealthSvgPath(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    {
+        return ComputeHealthIndicatorKind(entry, conditionLibrary) switch
+        {
+            HealthIndicatorKind.Dead => "/Assets/Icons/skull.svg",
+            HealthIndicatorKind.Bloodied => "/Assets/Icons/water_drop.svg",
+            HealthIndicatorKind.Healthy => "/Assets/Icons/sword_rose.svg",
+            HealthIndicatorKind.Injured => "/Assets/Icons/healing.svg",
+            _ => null,
+        };
+    }
+
+    private static double ComputeHealthSvgSize(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    {
+        return ComputeHealthIndicatorKind(entry, conditionLibrary) switch
+        {
+            HealthIndicatorKind.Dead => 36,
+            HealthIndicatorKind.Bloodied => 36,
+            HealthIndicatorKind.Healthy => 36,
+            HealthIndicatorKind.Injured => 36,
+            _ => 0,
+        };
+    }
+
+    private static string? ComputeHealthDotColorHex(InitiativeEntry entry, ConditionLibraryService conditionLibrary)
+    {
+        return ComputeHealthIndicatorKind(entry, conditionLibrary) switch
+        {
+            HealthIndicatorKind.Dead => "#FFFFFFFF",
+            HealthIndicatorKind.Bloodied => "#FFDC2626",
+            HealthIndicatorKind.Injured => "#FFF59E0B",
+            HealthIndicatorKind.Healthy => "#FF22C55E",
+            _ => null,
+        };
     }
 
     private static int? TryParseInt(string? text)
@@ -262,6 +321,10 @@ public sealed record InitiativePortalEntryViewModel(
     int Initiative,
     int Mod,
     bool IsActive,
+    string? HealthIconValue,
+    double HealthIconFontSize,
+    string? HealthSvgPath,
+    double HealthSvgSize,
     string? HealthDotColorHex,
     bool IsStrikethrough,
     IReadOnlyList<InitiativePortalConditionTagViewModel> Conditions)
@@ -269,6 +332,10 @@ public sealed record InitiativePortalEntryViewModel(
     public bool HasMod => Mod != 0;
 
     public bool HasHealthDot => !string.IsNullOrWhiteSpace(HealthDotColorHex);
+
+    public bool HasHealthIcon => !string.IsNullOrWhiteSpace(HealthIconValue);
+
+    public bool HasHealthSvg => !string.IsNullOrWhiteSpace(HealthSvgPath);
 
     public IBrush HealthDotBrush
     {

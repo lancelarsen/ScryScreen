@@ -3,6 +3,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ScryScreen.App.ViewModels"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              mc:Ignorable="d"
              x:Class="ScryScreen.App.Views.InitiativeTrackerPortalView"
              x:DataType="vm:InitiativePortalViewModel">
@@ -180,15 +182,29 @@
                       HorizontalAlignment="Left"
                       VerticalAlignment="Center">
                   <Grid Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                    <!-- Health indicator dot (full/injured/bloodied) -->
+                    <!-- Health indicator icon (healthy/injured/bloodied/dead) -->
                         <Border Grid.Column="0"
-                          Width="22"
-                          Height="22"
-                          CornerRadius="11"
-                            Background="{Binding HealthDotBrush}"
-                            IsVisible="{Binding HasHealthDot}"
+                          Width="36"
+                          Height="36"
+                            Background="Transparent"
                             VerticalAlignment="Center"
-                            HorizontalAlignment="Left" />
+                            HorizontalAlignment="Left">
+                      <Grid>
+                        <i:Icon Value="{Binding HealthIconValue}"
+                                Foreground="{Binding HealthDotBrush}"
+                                FontSize="{Binding HealthIconFontSize}"
+                                IsVisible="{Binding HasHealthIcon}"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center" />
+
+                        <svg:Svg Path="{Binding HealthSvgPath}"
+                                 Width="{Binding HealthSvgSize}"
+                                 Height="{Binding HealthSvgSize}"
+                                 IsVisible="{Binding HasHealthSvg}"
+                                 VerticalAlignment="Center"
+                                 HorizontalAlignment="Center" />
+                      </Grid>
+                    </Border>
 
                     <Grid Grid.Column="1">
                     <!-- Base name (always visible, keeps high contrast) -->
