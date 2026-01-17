@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using Avalonia;
@@ -11,6 +12,16 @@ namespace ScryScreen.App.ViewModels;
 
 public partial class MapMasterViewModel : ViewModelBase
 {
+    public IReadOnlyList<MapMasterMaskType> MaskTypes { get; } =
+    [
+        MapMasterMaskType.Black,
+        MapMasterMaskType.Dirt,
+        MapMasterMaskType.FogNight,
+        MapMasterMaskType.Fog,
+        MapMasterMaskType.Rock1,
+        MapMasterMaskType.Rock2,
+    ];
+
     public event Action? StateChanged;
 
     private const int MaskChangeNotifyThrottleMs = 33;
@@ -28,8 +39,11 @@ public partial class MapMasterViewModel : ViewModelBase
 
     public MapMasterViewModel()
     {
-        OverlayOpacity = 0.85;
-        EraserDiameter = 60;
+        PlayerMaskOpacity = 1.0;
+        GmMaskOpacity = 0.75;
+        EraserDiameter = 50;
+        EraserHardness = 0.0;
+        SelectedMaskType = MapMasterMaskType.Black;
         PreviewScaleMode = MediaScaleMode.FillHeight;
         PreviewAlign = MediaAlign.Center;
 
@@ -50,10 +64,23 @@ public partial class MapMasterViewModel : ViewModelBase
     }
 
     [ObservableProperty]
-    private double overlayOpacity;
+    private double playerMaskOpacity;
+
+    [ObservableProperty]
+    private double gmMaskOpacity;
 
     [ObservableProperty]
     private double eraserDiameter;
+
+    [ObservableProperty]
+    private double eraserHardness;
+
+    [ObservableProperty]
+    private MapMasterMaskType selectedMaskType;
+
+    public bool IsSolidBlackMask => SelectedMaskType == MapMasterMaskType.Black;
+
+    public Avalonia.Media.IImage? MaskTexture => MapMasterMaskAssets.GetTexture(SelectedMaskType);
 
     [ObservableProperty]
     private MediaScaleMode previewScaleMode;
@@ -86,7 +113,7 @@ public partial class MapMasterViewModel : ViewModelBase
 
     public bool HasSourceImage => SourceImage is not null;
 
-    public MapMasterOverlayState SnapshotState() => new(MaskBitmap, OverlayOpacity);
+    public MapMasterOverlayState SnapshotState() => new(MaskBitmap, PlayerMaskOpacity, SelectedMaskType);
 
     public void SetPreviewSource(string? imagePath, MediaScaleMode scaleMode, MediaAlign align, double portalAspectRatio)
     {
@@ -163,17 +190,36 @@ public partial class MapMasterViewModel : ViewModelBase
         StateChanged?.Invoke();
     }
 
-    partial void OnOverlayOpacityChanged(double value)
+    partial void OnPlayerMaskOpacityChanged(double value)
     {
-        if (OverlayOpacity < 0) OverlayOpacity = 0;
-        if (OverlayOpacity > 1) OverlayOpacity = 1;
+        if (PlayerMaskOpacity < 0) PlayerMaskOpacity = 0;
+        if (PlayerMaskOpacity > 1) PlayerMaskOpacity = 1;
         StateChanged?.Invoke();
+    }
+
+    partial void OnGmMaskOpacityChanged(double value)
+    {
+        if (GmMaskOpacity < 0) GmMaskOpacity = 0;
+        if (GmMaskOpacity > 1) GmMaskOpacity = 1;
     }
 
     partial void OnEraserDiameterChanged(double value)
     {
         if (EraserDiameter < 2) EraserDiameter = 2;
-        if (EraserDiameter > 300) EraserDiameter = 300;
+        if (EraserDiameter > 80) EraserDiameter = 80;
+    }
+
+    partial void OnEraserHardnessChanged(double value)
+    {
+        if (EraserHardness < 0) EraserHardness = 0;
+        if (EraserHardness > 1) EraserHardness = 1;
+    }
+
+    partial void OnSelectedMaskTypeChanged(MapMasterMaskType value)
+    {
+        OnPropertyChanged(nameof(IsSolidBlackMask));
+        OnPropertyChanged(nameof(MaskTexture));
+        StateChanged?.Invoke();
     }
 
     private unsafe void FillMaskOpaque()
@@ -196,9 +242,10 @@ public partial class MapMasterViewModel : ViewModelBase
             for (var x = 0; x < w; x++)
             {
                 var p = row + (x * 4);
-                p[0] = 0;   // B
-                p[1] = 0;   // G
-                p[2] = 0;   // R
+                // MaskBitmap is primarily used as an alpha mask; keep RGB stable.
+                p[0] = 255;
+                p[1] = 255;
+                p[2] = 255;
                 p[3] = 255; // A
             }
         }
@@ -206,6 +253,7 @@ public partial class MapMasterViewModel : ViewModelBase
         SwapBuffers();
         StateChanged?.Invoke();
     }
+
 
     private WriteableBitmap CurrentMask => _useMaskA ? _maskA : _maskB;
 
@@ -246,6 +294,13 @@ public partial class MapMasterViewModel : ViewModelBase
         }
 
         var r2 = radius * radius;
+        var hardness = EraserHardness;
+        if (hardness < 0) hardness = 0;
+        if (hardness > 1) hardness = 1;
+        var inner = (int)Math.Round(radius * hardness);
+        if (inner < 0) inner = 0;
+        if (inner > radius) inner = radius;
+        var inner2 = inner * inner;
         var minY = Math.Max(0, centerY - radius);
         var maxY = Math.Min(h - 1, centerY + radius);
         var minXDirty = Math.Max(0, centerX - radius);
@@ -260,17 +315,38 @@ public partial class MapMasterViewModel : ViewModelBase
             for (var x = minXDirty; x <= maxXDirty; x++)
             {
                 var dx = x - centerX;
-                if (dx * dx + dy2 > r2)
+                var d2 = dx * dx + dy2;
+                if (d2 > r2)
                 {
                     continue;
                 }
 
                 var p = row + (x * 4);
-                // Transparent pixel reveals the underlying portal content.
-                p[0] = 0;
-                p[1] = 0;
-                p[2] = 0;
-                p[3] = 0;
+                // Soft erase: decrease alpha with a smooth falloff; never increase alpha.
+                byte targetA;
+                if (inner >= radius)
+                {
+                    targetA = 0;
+                }
+                else if (d2 <= inner2)
+                {
+                    targetA = 0;
+                }
+                else
+                {
+                    var d = Math.Sqrt(d2);
+                    var t = (d - inner) / (radius - inner);
+                    if (t < 0) t = 0;
+                    if (t > 1) t = 1;
+                    // Smoothstep
+                    t = t * t * (3 - 2 * t);
+                    targetA = (byte)Math.Round(255 * t);
+                }
+
+                if (targetA < p[3])
+                {
+                    p[3] = targetA;
+                }
             }
         }
 
@@ -290,4 +366,5 @@ public partial class MapMasterViewModel : ViewModelBase
         _lastMaskChangeNotifyTickMs = now;
         StateChanged?.Invoke();
     }
+
 }

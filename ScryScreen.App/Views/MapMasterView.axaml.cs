@@ -3,6 +3,7 @@ using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using ScryScreen.App.ViewModels;
 
@@ -13,6 +14,8 @@ public partial class MapMasterView : UserControl
     private bool _isErasing;
     private bool _isPointerOverEditor;
     private Rect _portalRect;
+
+    private static readonly IBrush HoverBrush = Brushes.White;
 
     public MapMasterView()
     {
@@ -57,7 +60,7 @@ public partial class MapMasterView : UserControl
 
     private void UpdatePreviewLayout()
     {
-        if (EditorSurface is null || PreviewImage is null || MaskImage is null)
+        if (EditorSurface is null || PreviewImage is null || MaskHost is null)
         {
             return;
         }
@@ -78,10 +81,10 @@ public partial class MapMasterView : UserControl
             Canvas.SetLeft(PreviewImage, 0);
             Canvas.SetTop(PreviewImage, 0);
 
-            MaskImage.Width = double.NaN;
-            MaskImage.Height = double.NaN;
-            Canvas.SetLeft(MaskImage, 0);
-            Canvas.SetTop(MaskImage, 0);
+            MaskHost.Width = double.NaN;
+            MaskHost.Height = double.NaN;
+            Canvas.SetLeft(MaskHost, 0);
+            Canvas.SetTop(MaskHost, 0);
             return;
         }
 
@@ -115,10 +118,10 @@ public partial class MapMasterView : UserControl
 
         _portalRect = new Rect(portalLeft, portalTop, portalW, portalH);
 
-        MaskImage.Width = portalW;
-        MaskImage.Height = portalH;
-        Canvas.SetLeft(MaskImage, portalLeft);
-        Canvas.SetTop(MaskImage, portalTop);
+        MaskHost.Width = portalW;
+        MaskHost.Height = portalH;
+        Canvas.SetLeft(MaskHost, portalLeft);
+        Canvas.SetTop(MaskHost, portalTop);
 
         var pxW = vm.SourceImage.PixelSize.Width;
         var pxH = vm.SourceImage.PixelSize.Height;
@@ -175,6 +178,13 @@ public partial class MapMasterView : UserControl
     private void OnEditorPointerExited(object? sender, PointerEventArgs e)
     {
         _isPointerOverEditor = false;
+        if (_isErasing)
+        {
+            // During an active stroke, pointer capture can trigger PointerExited; keep the cursor visible.
+            UpdateEraserCursor(e.GetPosition(EditorSurface));
+            return;
+        }
+
         if (EraserCursor is not null)
         {
             EraserCursor.IsVisible = false;
@@ -223,6 +233,8 @@ public partial class MapMasterView : UserControl
         _isErasing = false;
         e.Pointer.Capture(null);
 
+        UpdateEraserCursor(e.GetPosition(EditorSurface));
+
         if (DataContext is MapMasterViewModel vm)
         {
             vm.CommitMaskEdits();
@@ -263,7 +275,7 @@ public partial class MapMasterView : UserControl
             return;
         }
 
-        if (!_isPointerOverEditor)
+        if (!_isPointerOverEditor && !_isErasing)
         {
             EraserCursor.IsVisible = false;
             return;
@@ -276,7 +288,7 @@ public partial class MapMasterView : UserControl
         }
 
         var rect = _portalRect;
-        if (rect.Width > 0 && rect.Height > 0 && !rect.Contains(p))
+        if (rect.Width > 0 && rect.Height > 0 && !rect.Contains(p) && !_isErasing)
         {
             EraserCursor.IsVisible = false;
             return;
@@ -290,7 +302,23 @@ public partial class MapMasterView : UserControl
         }
 
         EraserCursor.IsVisible = true;
+        EraserCursor.Stroke = GetCursorStroke();
         Canvas.SetLeft(EraserCursor, p.X - (d * 0.5));
         Canvas.SetTop(EraserCursor, p.Y - (d * 0.5));
+    }
+
+    private IBrush GetCursorStroke()
+    {
+        if (_isErasing)
+        {
+            if (Application.Current?.TryFindResource("ScryAccent", theme: null, out var accent) == true && accent is IBrush accentBrush)
+            {
+                return accentBrush;
+            }
+
+            return Brushes.Gold;
+        }
+
+        return HoverBrush;
     }
 }

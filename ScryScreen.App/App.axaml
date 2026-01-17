@@ -11,6 +11,7 @@
         <conv:NotZeroToBoolConverter x:Key="NotZeroToBoolConverter" />
         <conv:MultiplyDoubleConverter x:Key="MultiplyDoubleConverter" />
         <conv:StringNotNullOrEmptyConverter x:Key="StringNotNullOrEmptyConverter" />
+        <conv:ImageBrushFromImageConverter x:Key="ImageBrushFromImageConverter" />
     </Application.Resources>
 
     <Application.DataTemplates>

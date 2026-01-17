@@ -34,6 +34,12 @@ public static class LastSessionPersistence
         public double? HourglassDensity { get; set; }
         public double? HourglassParticleSize { get; set; }
 
+        public double? MapMasterPlayerMaskOpacity { get; set; }
+        public double? MapMasterGmMaskOpacity { get; set; }
+        public double? MapMasterEraserDiameter { get; set; }
+        public double? MapMasterEraserHardness { get; set; }
+        public string? MapMasterMaskType { get; set; }
+
         public DateTimeOffset SavedAtUtc { get; set; }
     }
 
@@ -69,6 +75,12 @@ public static class LastSessionPersistence
             HourglassParticleCount = physics.ParticleCount,
             HourglassDensity = physics.Density,
             HourglassParticleSize = physics.ParticleSize,
+
+            MapMasterPlayerMaskOpacity = Clamp(vm.MapMaster.PlayerMaskOpacity, 0, 1),
+            MapMasterGmMaskOpacity = Clamp(vm.MapMaster.GmMaskOpacity, 0, 1),
+            MapMasterEraserDiameter = Clamp(vm.MapMaster.EraserDiameter, 2, 80),
+            MapMasterEraserHardness = Clamp(vm.MapMaster.EraserHardness, 0, 1),
+            MapMasterMaskType = vm.MapMaster.SelectedMaskType.ToString(),
 
             SavedAtUtc = DateTimeOffset.UtcNow,
         };
@@ -255,6 +267,33 @@ public static class LastSessionPersistence
                 if (state.HourglassParticleSize is not null)
                 {
                     vm.Hourglass.ParticleSizeText = Clamp(state.HourglassParticleSize.Value, 2, 14).ToString("0.0");
+                }
+
+                // Map Master preferences
+                if (state.MapMasterPlayerMaskOpacity is not null)
+                {
+                    vm.MapMaster.PlayerMaskOpacity = Clamp(state.MapMasterPlayerMaskOpacity.Value, 0, 1);
+                }
+
+                if (state.MapMasterGmMaskOpacity is not null)
+                {
+                    vm.MapMaster.GmMaskOpacity = Clamp(state.MapMasterGmMaskOpacity.Value, 0, 1);
+                }
+
+                if (state.MapMasterEraserDiameter is not null)
+                {
+                    vm.MapMaster.EraserDiameter = Clamp(state.MapMasterEraserDiameter.Value, 2, 80);
+                }
+
+                if (state.MapMasterEraserHardness is not null)
+                {
+                    vm.MapMaster.EraserHardness = Clamp(state.MapMasterEraserHardness.Value, 0, 1);
+                }
+
+                if (!string.IsNullOrWhiteSpace(state.MapMasterMaskType)
+                    && Enum.TryParse<ScryScreen.App.Models.MapMasterMaskType>(state.MapMasterMaskType, ignoreCase: true, out var mt))
+                {
+                    vm.MapMaster.SelectedMaskType = mt;
                 }
             }
 

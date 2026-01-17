@@ -43,21 +43,33 @@
           FogIntensity="{Binding OverlayEffects.FogIntensity}"
           SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
           SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
-          LightningEnabled="{Binding OverlayEffects.LightningEnabled}"
-          LightningIntensity="{Binding OverlayEffects.LightningIntensity}"
-          LightningTrigger="{Binding OverlayEffects.LightningTrigger}"
           EmitAudioEvents="{Binding IsShowingVideo}"
           AudioPortalNumber="{Binding PortalNumber}"
           IsHitTestVisible="False" />
 
-      <Grid IsVisible="{Binding IsShowingHourglass}" IsHitTestVisible="False">
-        <views:HourglassPortalView DataContext="{Binding Hourglass}" />
+      <!-- Map Master overlay (below hourglass/dice) -->
+      <Grid IsVisible="{Binding IsShowingMapMaster}" IsHitTestVisible="False">
+        <Grid Opacity="{Binding MapMaster.PlayerMaskOpacity}">
+          <Border IsVisible="{Binding MapMaster.IsSolidBlackMask}"
+                  Background="Black">
+            <Border.OpacityMask>
+              <Binding Path="MapMaster.MaskBitmap" Converter="{StaticResource ImageBrushFromImageConverter}" />
+            </Border.OpacityMask>
+          </Border>
+
+          <Image IsVisible="{Binding !MapMaster.IsSolidBlackMask}"
+                 Source="{Binding MapMaster.MaskTexture}"
+                 Stretch="Fill">
+            <Image.OpacityMask>
+              <Binding Path="MapMaster.MaskBitmap" Converter="{StaticResource ImageBrushFromImageConverter}" />
+            </Image.OpacityMask>
+          </Image>
+        </Grid>
       </Grid>
 
-      <Grid IsVisible="{Binding IsShowingMapMaster}" IsHitTestVisible="False">
-        <Image Source="{Binding MapMaster.MaskBitmap}"
-               Opacity="{Binding MapMaster.OverlayOpacity}"
-               Stretch="Fill" />
+      <!-- Keep hourglass visible above effects and Map Master -->
+      <Grid IsVisible="{Binding IsShowingHourglass}" IsHitTestVisible="False">
+        <views:HourglassPortalView DataContext="{Binding Hourglass}" />
       </Grid>
 
       <Grid IsVisible="{Binding IsShowingDiceRoller}" IsHitTestVisible="False">

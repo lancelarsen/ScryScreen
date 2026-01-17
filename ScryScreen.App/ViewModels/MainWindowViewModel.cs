@@ -110,6 +110,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _mapMaster = new MapMasterViewModel();
         _mapMaster.StateChanged += OnMapMasterStateChanged;
+        _mapMaster.PropertyChanged += OnMapMasterPropertyChangedForLastSession;
+
 
         _diceRoller = new DiceRollerViewModel();
         _diceRoller.StateChanged += OnDiceRollerStateChanged;
@@ -475,25 +477,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (shouldSelect)
         {
-            if (portal.IsSelectedForHourglass)
-            {
-                portal.IsSelectedForHourglass = false;
-                _portalHost.ClearHourglassOverlay(portal.PortalNumber);
-            }
-
-            if (portal.IsSelectedForMapMaster)
-            {
-                portal.IsSelectedForMapMaster = false;
-                _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
-                UpdateMapMasterPreviewSourceAfterPortalDeselected(portal.PortalNumber);
-            }
-
-            if (portal.IsSelectedForDiceRoller)
-            {
-                portal.IsSelectedForDiceRoller = false;
-                _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
-            }
-
             PushSnapshot(portal);
             ApplyInitiativeToPortal(portal);
         }
@@ -652,26 +635,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (shouldSelect)
         {
-            // Hourglass and Initiative overlays should not stack.
-            if (portal.IsSelectedForInitiative)
-            {
-                portal.IsSelectedForInitiative = false;
-                RestorePreviousContent(portal);
-            }
-
-            if (portal.IsSelectedForMapMaster)
-            {
-                portal.IsSelectedForMapMaster = false;
-                _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
-                UpdateMapMasterPreviewSourceAfterPortalDeselected(portal.PortalNumber);
-            }
-
-            if (portal.IsSelectedForDiceRoller)
-            {
-                portal.IsSelectedForDiceRoller = false;
-                _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
-            }
-
             ApplyHourglassToPortal(portal);
         }
         else
@@ -693,24 +656,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (shouldSelect)
         {
-            if (portal.IsSelectedForInitiative)
-            {
-                portal.IsSelectedForInitiative = false;
-                RestorePreviousContent(portal);
-            }
-
-            if (portal.IsSelectedForHourglass)
-            {
-                portal.IsSelectedForHourglass = false;
-                _portalHost.ClearHourglassOverlay(portal.PortalNumber);
-            }
-
-            if (portal.IsSelectedForDiceRoller)
-            {
-                portal.IsSelectedForDiceRoller = false;
-                _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
-            }
-
             ApplyMapMasterToPortal(portal);
 
             _mapMasterPreviewPortalNumber = portal.PortalNumber;
@@ -736,25 +681,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (shouldSelect)
         {
-            if (portal.IsSelectedForInitiative)
-            {
-                portal.IsSelectedForInitiative = false;
-                RestorePreviousContent(portal);
-            }
-
-            if (portal.IsSelectedForHourglass)
-            {
-                portal.IsSelectedForHourglass = false;
-                _portalHost.ClearHourglassOverlay(portal.PortalNumber);
-            }
-
-            if (portal.IsSelectedForMapMaster)
-            {
-                portal.IsSelectedForMapMaster = false;
-                _portalHost.ClearMapMasterOverlay(portal.PortalNumber);
-                UpdateMapMasterPreviewSourceAfterPortalDeselected(portal.PortalNumber);
-            }
-
             ApplyDiceRollerToPortal(portal);
         }
         else
@@ -1474,6 +1400,31 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         UpdateMapMasterOnSelectedPortals();
     }
+
+    private static bool IsPersistableMapMasterProperty(string? propertyName)
+    {
+        return propertyName == nameof(MapMasterViewModel.PlayerMaskOpacity) ||
+               propertyName == nameof(MapMasterViewModel.GmMaskOpacity) ||
+               propertyName == nameof(MapMasterViewModel.EraserDiameter) ||
+               propertyName == nameof(MapMasterViewModel.EraserHardness) ||
+               propertyName == nameof(MapMasterViewModel.SelectedMaskType);
+    }
+
+    private void OnMapMasterPropertyChangedForLastSession(object? sender, PropertyChangedEventArgs e)
+    {
+        if (IsAutoSaveSuppressed)
+        {
+            return;
+        }
+
+        if (!IsPersistableMapMasterProperty(e.PropertyName))
+        {
+            return;
+        }
+
+        ScheduleDebouncedLastSessionStateSave();
+    }
+
 
     private void UpdateMapMasterPreviewSourceAfterPortalDeselected(int portalNumber)
     {

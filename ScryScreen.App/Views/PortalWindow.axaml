@@ -49,11 +49,6 @@
         </Canvas>
       </Border>
 
-      <!-- Assigned initiative tracker (after setup) -->
-      <Grid IsVisible="{Binding IsShowingInitiative}">
-        <views:InitiativeTrackerPortalView DataContext="{Binding Initiative}" />
-      </Grid>
-
       <!-- Assigned text (after setup, when no image/video) -->
       <TextBlock
         IsVisible="{Binding IsShowingNonIdleText}"
@@ -80,6 +75,26 @@
                     MaxHeight="520"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center" />
+
+                <!-- Map Master reveal mask (below Hourglass/Initiative/Dice) -->
+                <Grid IsVisible="{Binding IsShowingMapMaster}" IsHitTestVisible="False">
+                  <Grid Opacity="{Binding MapMaster.PlayerMaskOpacity}">
+                    <Border IsVisible="{Binding MapMaster.IsSolidBlackMask}"
+                            Background="Black">
+                      <Border.OpacityMask>
+                        <Binding Path="MapMaster.MaskBitmap" Converter="{StaticResource ImageBrushFromImageConverter}" />
+                      </Border.OpacityMask>
+                    </Border>
+
+                    <Image IsVisible="{Binding !MapMaster.IsSolidBlackMask}"
+                           Source="{Binding MapMaster.MaskTexture}"
+                           Stretch="Fill">
+                      <Image.OpacityMask>
+                        <Binding Path="MapMaster.MaskBitmap" Converter="{StaticResource ImageBrushFromImageConverter}" />
+                      </Image.OpacityMask>
+                    </Image>
+                  </Grid>
+                </Grid>
 
         <!-- Overlay effects (rain/fog/smoke/snow/ash/sand/lightning) -->
       <controls:OverlayEffectsLayer
@@ -109,11 +124,9 @@
         <views:HourglassPortalView DataContext="{Binding Hourglass}" />
       </Grid>
 
-      <!-- Map Master reveal mask -->
-      <Grid IsVisible="{Binding IsShowingMapMaster}" IsHitTestVisible="False">
-        <Image Source="{Binding MapMaster.MaskBitmap}"
-               Opacity="{Binding MapMaster.OverlayOpacity}"
-               Stretch="Fill" />
+      <!-- Initiative tracker above Map Master -->
+      <Grid IsVisible="{Binding IsShowingInitiative}">
+        <views:InitiativeTrackerPortalView DataContext="{Binding Initiative}" />
       </Grid>
 
       <!-- Dice Roller overlay -->

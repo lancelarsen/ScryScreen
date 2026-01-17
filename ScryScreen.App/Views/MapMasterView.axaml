@@ -4,90 +4,156 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ScryScreen.App.ViewModels"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:controls="using:ScryScreen.App.Controls"
              mc:Ignorable="d"
              x:Class="ScryScreen.App.Views.MapMasterView"
              x:DataType="vm:MapMasterViewModel">
 
-  <Grid RowDefinitions="Auto" ColumnDefinitions="*" RowSpacing="8">
-    <Border Background="#0A0F18"
-            BorderBrush="{DynamicResource ScryBorder}"
-            BorderThickness="1"
-            CornerRadius="10"
-            Padding="10">
-      <StackPanel Spacing="10">
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
-          <Button Classes="circleSmall"
-                  ToolTip.Tip="Reset Mask"
-                  Command="{Binding ResetRevealToDefaultCommand}">
-            <i:Icon Value="mdi-autorenew" FontSize="18"
-                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-          </Button>
+  <UserControl.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="FontSize" Value="12" />
+    </Style>
 
-          <TextBlock Grid.Column="1"
-                     Text="Map Master"
-                     Foreground="{DynamicResource ScryTextMuted}"
-                     FontSize="12"
-                     FontWeight="SemiBold"
-                     VerticalAlignment="Center" />
-        </Grid>
+    <!-- Match InitiativeTracker ComboBox styling -->
+    <Style Selector="ComboBox">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Background" Value="#0A0F18" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ComboBox:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    </Style>
+    <Style Selector="ComboBox:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource ScryAccent}" />
+    </Style>
+  </UserControl.Styles>
 
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,*,Auto" RowDefinitions="Auto" ColumnSpacing="10" RowSpacing="8">
-          <TextBlock Grid.Column="0" Text="Eraser" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-          <Slider Grid.Column="1" Classes="portalTimeline" Minimum="6" Maximum="200" Value="{Binding EraserDiameter, Mode=TwoWay}" />
-          <TextBlock Grid.Column="2" Text="{Binding EraserDiameter, StringFormat={}{0:0}px}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
 
-          <TextBlock Grid.Column="3" Text="Mask" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
-          <Slider Grid.Column="4" Classes="portalTimeline" Minimum="0" Maximum="1" Value="{Binding OverlayOpacity, Mode=TwoWay}" />
-          <TextBlock Grid.Column="5" Text="{Binding OverlayOpacity, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
-        </Grid>
+      <!-- Left controls -->
+      <ScrollViewer Grid.Column="0" Width="340" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="10">
 
-        <Border x:Name="EditorSurface"
-                Height="320"
-                Background="#000000"
-                BorderBrush="{DynamicResource ScryBorder}"
-                BorderThickness="1"
-                CornerRadius="10"
-                ClipToBounds="True"
-                Cursor="Cross"
-                PointerEntered="OnEditorPointerEntered"
-                PointerExited="OnEditorPointerExited"
-                PointerPressed="OnEditorPointerPressed"
-                PointerMoved="OnEditorPointerMoved"
-                PointerReleased="OnEditorPointerReleased">
-          <Grid>
-            <!-- Portal-aspect area: we position/scale image + mask to match the portal's screen aspect ratio. -->
-            <Canvas x:Name="PortalCanvas">
-              <Image x:Name="PreviewImage" Source="{Binding SourceImage}" Stretch="Fill" />
-              <Image x:Name="MaskImage"
-                     Source="{Binding MaskBitmap}"
-                     Opacity="{Binding OverlayOpacity}"
-                     Stretch="Fill" />
+          <!-- Title + Reset (no background/outline) -->
+          <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+            <TextBlock Text="Map Master"
+                       Foreground="{DynamicResource ScryTextMuted}"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
 
-              <Ellipse x:Name="EraserCursor"
-                       Width="{Binding EraserDiameter}"
-                       Height="{Binding EraserDiameter}"
-                       Stroke="{DynamicResource ScryAccent}"
-                       StrokeThickness="2"
-                       Fill="#20000000"
-                       IsVisible="False"
-                       IsHitTestVisible="False" />
-            </Canvas>
-
-            <Border IsVisible="{Binding !HasSourceImage}"
-                    Background="#AA000000"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch">
-              <TextBlock Text="Select a portal with an image assigned to edit its map."
-                         Foreground="{DynamicResource ScryTextMuted}"
-                         FontSize="14"
-                         TextAlignment="Center"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"
-                         TextWrapping="Wrap" />
-            </Border>
+            <Button Grid.Column="1"
+                    ToolTip.Tip="Reset Mask"
+                    Command="{Binding ResetRevealToDefaultCommand}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8,4">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <i:Icon Value="mdi-autorenew" FontSize="16"
+                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                <TextBlock Text="Reset" />
+              </StackPanel>
+            </Button>
           </Grid>
-        </Border>
-      </StackPanel>
-    </Border>
-  </Grid>
+
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Width="110" Text="Mask Type" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+            <ComboBox Width="140"
+                      ItemsSource="{Binding MaskTypes}"
+                      SelectedItem="{Binding SelectedMaskType, Mode=TwoWay}" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Width="110" Text="Player Mask" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+            <Slider Classes="portalTimeline" Width="80" Minimum="0" Maximum="1" Value="{Binding PlayerMaskOpacity, Mode=TwoWay}" VerticalAlignment="Center" />
+            <TextBlock Width="44" TextAlignment="Right" Text="{Binding PlayerMaskOpacity, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Width="110" Text="GM Mask" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+            <Slider Classes="portalTimeline" Width="80" Minimum="0" Maximum="1" Value="{Binding GmMaskOpacity, Mode=TwoWay}" VerticalAlignment="Center" />
+            <TextBlock Width="44" TextAlignment="Right" Text="{Binding GmMaskOpacity, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Width="110" Text="Eraser" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+            <Slider Classes="portalTimeline" Width="80" Minimum="6" Maximum="80" Value="{Binding EraserDiameter, Mode=TwoWay}" VerticalAlignment="Center" />
+            <TextBlock Width="44" TextAlignment="Right" Text="{Binding EraserDiameter, StringFormat={}{0:0}px}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Width="110" Text="Hardness" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+            <Slider Classes="portalTimeline" Width="80" Minimum="0" Maximum="1" Value="{Binding EraserHardness, Mode=TwoWay}" VerticalAlignment="Center" />
+            <TextBlock Width="44" TextAlignment="Right" Text="{Binding EraserHardness, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+          </StackPanel>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Right preview (no outline) -->
+      <Border Grid.Column="1"
+              x:Name="EditorSurface"
+              Background="Transparent"
+              BorderThickness="0"
+              CornerRadius="10"
+              ClipToBounds="True"
+              Cursor="Cross"
+              PointerEntered="OnEditorPointerEntered"
+              PointerExited="OnEditorPointerExited"
+              PointerPressed="OnEditorPointerPressed"
+              PointerMoved="OnEditorPointerMoved"
+              PointerReleased="OnEditorPointerReleased">
+        <Grid>
+          <!-- Portal-aspect area: we position/scale image + mask to match the portal's screen aspect ratio. -->
+          <Canvas x:Name="PortalCanvas">
+            <Image x:Name="PreviewImage" Source="{Binding SourceImage}" Stretch="Fill" />
+
+            <!-- Mask overlay: solid black or a texture image, clipped by the alpha mask. -->
+            <Grid x:Name="MaskHost"
+                  Opacity="{Binding GmMaskOpacity}">
+              <Border IsVisible="{Binding IsSolidBlackMask}"
+                      Background="Black">
+                <Border.OpacityMask>
+                  <Binding Path="MaskBitmap" Converter="{StaticResource ImageBrushFromImageConverter}" />
+                </Border.OpacityMask>
+              </Border>
+
+              <Image IsVisible="{Binding !IsSolidBlackMask}"
+                     Source="{Binding MaskTexture}"
+                     Stretch="Fill">
+                <Image.OpacityMask>
+                  <Binding Path="MaskBitmap" Converter="{StaticResource ImageBrushFromImageConverter}" />
+                </Image.OpacityMask>
+              </Image>
+            </Grid>
+
+            <Ellipse x:Name="EraserCursor"
+                     Width="{Binding EraserDiameter}"
+                     Height="{Binding EraserDiameter}"
+                     Stroke="{DynamicResource ScryAccent}"
+                     StrokeThickness="2"
+                     Fill="#20000000"
+                     IsVisible="False"
+                     IsHitTestVisible="False" />
+          </Canvas>
+
+          <Border IsVisible="{Binding !HasSourceImage}"
+                  Background="#AA000000"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch">
+            <TextBlock Text="Select a portal with an image assigned to edit its map."
+                       Foreground="{DynamicResource ScryTextMuted}"
+                       FontSize="14"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap" />
+          </Border>
+        </Grid>
+      </Border>
+
+    </Grid>
 </UserControl>
