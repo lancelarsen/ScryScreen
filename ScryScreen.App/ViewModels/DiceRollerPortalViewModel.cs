@@ -16,6 +16,9 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
     [ObservableProperty]
     private double overlayOpacity = 0.85;
 
+    [ObservableProperty]
+    private long rollId;
+
     public bool HasText => !string.IsNullOrWhiteSpace(Text);
 
     partial void OnTextChanged(string value) => OnPropertyChanged(nameof(HasText));
@@ -24,5 +27,6 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
     {
         Text = state.Text;
         OverlayOpacity = state.OverlayOpacity;
+        RollId = state.RollId;
     }
 }

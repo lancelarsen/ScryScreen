@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ScryScreen.App.ViewModels"
+             xmlns:controls="using:ScryScreen.App.Controls"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
              mc:Ignorable="d"
              x:Class="ScryScreen.App.Views.DiceRollerView"
@@ -13,8 +14,10 @@
           BorderThickness="1"
           CornerRadius="10"
           Padding="10">
-    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
+      <controls:DiceTray3DHost x:Name="DiceTray" Height="180" />
+
+      <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
         <TextBlock Text="Roll" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
         <TextBox Grid.Column="1"
@@ -42,22 +45,27 @@
         </Button>
 
         <Button Grid.Column="3"
-                Classes="circleSmall"
-                ToolTip.Tip="Clear"
+                Background="#0A0F18"
+                BorderBrush="{DynamicResource ScryBorder}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12,6"
                 Command="{Binding ClearCommand}">
-          <i:Icon Value="mdi-close" FontSize="18"
-                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <i:Icon Value="mdi-broom" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
+            <TextBlock Text="Clear" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
+          </StackPanel>
         </Button>
       </Grid>
 
-      <TextBlock Grid.Row="1"
+      <TextBlock Grid.Row="2"
                  IsVisible="{Binding LastErrorText, Converter={StaticResource StringNotNullOrEmptyConverter}}"
                  Text="{Binding LastErrorText}"
                  Foreground="#F87171"
                  FontSize="12"
                  TextWrapping="Wrap" />
 
-      <ScrollViewer Grid.Row="2" MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <ScrollViewer Grid.Row="3" MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <ItemsControl ItemsSource="{Binding History}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>

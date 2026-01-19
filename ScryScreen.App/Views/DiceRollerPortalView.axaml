@@ -3,23 +3,47 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ScryScreen.App.ViewModels"
+             xmlns:controls="using:ScryScreen.App.Controls"
              mc:Ignorable="d"
              x:Class="ScryScreen.App.Views.DiceRollerPortalView"
              x:DataType="vm:DiceRollerPortalViewModel">
 
-  <Border Background="#000000"
-          Opacity="{Binding OverlayOpacity}"
-          CornerRadius="14"
-          Padding="18,14"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Top"
-          Margin="24,24,24,0"
-          MaxWidth="1100">
-    <TextBlock Text="{Binding Text}"
-               Foreground="White"
-               FontSize="34"
-               FontWeight="SemiBold"
-               TextAlignment="Center"
-               TextWrapping="Wrap" />
-  </Border>
+  <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <!-- Dice animation stage (centered & clipped so it can't collapse to 0x0 in the corner) -->
+    <Border x:Name="DiceStage"
+            Width="900"
+            Height="520"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Background="Transparent"
+            ClipToBounds="True"
+            IsHitTestVisible="False">
+      <Canvas x:Name="DiceCanvas"
+              Width="900"
+              Height="520" />
+    </Border>
+
+      <!-- True 3D dice tray (native surface) -->
+      <controls:DiceTray3DHost x:Name="PortalDiceTray"
+            IsHitTestVisible="False"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch" />
+
+    <!-- Result text panel -->
+    <Border Background="#000000"
+            Opacity="{Binding OverlayOpacity}"
+            CornerRadius="14"
+            Padding="18,14"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="24,24,24,0"
+            MaxWidth="1100">
+      <TextBlock Text="{Binding Text}"
+                 Foreground="White"
+                 FontSize="34"
+                 FontWeight="SemiBold"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap" />
+    </Border>
+  </Grid>
 </UserControl>

@@ -7,6 +7,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\scryscreen.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- WebView2 can introduce WindowsBase reference-identity conflicts; suppress MSBuild resolve warning. -->
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,5 +43,8 @@
 
     <!-- Audio playback (effects SFX / loops) -->
     <PackageReference Include="NAudio" Version="2.2.1" />
+
+    <!-- 3D dice tray (Windows only at runtime) -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
   </ItemGroup>
 </Project>

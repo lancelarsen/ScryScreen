@@ -10,6 +10,7 @@ namespace ScryScreen.App.ViewModels;
 public partial class DiceRollerViewModel : ViewModelBase
 {
     private readonly Random _rng = new();
+    private long _rollIdCounter;
 
     public event Action? StateChanged;
 
@@ -33,7 +34,10 @@ public partial class DiceRollerViewModel : ViewModelBase
     [ObservableProperty]
     private double overlayOpacity;
 
-    public DiceRollerState SnapshotState() => new(LastResultText, OverlayOpacity);
+    [ObservableProperty]
+    private long rollId;
+
+    public DiceRollerState SnapshotState() => new(LastResultText, OverlayOpacity, RollId);
 
     [RelayCommand]
     private void Roll()
@@ -47,6 +51,7 @@ public partial class DiceRollerViewModel : ViewModelBase
         }
 
         LastResultText = result.DisplayText;
+        RollId = ++_rollIdCounter;
         History.Insert(0, LastResultText);
         while (History.Count > 20)
         {
