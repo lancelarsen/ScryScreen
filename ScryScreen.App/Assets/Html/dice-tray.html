@@ -273,7 +273,17 @@
 
     function createFaceLabelPlane(text, scale = 0.45) {
       const plate = createFaceLabelTexture(text);
-      const mat = new THREE.MeshBasicMaterial({ map: plate.tex, transparent: true, depthTest: true, depthWrite: false, side: THREE.DoubleSide });
+      const mat = new THREE.MeshBasicMaterial({
+        map: plate.tex,
+        transparent: true,
+        depthTest: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        // Keep the label visually "printed" on the face without needing a large offset.
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      });
       const geo = new THREE.PlaneGeometry(scale, scale);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.userData._label = plate;
@@ -371,7 +381,8 @@
 
       mesh.geometry.computeBoundingSphere();
       const rad = mesh.geometry.boundingSphere ? mesh.geometry.boundingSphere.radius : 1;
-      const offset = Math.max(0.02, rad * 0.07);
+      // Keep labels very close to the surface. We rely on polygonOffset to avoid z-fighting.
+      const offset = Math.max(0.004, rad * 0.012);
 
       const zAxis = new THREE.Vector3(0, 0, 1);
       const valueToNormal = new Map();
