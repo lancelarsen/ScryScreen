@@ -452,6 +452,78 @@
       return valueByFace;
     }
 
+    function buildOppositePairs(faceGroups) {
+      // For each face i, find its most-opposite face j (minimum dot).
+      // Then keep only symmetric pairs where opp[opp[i]] === i.
+      const n = faceGroups.length;
+      if (n < 2) return [];
+
+      const opp = new Array(n).fill(-1);
+      for (let i = 0; i < n; i++) {
+        let bestJ = -1;
+        let bestDot = 2;
+        const ni = faceGroups[i].normal;
+        for (let j = 0; j < n; j++) {
+          if (i === j) continue;
+          const d = ni.dot(faceGroups[j].normal);
+          if (d < bestDot) {
+            bestDot = d;
+            bestJ = j;
+          }
+        }
+        opp[i] = bestJ;
+      }
+
+      const seen = new Array(n).fill(false);
+      const pairs = [];
+      for (let i = 0; i < n; i++) {
+        if (seen[i]) continue;
+        const j = opp[i];
+        if (j < 0 || j >= n) continue;
+        if (opp[j] !== i) continue;
+        if (i === j) continue;
+        seen[i] = true;
+        seen[j] = true;
+        pairs.push(i < j ? [i, j] : [j, i]);
+      }
+
+      // Deterministic ordering so results don't shuffle between runs.
+      pairs.sort((p1, p2) => {
+        const a = faceGroups[p1[0]].normal;
+        const b = faceGroups[p2[0]].normal;
+        // Prefer higher Y (top-ish) first, then Z, then X.
+        if (a.y !== b.y) return b.y - a.y;
+        if (a.z !== b.z) return b.z - a.z;
+        return b.x - a.x;
+      });
+
+      return pairs;
+    }
+
+    function buildOppositeSumValues(faceGroups, sides, sum = sides + 1) {
+      const pairs = buildOppositePairs(faceGroups);
+      if (pairs.length * 2 !== faceGroups.length) return null;
+
+      const valueByFace = new Array(faceGroups.length).fill(null);
+      for (let k = 0; k < pairs.length; k++) {
+        const low = k + 1;
+        const high = sum - low;
+        const [a, b] = pairs[k];
+        valueByFace[a] = low;
+        valueByFace[b] = high;
+      }
+
+      // Safety: ensure all assigned.
+      if (valueByFace.some(v => v == null)) return null;
+      return valueByFace;
+    }
+
+    function buildD10Values(faceGroups) {
+      // D&D d10: faces typically labeled 1..9 and 0 (meaning 10).
+      // Convention: opposite faces sum to 11 when treating 0 as 10.
+      return buildOppositeSumValues(faceGroups, 10, 11);
+    }
+
     function findFaceIndexByNormal(faceGroups, target, dotThreshold = 0.94) {
       let best = -1;
       let bestDot = -1;
@@ -582,6 +654,11 @@
           valueByFace = buildD6Values(faceGroups) || buildOppositePairingValues(faceGroups, sides);
         } else if (sides === 8 && faceGroups.length === 8) {
           valueByFace = buildD8Values(faceGroups) || buildOppositePairingValues(faceGroups, sides);
+        } else if (sides === 10 && faceGroups.length === 10) {
+          valueByFace = buildD10Values(faceGroups) || buildOppositePairingValues(faceGroups, sides);
+        } else if ((sides === 12 || sides === 20) && faceGroups.length === sides) {
+          // D12: opposites sum to 13. D20: opposites sum to 21.
+          valueByFace = buildOppositeSumValues(faceGroups, sides) || buildOppositePairingValues(faceGroups, sides);
         } else {
           valueByFace = buildOppositePairingValues(faceGroups, sides);
         }
@@ -615,17 +692,112 @@
       }
     }
 
-    canvas.addEventListener('click', (ev) => {
+    function postRotate(sides, q) {
+      // q is a THREE.Quaternion
+      const payload = JSON.stringify({ type: 'rotate', sides, q: [q.x, q.y, q.z, q.w] });
+      if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
+        window.chrome.webview.postMessage(payload);
+      }
+    }
+
+    function pickDieAt(clientX, clientY) {
       const rect = canvas.getBoundingClientRect();
-      mouse.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -(((ev.clientY - rect.top) / rect.height) * 2 - 1);
+      mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
       raycaster.setFromCamera(mouse, camera);
       const hits = raycaster.intersectObjects(dice.map(d => d.mesh), false);
-      if (hits.length > 0) {
-        const sides = hits[0].object.userData.sides;
-        postDie(sides);
-      }
+      if (hits.length <= 0) return null;
+      const hitMesh = hits[0].object;
+      return dice.find(d => d.mesh === hitMesh) || null;
+    }
+
+    // Click = roll, drag = rotate die for inspection.
+    let activeDrag = null; // { die, pointerId, startX, startY, lastX, lastY, dragging, lastSentMs }
+    const DRAG_THRESHOLD_PX = 4;
+    const ROT_SPEED = 0.007;
+    const ROT_SEND_INTERVAL_MS = 33;
+
+    canvas.addEventListener('pointerdown', (ev) => {
+      // Only primary button / primary touch.
+      if (ev.isPrimary === false) return;
+      if (ev.button != null && ev.button !== 0) return;
+
+      const die = pickDieAt(ev.clientX, ev.clientY);
+      if (!die) return;
+
+      activeDrag = {
+        die,
+        pointerId: ev.pointerId,
+        startX: ev.clientX,
+        startY: ev.clientY,
+        lastX: ev.clientX,
+        lastY: ev.clientY,
+        dragging: false,
+        lastSentMs: 0,
+      };
+
+      try { canvas.setPointerCapture(ev.pointerId); } catch { }
+      ev.preventDefault();
     });
+
+    canvas.addEventListener('pointermove', (ev) => {
+      if (!activeDrag) return;
+      if (ev.pointerId !== activeDrag.pointerId) return;
+
+      const dxTotal = ev.clientX - activeDrag.startX;
+      const dyTotal = ev.clientY - activeDrag.startY;
+      const dist = Math.hypot(dxTotal, dyTotal);
+      if (!activeDrag.dragging && dist >= DRAG_THRESHOLD_PX) {
+        activeDrag.dragging = true;
+        // Cancel any roll animation while inspecting.
+        activeDrag.die.anim = null;
+      }
+
+      if (activeDrag.dragging) {
+        const dx = ev.clientX - activeDrag.lastX;
+        const dy = ev.clientY - activeDrag.lastY;
+
+        // Horizontal drag: spin around world up.
+        activeDrag.die.mesh.rotateOnWorldAxis(UP, dx * ROT_SPEED);
+
+        // Vertical drag: tilt around camera-right axis so it feels natural.
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+        activeDrag.die.mesh.rotateOnWorldAxis(right, dy * ROT_SPEED);
+
+        const now = performance.now();
+        if ((now - activeDrag.lastSentMs) >= ROT_SEND_INTERVAL_MS) {
+          activeDrag.lastSentMs = now;
+          postRotate(activeDrag.die.sides, activeDrag.die.mesh.quaternion);
+        }
+      }
+
+      activeDrag.lastX = ev.clientX;
+      activeDrag.lastY = ev.clientY;
+      ev.preventDefault();
+    });
+
+    function endDrag(ev) {
+      if (!activeDrag) return;
+      if (ev.pointerId !== activeDrag.pointerId) return;
+
+      const die = activeDrag.die;
+      const shouldClick = !activeDrag.dragging;
+
+      try { canvas.releasePointerCapture(ev.pointerId); } catch { }
+      activeDrag = null;
+
+      if (shouldClick && die) {
+        postDie(die.sides);
+      } else if (die) {
+        // Send final rotation on drag end.
+        postRotate(die.sides, die.mesh.quaternion);
+      }
+
+      ev.preventDefault();
+    }
+
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
 
     function applyIdlePose(d) {
       d.mesh.rotation.set(0.65, 0.55, 0.08);
@@ -698,6 +870,20 @@
           if (!msg || !msg.type) return;
           if (msg.type === 'preview') setPreview();
           if (msg.type === 'roll') showRollResults(msg.dice || []);
+          if (msg.type === 'setRotation') {
+            const sides = Number(msg.sides);
+            const q = msg.q;
+            if (!Number.isFinite(sides) || !Array.isArray(q) || q.length !== 4) return;
+            const d = dice.find(dd => dd.sides === sides);
+            if (!d) return;
+            const x = Number(q[0]);
+            const y = Number(q[1]);
+            const z = Number(q[2]);
+            const w = Number(q[3]);
+            if (![x, y, z, w].every(Number.isFinite)) return;
+            d.anim = null;
+            d.mesh.quaternion.set(x, y, z, w).normalize();
+          }
         } catch { }
       });
     }

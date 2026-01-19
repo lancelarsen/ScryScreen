@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using ScryScreen.App.Models;
+using System;
+using System.Collections.Generic;
 
 namespace ScryScreen.App.ViewModels;
 
@@ -19,6 +21,9 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
     [ObservableProperty]
     private long rollId;
 
+    [ObservableProperty]
+    private IReadOnlyList<DiceDieRotation> rotations = Array.Empty<DiceDieRotation>();
+
     public bool HasText => !string.IsNullOrWhiteSpace(Text);
 
     partial void OnTextChanged(string value) => OnPropertyChanged(nameof(HasText));
@@ -28,5 +33,6 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
         Text = state.Text;
         OverlayOpacity = state.OverlayOpacity;
         RollId = state.RollId;
+        Rotations = state.Rotations ?? Array.Empty<DiceDieRotation>();
     }
 }

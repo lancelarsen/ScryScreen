@@ -105,6 +105,25 @@ public partial class DiceRollerPortalView : UserControl
             // Defer until after layout so Bounds are correct (prevents top-left/0x0 issues).
             Dispatcher.UIThread.Post(() => StartRollAnimation(_vm.Text), DispatcherPriority.Render);
         }
+
+        if (e.PropertyName == nameof(DiceRollerPortalViewModel.Rotations) && _vm is not null)
+        {
+            Dispatcher.UIThread.Post(ApplyRotationsToTray, DispatcherPriority.Render);
+        }
+    }
+
+    private void ApplyRotationsToTray()
+    {
+        if (_tray is null || _vm is null)
+        {
+            return;
+        }
+
+        foreach (var r in _vm.Rotations)
+        {
+            var q = new System.Numerics.Quaternion(r.X, r.Y, r.Z, r.W);
+            _tray.SetDieRotation(r.Sides, q);
+        }
     }
 
     private void StartRollAnimation(string text)
@@ -122,6 +141,9 @@ public partial class DiceRollerPortalView : UserControl
         var dice = DiceRollTextParser.ParseDice(text);
         if (dice.Count == 0)
         {
+            // Non-roll text (e.g., placeholder title). Keep tray visible in preview mode.
+            _tray?.ShowPreviewDice();
+            ApplyRotationsToTray();
             return;
         }
 
@@ -129,6 +151,7 @@ public partial class DiceRollerPortalView : UserControl
         if (_tray is not null)
         {
             _tray.ShowRollResults(dice);
+            ApplyRotationsToTray();
             _timer.Stop();
             DiceCanvas.Children.Clear();
             _anims.Clear();

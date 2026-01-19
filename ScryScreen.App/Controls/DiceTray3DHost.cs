@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Numerics;
 using Avalonia;
 using Avalonia.Platform;
 
@@ -9,6 +10,13 @@ namespace ScryScreen.App.Controls;
 public sealed class DiceTray3DHost : WebView2Host
 {
     public event EventHandler<int>? DieClicked;
+    public event EventHandler<DieRotationChangedEventArgs>? DieRotationChanged;
+
+    public sealed class DieRotationChangedEventArgs : EventArgs
+    {
+        public required int Sides { get; init; }
+        public required Quaternion Rotation { get; init; }
+    }
 
     public DiceTray3DHost()
     {
@@ -49,6 +57,23 @@ public sealed class DiceTray3DHost : WebView2Host
         PostWebMessage(JsonSerializer.Serialize(payload));
     }
 
+    public void SetDieRotation(int sides, Quaternion rotation)
+    {
+        if (sides is < 2 or > 100)
+        {
+            return;
+        }
+
+        var payload = new
+        {
+            type = "setRotation",
+            sides,
+            q = new[] { rotation.X, rotation.Y, rotation.Z, rotation.W },
+        };
+
+        PostWebMessage(JsonSerializer.Serialize(payload));
+    }
+
     private void OnWebMessageReceived(object? sender, string message)
     {
         try
@@ -59,23 +84,61 @@ public sealed class DiceTray3DHost : WebView2Host
                 return;
             }
 
-            if (!string.Equals(typeEl.GetString(), "die", StringComparison.OrdinalIgnoreCase))
+            var type = typeEl.GetString();
+            if (string.Equals(type, "die", StringComparison.OrdinalIgnoreCase))
             {
+                if (!doc.RootElement.TryGetProperty("sides", out var sidesEl))
+                {
+                    return;
+                }
+
+                var sides = sidesEl.GetInt32();
+                if (sides is < 2 or > 100)
+                {
+                    return;
+                }
+
+                DieClicked?.Invoke(this, sides);
                 return;
             }
 
-            if (!doc.RootElement.TryGetProperty("sides", out var sidesEl))
+            if (string.Equals(type, "rotate", StringComparison.OrdinalIgnoreCase))
             {
+                if (!doc.RootElement.TryGetProperty("sides", out var sidesEl))
+                {
+                    return;
+                }
+
+                var sides = sidesEl.GetInt32();
+                if (sides is < 2 or > 100)
+                {
+                    return;
+                }
+
+                if (!doc.RootElement.TryGetProperty("q", out var qEl) || qEl.ValueKind != JsonValueKind.Array || qEl.GetArrayLength() != 4)
+                {
+                    return;
+                }
+
+                var x = qEl[0].GetSingle();
+                var y = qEl[1].GetSingle();
+                var z = qEl[2].GetSingle();
+                var w = qEl[3].GetSingle();
+                if (!float.IsFinite(x) || !float.IsFinite(y) || !float.IsFinite(z) || !float.IsFinite(w))
+                {
+                    return;
+                }
+
+                var rot = new Quaternion(x, y, z, w);
+                if (rot.LengthSquared() < 1e-6f)
+                {
+                    return;
+                }
+
+                rot = Quaternion.Normalize(rot);
+                DieRotationChanged?.Invoke(this, new DieRotationChangedEventArgs { Sides = sides, Rotation = rot });
                 return;
             }
-
-            var sides = sidesEl.GetInt32();
-            if (sides is < 2 or > 100)
-            {
-                return;
-            }
-
-            DieClicked?.Invoke(this, sides);
         }
         catch
         {

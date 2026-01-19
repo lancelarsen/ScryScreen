@@ -1,5 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScryScreen.App.Models;
@@ -11,6 +14,7 @@ public partial class DiceRollerViewModel : ViewModelBase
 {
     private readonly Random _rng = new();
     private long _rollIdCounter;
+    private readonly Dictionary<int, DiceDieRotation> _rotationsBySides = new();
 
     public event Action? StateChanged;
 
@@ -37,7 +41,32 @@ public partial class DiceRollerViewModel : ViewModelBase
     [ObservableProperty]
     private long rollId;
 
-    public DiceRollerState SnapshotState() => new(LastResultText, OverlayOpacity, RollId);
+    public DiceRollerState SnapshotState()
+    {
+        // Keep the portal overlay alive even when there's no roll text so the preview tray can show.
+        var text = string.IsNullOrWhiteSpace(LastResultText) ? "Dice Roller" : LastResultText;
+        var rotations = _rotationsBySides.Count == 0
+            ? Array.Empty<DiceDieRotation>()
+            : _rotationsBySides.Values.OrderBy(r => r.Sides).ToArray();
+        return new(text, OverlayOpacity, RollId, rotations);
+    }
+
+    public void UpdateDieRotation(int sides, Quaternion rotation)
+    {
+        if (sides is < 2 or > 100)
+        {
+            return;
+        }
+
+        if (rotation.LengthSquared() < 1e-6f)
+        {
+            return;
+        }
+
+        rotation = Quaternion.Normalize(rotation);
+        _rotationsBySides[sides] = new DiceDieRotation(sides, rotation.X, rotation.Y, rotation.Z, rotation.W);
+        StateChanged?.Invoke();
+    }
 
     [RelayCommand]
     private void Roll()
@@ -67,6 +96,7 @@ public partial class DiceRollerViewModel : ViewModelBase
         LastErrorText = null;
         LastResultText = string.Empty;
         History.Clear();
+        _rotationsBySides.Clear();
         StateChanged?.Invoke();
     }
 

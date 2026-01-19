@@ -24,6 +24,7 @@ public partial class DiceRollerView : UserControl
         if (_tray is not null)
         {
             _tray.DieClicked += OnDieClicked;
+            _tray.DieRotationChanged += OnDieRotationChanged;
             _tray.ShowPreviewDice();
         }
 
@@ -46,6 +47,7 @@ public partial class DiceRollerView : UserControl
         if (_tray is not null)
         {
             _tray.DieClicked -= OnDieClicked;
+            _tray.DieRotationChanged -= OnDieRotationChanged;
             _tray = null;
         }
     }
@@ -81,6 +83,17 @@ public partial class DiceRollerView : UserControl
         {
             vm.RollCommand.Execute(null);
         }
+    }
+
+    private void OnDieRotationChanged(object? sender, DiceTray3DHost.DieRotationChangedEventArgs e)
+    {
+        var vm = _vm ?? (DataContext as DiceRollerViewModel);
+        if (vm is null)
+        {
+            return;
+        }
+
+        vm.UpdateDieRotation(e.Sides, e.Rotation);
     }
 
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
