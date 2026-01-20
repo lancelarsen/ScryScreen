@@ -657,6 +657,21 @@
     }
 
     const dice = [];
+    const ROLL_LANE_Y = 2.2;
+    const ROLL_LANE_Z = 0.0;
+    const ROLL_AXIS_Z = new THREE.Vector3(0, 0, 1);
+    const _tmpV = new THREE.Vector3();
+    const _tmpTravel = new THREE.Vector3();
+    const _tmpRollAxis = new THREE.Vector3();
+    const _tmpRay = new THREE.Ray();
+    const _tmpPlane = new THREE.Plane();
+    const _rollPlanePoint = new THREE.Vector3();
+    const _rollPlaneNormal = new THREE.Vector3();
+    const _rollPlaneRight = new THREE.Vector3();
+    const _rollPlaneUp = new THREE.Vector3();
+    const _tmpHit = new THREE.Vector3();
+    const _tmpRel = new THREE.Vector3();
+    const _tmpPos = new THREE.Vector3();
     const geometries = [
       [4, new THREE.TetrahedronGeometry(0.78, 0)],
       [6, new THREE.BoxGeometry(1.05, 1.05, 1.05)],
@@ -699,7 +714,68 @@
       const lines = makeEdges(mesh);
       scene.add(mesh);
       scene.add(lines);
+
+      // Cache a stable collision radius for this die.
+      try {
+        geo.computeBoundingSphere();
+        mesh.userData.radius = geo.boundingSphere ? geo.boundingSphere.radius : 0.85;
+      } catch {
+        mesh.userData.radius = 0.85;
+      }
+
+      mesh.userData.slotX = x;
+      mesh.userData.slotY = ROLL_LANE_Y;
+      mesh.userData.slotZ = ROLL_LANE_Z;
       dice.push({ mesh, lines, sides, anim: null });
+    }
+
+    function fract(x) { return x - Math.floor(x); }
+    function prng(seed) { return fract(Math.sin(seed) * 43758.5453123); }
+
+    function worldXAtPlaneY(ndcX, ndcY, yPlane) {
+      // Ray from camera through NDC point, intersect with plane Y = yPlane.
+      _tmpV.set(ndcX, ndcY, 0.5).unproject(camera);
+      _tmpRay.origin.copy(camera.position);
+      _tmpRay.direction.copy(_tmpV).sub(camera.position).normalize();
+      _tmpPlane.set(new THREE.Vector3(0, 1, 0), -yPlane);
+      const hit = new THREE.Vector3();
+      const ok = _tmpRay.intersectPlane(_tmpPlane, hit);
+      return ok ? hit.x : 0;
+    }
+
+    function worldPointAtPlaneY(ndcX, ndcY, yPlane, out) {
+      // Ray from camera through NDC point, intersect with plane Y = yPlane.
+      _tmpV.set(ndcX, ndcY, 0.5).unproject(camera);
+      _tmpRay.origin.copy(camera.position);
+      _tmpRay.direction.copy(_tmpV).sub(camera.position).normalize();
+      _tmpPlane.set(new THREE.Vector3(0, 1, 0), -yPlane);
+      return _tmpRay.intersectPlane(_tmpPlane, out);
+    }
+
+    function updateRollPlaneBasis() {
+      // The "screen" plane: perpendicular to camera forward, passing through the dice lane center.
+      _rollPlanePoint.set(0, ROLL_LANE_Y, ROLL_LANE_Z);
+      camera.getWorldDirection(_rollPlaneNormal).normalize();
+      _rollPlaneRight.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+      _rollPlaneUp.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+    }
+
+    function worldPointAtRollPlane(ndcX, ndcY, out) {
+      // Ray from camera through NDC point, intersect with the roll plane.
+      _tmpV.set(ndcX, ndcY, 0.5).unproject(camera);
+      _tmpRay.origin.copy(camera.position);
+      _tmpRay.direction.copy(_tmpV).sub(camera.position).normalize();
+      _tmpPlane.set(_rollPlaneNormal, -_rollPlaneNormal.dot(_rollPlanePoint));
+      return _tmpRay.intersectPlane(_tmpPlane, out);
+    }
+
+    function rollPlaneUVAtNdc(ndcX, ndcY, outUV) {
+      const hit = worldPointAtRollPlane(ndcX, ndcY, _tmpHit);
+      if (!hit) return null;
+      _tmpRel.copy(_tmpHit).sub(_rollPlanePoint);
+      outUV.u = _tmpRel.dot(_rollPlaneRight);
+      outUV.v = _tmpRel.dot(_rollPlaneUp);
+      return outUV;
     }
 
     function resize() {
@@ -708,6 +784,7 @@
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      updateRollPlaneBasis();
     }
 
     window.addEventListener('resize', resize);
@@ -895,15 +972,88 @@
     }
 
     function kickRollToValue(d, value) {
-      const target = quaternionForValue(d.mesh, value);
-      const start = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2.2, Math.random() * 2.2, Math.random() * 2.2));
-      d.mesh.quaternion.copy(start);
+      const targetQ = quaternionForValue(d.mesh, value);
+      const seed = (d.sides * 1000) + (value * 17);
+      const r1 = prng(seed + 1);
+      const r2 = prng(seed + 2);
+      const r3 = prng(seed + 3);
+      const r4 = prng(seed + 4);
+      const r5 = prng(seed + 5);
+      const r6 = prng(seed + 6);
 
+      const startQ = new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(r1 * Math.PI * 2, r2 * Math.PI * 2, r3 * Math.PI * 2)
+      );
+      d.mesh.quaternion.copy(startQ);
+
+      // Roll lane bounds in the camera-facing plane so dice keep a fixed distance from the screen.
+      // (No perspective size changes from moving toward/away from the camera.)
+      const uv = { u: 0, v: 0 };
+      rollPlaneUVAtNdc(-1, 0, uv);
+      const uLeft = uv.u + 0.6;
+      rollPlaneUVAtNdc(1, 0, uv);
+      const uRight = uv.u - 0.6;
+      rollPlaneUVAtNdc(0, -1, uv);
+      const vMin0 = uv.v + 0.6;
+      rollPlaneUVAtNdc(0, 1, uv);
+      const vMax0 = uv.v - 0.6;
+      const vMin = Math.min(vMin0, vMax0);
+      const vMax = Math.max(vMin0, vMax0);
+
+      // Start left and roll across the "table". Use friction-like deceleration and bounce
+      // off side walls (left/right) if we hit them.
+      const startU = uLeft;
+      const laneW = Math.max(0.001, uRight - uLeft);
+      const a = 9.0; // units/s^2 (speed bleed)
+
+      // Pick a speed that will usually reach the right wall and bounce at least once.
+      // If unbounded, stopping distance would be v0^2/(2a). Use ~1.6x lane width.
+      const v0 = Math.sqrt(2 * a * laneW * 1.6);
+      const restitution = 0.55 + 0.15 * r4; // energy kept on bounce
+
+      const rad = (d.mesh.userData && Number.isFinite(d.mesh.userData.radius)) ? d.mesh.userData.radius : 0.85;
+
+      // Deterministic tumble axis (so portal/control look the same).
+      const tumbleAxis = new THREE.Vector3(r4 - 0.5, r5 - 0.5, r6 - 0.5);
+      if (tumbleAxis.lengthSq() < 1e-6) tumbleAxis.set(1, 0.3, 0.2);
+      tumbleAxis.normalize();
+
+      // Randomize incoming direction within +/-30 degrees (still left->right overall).
+      const maxAngle = 30 * (Math.PI / 180);
+      const theta = (r2 * 2 - 1) * maxAngle;
+      const vu0 = v0 * Math.cos(theta);
+      const vv0 = v0 * Math.sin(theta);
+
+      // Place the die on the roll plane at (uLeft, v=0).
+      _tmpPos.copy(_rollPlanePoint)
+        .addScaledVector(_rollPlaneRight, startU)
+        .addScaledVector(_rollPlaneUp, 0);
+      d.mesh.position.copy(_tmpPos);
       d.anim = {
+        type: 'physicsRoll',
         t: 0,
-        duration: 1.05,
-        start,
-        target: target || new THREE.Quaternion().setFromEuler(new THREE.Euler(0.65, 0.55, 0.08)),
+        a,
+        vu: vu0,
+        vv: vv0,
+        u: startU,
+        v: 0,
+        uLeft,
+        uRight,
+        vMin,
+        vMax,
+        planePoint: _rollPlanePoint.clone(),
+        planeNormal: _rollPlaneNormal.clone(),
+        planeRight: _rollPlaneRight.clone(),
+        planeUp: _rollPlaneUp.clone(),
+        restitution,
+        rad,
+        tumbleAxis,
+        startQ,
+        targetQ: targetQ || new THREE.Quaternion().setFromEuler(new THREE.Euler(0.65, 0.55, 0.08)),
+        settleT: 0,
+        settleDur: 0.30,
+        settleFromQ: d.mesh.quaternion.clone(),
+        restTime: 0,
       };
     }
 
@@ -973,21 +1123,173 @@
 
       for (const d of dice) {
         if (d.anim) {
-          d.anim.t += dt;
-          const u = Math.min(1, d.anim.t / d.anim.duration);
-          const s = u * u * (3 - 2 * u);
+          if (d.anim.type === 'physicsRoll') {
+            d.anim.t += dt;
+            // Integrate velocity on the roll plane with simple kinetic friction (bleed speed magnitude).
+            const speed0 = Math.hypot(d.anim.vu, d.anim.vv);
+            const speed1 = Math.max(0, speed0 - d.anim.a * dt);
+            if (speed0 > 1e-6) {
+              const s = speed1 / speed0;
+              d.anim.vu *= s;
+              d.anim.vv *= s;
+            } else {
+              d.anim.vu = 0;
+              d.anim.vv = 0;
+            }
 
-          d.mesh.quaternion.slerpQuaternions(d.anim.start, d.anim.target, s);
+            d.anim.u += d.anim.vu * dt;
+            d.anim.v += d.anim.vv * dt;
 
-          // mild settle wobble early
-          if (u < 0.85) {
-            const wob = (1 - u) * 0.08;
-            d.mesh.rotateX(Math.sin(t * 0.009) * wob);
-            d.mesh.rotateZ(Math.cos(t * 0.011) * wob);
-          }
+            // Bounce off bounds in plane coordinates.
+            let bounced = false;
+            if (d.anim.u >= d.anim.uRight) {
+              d.anim.u = d.anim.uRight;
+              d.anim.vu = -Math.abs(d.anim.vu) * d.anim.restitution;
+              bounced = true;
+            } else if (d.anim.u <= d.anim.uLeft) {
+              d.anim.u = d.anim.uLeft;
+              d.anim.vu = Math.abs(d.anim.vu) * d.anim.restitution;
+              bounced = true;
+            }
+            if (d.anim.v >= d.anim.vMax) {
+              d.anim.v = d.anim.vMax;
+              d.anim.vv = -Math.abs(d.anim.vv) * d.anim.restitution;
+              bounced = true;
+            } else if (d.anim.v <= d.anim.vMin) {
+              d.anim.v = d.anim.vMin;
+              d.anim.vv = Math.abs(d.anim.vv) * d.anim.restitution;
+              bounced = true;
+            }
 
-          if (u >= 1) {
-            d.anim = null;
+            // Die-to-die collisions: bounce off other dice on the lane.
+            for (const other of dice) {
+              if (other === d) continue;
+              const r1 = d.anim.rad;
+              const r2 = (other.mesh.userData && Number.isFinite(other.mesh.userData.radius)) ? other.mesh.userData.radius : 0.85;
+
+              // Other die's plane coordinates (even if idle, it's on the same roll plane).
+              _tmpRel.copy(other.mesh.position).sub(d.anim.planePoint);
+              const ou = _tmpRel.dot(d.anim.planeRight);
+              const ov = _tmpRel.dot(d.anim.planeUp);
+
+              const du = d.anim.u - ou;
+              const dv = d.anim.v - ov;
+              const dist = Math.hypot(du, dv);
+              const minDist = Math.max(0.001, r1 + r2);
+              if (dist >= minDist) continue;
+
+              // Separate (treat the other die as static unless it's also rolling).
+              const nx = dist > 1e-6 ? (du / dist) : 1;
+              const nz = dist > 1e-6 ? (dv / dist) : 0;
+              const pen = (minDist - dist) + 1e-3;
+
+              const otherRolling = other.anim && other.anim.type === 'physicsRoll';
+              if (!otherRolling) {
+                d.anim.u += nx * pen;
+                d.anim.v += nz * pen;
+
+                // Nudge the idle die a bit in-plane so it "gets hit".
+                const push = pen * 0.25;
+                const newOu = ou - nx * push;
+                const newOv = ov - nz * push;
+                other.mesh.position.copy(d.anim.planePoint)
+                  .addScaledVector(d.anim.planeRight, newOu)
+                  .addScaledVector(d.anim.planeUp, newOv);
+              } else {
+                d.anim.u += nx * (pen * 0.5);
+                d.anim.v += nz * (pen * 0.5);
+                other.anim.u -= nx * (pen * 0.5);
+                other.anim.v -= nz * (pen * 0.5);
+
+                // Apply immediately to keep both dice on the same plane.
+                other.mesh.position.copy(other.anim.planePoint)
+                  .addScaledVector(other.anim.planeRight, other.anim.u)
+                  .addScaledVector(other.anim.planeUp, other.anim.v);
+              }
+
+              // Compute bounce response along collision normal.
+              const e = Math.min(d.anim.restitution, otherRolling ? other.anim.restitution : d.anim.restitution);
+              if (!otherRolling) {
+                const vdot = d.anim.vu * nx + d.anim.vv * nz;
+                if (vdot < 0) {
+                  d.anim.vu -= (1 + e) * vdot * nx;
+                  d.anim.vv -= (1 + e) * vdot * nz;
+                  bounced = true;
+                }
+
+                // Visual impact on the stationary die.
+                // Keep it strictly on the table plane: a small yaw spin reads as a bump without any "hop".
+                other.mesh.rotateOnWorldAxis(UP, (Math.random() - 0.5) * 0.18);
+              } else {
+                const rvx = d.anim.vu - other.anim.vu;
+                const rvz = d.anim.vv - other.anim.vv;
+                const rel = rvx * nx + rvz * nz;
+                if (rel < 0) {
+                  const j = -(1 + e) * rel / 2; // equal mass
+                  d.anim.vu += j * nx;
+                  d.anim.vv += j * nz;
+                  other.anim.vu -= j * nx;
+                  other.anim.vv -= j * nz;
+                  bounced = true;
+                }
+              }
+            }
+
+            // Convert plane coordinates back to world position (constant distance from screen).
+            d.mesh.position.copy(d.anim.planePoint)
+              .addScaledVector(d.anim.planeRight, d.anim.u)
+              .addScaledVector(d.anim.planeUp, d.anim.v);
+
+            // Rolling: primary rotation proportional to speed, axis derived from travel direction.
+            const speed = Math.hypot(d.anim.vu, d.anim.vv);
+            const omega = (speed / Math.max(0.001, d.anim.rad));
+            const dTheta = omega * dt;
+            if (speed > 1e-6) {
+              _tmpTravel.copy(d.anim.planeRight).multiplyScalar(d.anim.vu)
+                .addScaledVector(d.anim.planeUp, d.anim.vv)
+                .normalize();
+              _tmpRollAxis.copy(d.anim.planeNormal).cross(_tmpTravel);
+              if (_tmpRollAxis.lengthSq() > 1e-6) {
+                _tmpRollAxis.normalize();
+                d.mesh.rotateOnWorldAxis(_tmpRollAxis, dTheta);
+              }
+            }
+            d.mesh.rotateOnWorldAxis(d.anim.tumbleAxis, dTheta * 0.65);
+
+            // Add a small extra tumble impulse on bounce so it feels less "linear".
+            if (bounced) {
+              const bump = 0.18;
+              d.mesh.rotateOnWorldAxis(d.anim.tumbleAxis, (Math.random() - 0.5) * bump);
+            }
+
+            // Once we've basically stopped for a short moment, settle to the exact face-on pose.
+            if (Math.hypot(d.anim.vu, d.anim.vv) < 0.10) {
+              d.anim.restTime += dt;
+            } else {
+              d.anim.restTime = 0;
+            }
+
+            if (d.anim.restTime >= 0.10) {
+              // Settle to exact face-on orientation.
+              d.anim.type = 'settle';
+              d.anim.settleT = 0;
+              d.anim.settleFromQ = d.mesh.quaternion.clone();
+            }
+          } else if (d.anim.type === 'settle') {
+            d.anim.settleT += dt;
+            const u = Math.min(1, d.anim.settleT / d.anim.settleDur);
+            const s = u * u * (3 - 2 * u);
+            d.mesh.quaternion.slerpQuaternions(d.anim.settleFromQ, d.anim.targetQ, s);
+            if (u >= 1) {
+              d.anim = null;
+            }
+          } else {
+            // Back-compat: older animation objects.
+            d.anim.t += dt;
+            const u = Math.min(1, d.anim.t / d.anim.duration);
+            const s = u * u * (3 - 2 * u);
+            d.mesh.quaternion.slerpQuaternions(d.anim.start, d.anim.target, s);
+            if (u >= 1) d.anim = null;
           }
         }
 
