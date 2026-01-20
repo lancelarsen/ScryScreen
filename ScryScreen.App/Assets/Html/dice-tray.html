@@ -21,120 +21,27 @@
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setClearColor(0x0A0F18, 1);
-    renderer.physicallyCorrectLights = true;
+    // Unlit mode: keep dice readable everywhere; no lighting required.
+    renderer.physicallyCorrectLights = false;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1.0;
 
     const scene = new THREE.Scene();
 
-    // Subtle reflections for all dice (no external assets/imports).
-    // We generate a tiny equirectangular "room" gradient, then PMREM it.
-    (function setupEnvironment() {
-      const w = 64;
-      const h = 32;
-      const data = new Uint8Array(w * h * 4);
-
-      // Top->bottom gradient: deep blue -> slate -> near-black
-      const top = { r: 16, g: 30, b: 56 };
-      const mid = { r: 58, g: 66, b: 84 };
-      const bot = { r: 6, g: 10, b: 18 };
-
-      for (let y = 0; y < h; y++) {
-        const t = y / (h - 1);
-        const t2 = Math.min(1, Math.max(0, (t - 0.40) / 0.60));
-        const r = Math.round(top.r * (1 - t) + mid.r * t);
-        const g = Math.round(top.g * (1 - t) + mid.g * t);
-        const b = Math.round(top.b * (1 - t) + mid.b * t);
-        const rr = Math.round(r * (1 - t2) + bot.r * t2);
-        const gg = Math.round(g * (1 - t2) + bot.g * t2);
-        const bb = Math.round(b * (1 - t2) + bot.b * t2);
-
-        for (let x = 0; x < w; x++) {
-          // Add a subtle bright "softbox" patch near the top-center so reflections read
-          // on flat faces (e.g., d6) as well as many-faced dice (e.g., d10).
-          const xn = x / (w - 1);
-          const yn = y / (h - 1);
-          const cx = 0.5;
-          const cy = 0.14;
-          const dx = (xn - cx) / 0.35;
-          const dy = (yn - cy) / 0.10;
-          const softbox = Math.exp(-(dx * dx + dy * dy));
-          const boost = 0.55 * softbox;
-
-          const r2 = Math.min(255, Math.round(rr + (255 - rr) * boost));
-          const g2 = Math.min(255, Math.round(gg + (255 - gg) * boost));
-          const b2 = Math.min(255, Math.round(bb + (255 - bb) * boost));
-
-          const i = (y * w + x) * 4;
-          data[i + 0] = r2;
-          data[i + 1] = g2;
-          data[i + 2] = b2;
-          data[i + 3] = 255;
-        }
-      }
-
-      const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.mapping = THREE.EquirectangularReflectionMapping;
-      tex.needsUpdate = true;
-
-      const pmrem = new THREE.PMREMGenerator(renderer);
-      // IMPORTANT: keep the render target alive; disposing it also disposes the texture.
-      const envRT = pmrem.fromEquirectangular(tex);
-      scene.environment = envRT.texture;
-      tex.dispose();
-
-      // Optional cleanup on page unload.
-      window.addEventListener('unload', () => {
-        try { envRT.dispose(); } catch { }
-        try { pmrem.dispose(); } catch { }
-      });
-    })();
+    // Unlit mode: no reflections/environment lighting.
+    scene.environment = null;
 
     // Camera is framed so dice live near the *top* of the view.
     const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 60);
     camera.position.set(0, 6.0, 11.0);
     camera.lookAt(0, 2.5, 0);
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x111827, 0.9);
-    scene.add(hemi);
+    renderer.shadowMap.enabled = false;
 
-    const dir = new THREE.DirectionalLight(0xffffff, 1.3);
-    dir.position.set(5, 7, 6);
-    scene.add(dir);
-
-    // Add a focused light to create a readable specular highlight on ALL dice.
-    // This helps flat-faced dice (like d6) show the same "reflection" as d10.
-    const spot = new THREE.SpotLight(0xffffff, 85, 0, Math.PI / 10, 0.25, 1.0);
-    spot.position.set(-3.5, 10, 7.5);
-    spot.target.position.set(0, 2.1, 0);
-    spot.castShadow = false;
-    scene.add(spot);
-    scene.add(spot.target);
-
-    const floorGeo = new THREE.PlaneGeometry(30, 14);
-    const floorMat = new THREE.ShadowMaterial({ opacity: 0.25 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0.0;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-    const metal = 0.55;
-    const rough = 0.08;
-    const baseMat = new THREE.MeshPhysicalMaterial({
+    const baseMat = new THREE.MeshBasicMaterial({
       color: 0xf3f4f6,
-      metalness: metal,
-      roughness: rough,
-      envMapIntensity: 2.75,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.06,
-      ior: 1.5,
-      flatShading: true,
+      toneMapped: false,
     });
 
     function makeEdges(mesh) {
@@ -249,24 +156,40 @@
 
     function createFaceLabelTexture(text) {
       const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 256;
+      // Higher resolution keeps labels readable even when many dice are on screen.
+      canvas.width = 512;
+      canvas.height = 512;
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      ctx.font = 'bold 120px system-ui, Segoe UI, sans-serif';
+      ctx.font = 'bold 240px system-ui, Segoe UI, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
+      // Readability: treat the label as printed ink that should remain legible even
+      // when the underlying face is in shadow.
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 2;
+
       // Outline for contrast.
-      ctx.lineWidth = 10;
-      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
-      ctx.strokeText(String(text), 128, 128);
-      ctx.fillStyle = 'rgba(17,24,39,0.92)';
-      ctx.fillText(String(text), 128, 128);
+      ctx.lineWidth = 22;
+      ctx.strokeStyle = 'rgba(0,0,0,0.92)';
+      ctx.strokeText(String(text), 256, 256);
+      ctx.fillStyle = 'rgba(245,245,245,0.98)';
+      ctx.fillText(String(text), 256, 256);
 
       const tex = new THREE.CanvasTexture(canvas);
-      tex.anisotropy = 4;
+      // Improve sharpness when labels are slightly tilted.
+      tex.anisotropy = 16;
+      // Avoid overly-blurry small text; use linear filtering.
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      try {
+        // three r152+
+        tex.colorSpace = THREE.SRGBColorSpace;
+      } catch { }
       tex.needsUpdate = true;
       return { canvas, ctx, tex };
     }
@@ -276,7 +199,8 @@
       const mat = new THREE.MeshBasicMaterial({
         map: plate.tex,
         transparent: true,
-        alphaTest: 0.01,
+        // Cut out the transparent background to keep numbers crisp.
+        alphaTest: 0.35,
         depthTest: true,
         depthWrite: false,
         // Only show the label from the outside of the die.
@@ -385,7 +309,7 @@
       mesh.geometry.computeBoundingSphere();
       const rad = mesh.geometry.boundingSphere ? mesh.geometry.boundingSphere.radius : 1;
       // Keep labels very close to the surface. We rely on polygonOffset to avoid z-fighting.
-      const offset = Math.max(0.006, rad * 0.016);
+      const offset = Math.max(0.010, rad * 0.030);
 
       const zAxis = new THREE.Vector3(0, 0, 1);
       const valueToNormal = new Map();
@@ -410,7 +334,7 @@
           tmpC.fromBufferAttribute(pos, t.ic);
           area += new THREE.Triangle(tmpA, tmpB, tmpC).getArea();
         }
-        const labelSize = Math.max(0.20, Math.min(0.55, Math.sqrt(area) * 0.75));
+        const labelSize = Math.max(0.24, Math.min(0.62, Math.sqrt(area) * 0.90));
 
         const displayText = (sides === 10 && v === 10) ? '0' : String(v);
         const label = createFaceLabelPlane(displayText, labelSize);
@@ -760,6 +684,12 @@
     function fract(x) { return x - Math.floor(x); }
     function prng(seed) { return fract(Math.sin(seed) * 43758.5453123); }
 
+    function slerpEase(qFrom, qTo, dt, k) {
+      // Exponential ease: alpha = 1 - exp(-k * dt)
+      const alpha = 1 - Math.exp(-(k || 14.0) * Math.max(0, dt));
+      return Math.max(0, Math.min(1, alpha));
+    }
+
     function worldXAtPlaneY(ndcX, ndcY, yPlane) {
       // Ray from camera through NDC point, intersect with plane Y = yPlane.
       _tmpV.set(ndcX, ndcY, 0.5).unproject(camera);
@@ -817,6 +747,89 @@
 
     window.addEventListener('resize', resize);
     resize();
+
+    function computeLaneBounds(out) {
+      const uv = { u: 0, v: 0 };
+      rollPlaneUVAtNdc(-1, 0, uv);
+      const laneInset = 0.6 * DICE_SCALE;
+      const uLeft = uv.u + laneInset;
+      rollPlaneUVAtNdc(1, 0, uv);
+      const uRight = uv.u - laneInset;
+      rollPlaneUVAtNdc(0, -1, uv);
+      const vMin0 = uv.v + laneInset;
+      rollPlaneUVAtNdc(0, 1, uv);
+      const vMax0 = uv.v - laneInset;
+      const vMin = Math.min(vMin0, vMax0);
+      const vMax = Math.max(vMin0, vMax0);
+      out.uLeft = uLeft;
+      out.uRight = uRight;
+      out.vMin = vMin;
+      out.vMax = vMax;
+      return out;
+    }
+
+    function ensureNonOverlapAllDice() {
+      if (dice.length < 2) return;
+
+      const bounds = computeLaneBounds({ uLeft: 0, uRight: 0, vMin: 0, vMax: 0 });
+      const maxIter = 2;
+
+      for (let iter = 0; iter < maxIter; iter++) {
+        for (let i = 0; i < dice.length; i++) {
+          for (let j = i + 1; j < dice.length; j++) {
+            const a = dice[i];
+            const b = dice[j];
+
+            _tmpRel.copy(a.mesh.position).sub(_rollPlanePoint);
+            const au0 = _tmpRel.dot(_rollPlaneRight);
+            const av0 = _tmpRel.dot(_rollPlaneUp);
+            _tmpRel.copy(b.mesh.position).sub(_rollPlanePoint);
+            const bu0 = _tmpRel.dot(_rollPlaneRight);
+            const bv0 = _tmpRel.dot(_rollPlaneUp);
+
+            const du = au0 - bu0;
+            const dv = av0 - bv0;
+            const dist = Math.hypot(du, dv);
+            const r1 = (a.mesh.userData && Number.isFinite(a.mesh.userData.radius)) ? a.mesh.userData.radius : 0.85;
+            const r2 = (b.mesh.userData && Number.isFinite(b.mesh.userData.radius)) ? b.mesh.userData.radius : 0.85;
+            const minDist = Math.max(0.001, r1 + r2);
+            if (dist >= minDist) continue;
+
+            const nx = dist > 1e-6 ? (du / dist) : 1;
+            const nz = dist > 1e-6 ? (dv / dist) : 0;
+            const pen = (minDist - dist) + 1e-3;
+            const push = pen * 0.5;
+
+            const aHasUV = a.anim && Number.isFinite(a.anim.u) && Number.isFinite(a.anim.v);
+            const bHasUV = b.anim && Number.isFinite(b.anim.u) && Number.isFinite(b.anim.v);
+            const au = aHasUV ? a.anim.u : au0;
+            const av = aHasUV ? a.anim.v : av0;
+            const bu = bHasUV ? b.anim.u : bu0;
+            const bv = bHasUV ? b.anim.v : bv0;
+
+            let nau = au + nx * push;
+            let nav = av + nz * push;
+            let nbu = bu - nx * push;
+            let nbv = bv - nz * push;
+
+            nau = Math.min(bounds.uRight, Math.max(bounds.uLeft, nau));
+            nav = Math.min(bounds.vMax, Math.max(bounds.vMin, nav));
+            nbu = Math.min(bounds.uRight, Math.max(bounds.uLeft, nbu));
+            nbv = Math.min(bounds.vMax, Math.max(bounds.vMin, nbv));
+
+            if (aHasUV) { a.anim.u = nau; a.anim.v = nav; }
+            if (bHasUV) { b.anim.u = nbu; b.anim.v = nbv; }
+
+            a.mesh.position.copy(_rollPlanePoint)
+              .addScaledVector(_rollPlaneRight, nau)
+              .addScaledVector(_rollPlaneUp, nav);
+            b.mesh.position.copy(_rollPlanePoint)
+              .addScaledVector(_rollPlaneRight, nbu)
+              .addScaledVector(_rollPlaneUp, nbv);
+          }
+        }
+      }
+    }
 
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -1094,7 +1107,10 @@
 
       // Start left and roll across the "table". Use friction-like deceleration and bounce
       // off side walls (left/right) if we hit them.
+      const inst = (d.mesh.userData && Number.isFinite(d.mesh.userData.instanceId)) ? d.mesh.userData.instanceId : 0;
+      const rV = prng(seed + 77 + inst * 13);
       const startU = uLeft;
+      const startV = vMin + (vMax - vMin) * rV;
       const laneW = Math.max(0.001, uRight - uLeft);
       const a = 9.0; // units/s^2 (speed bleed)
       const aApproach = 18.0; // stronger damping once we're on/near the correct face
@@ -1120,7 +1136,7 @@
       // Place the die on the roll plane at (uLeft, v=0).
       _tmpPos.copy(_rollPlanePoint)
         .addScaledVector(_rollPlaneRight, startU)
-        .addScaledVector(_rollPlaneUp, 0);
+        .addScaledVector(_rollPlaneUp, startV);
       d.mesh.position.copy(_tmpPos);
 
       // IMPORTANT: the exact face-on alignment depends on the die position (perspective).
@@ -1139,7 +1155,7 @@
         vu: vu0,
         vv: vv0,
         u: startU,
-        v: 0,
+        v: startV,
         uLeft,
         uRight,
         vMin,
@@ -1210,7 +1226,10 @@
       const vMin = Math.min(vMin0, vMax0);
       const vMax = Math.max(vMin0, vMax0);
 
+      const inst = (d.mesh.userData && Number.isFinite(d.mesh.userData.instanceId)) ? d.mesh.userData.instanceId : 0;
+      const rv = prng(seed + 99 + inst * 11);
       const startU = uLeft;
+      const startV = vMin + (vMax - vMin) * rv;
       const laneW = Math.max(0.001, uRight - uLeft);
       const a = 9.0;
       const aApproach = 18.0;
@@ -1230,7 +1249,7 @@
 
       _tmpPos.copy(_rollPlanePoint)
         .addScaledVector(_rollPlaneRight, startU)
-        .addScaledVector(_rollPlaneUp, 0);
+        .addScaledVector(_rollPlaneUp, startV);
       d.mesh.position.copy(_tmpPos);
 
       // Random roll duration (seconds) before we pick whatever face is currently up/front.
@@ -1249,7 +1268,7 @@
         vu: vu0,
         vv: vv0,
         u: startU,
-        v: 0,
+        v: startV,
         uLeft,
         uRight,
         vMin,
@@ -1345,6 +1364,8 @@
       const dt = (t - t0) / 1000;
       t0 = t;
 
+      updateRollPlaneBasis();
+
       for (const d of dice) {
         if (d.anim) {
           if (d.anim.type === 'physicsRoll') {
@@ -1409,7 +1430,7 @@
               const pen = (minDist - dist) + 1e-3;
 
               // Dice that get hit should slide, but not rotate (so they keep their rolled face).
-              const otherMoving = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide');
+              const otherMoving = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide' || other.anim.type === 'physicsRandom' || other.anim.type === 'tip');
               if (!otherMoving) {
                 other.anim = {
                   type: 'slide',
@@ -1434,7 +1455,7 @@
                 };
               }
 
-              const otherDyn = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide') ? other.anim : null;
+              const otherDyn = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide' || other.anim.type === 'physicsRandom' || other.anim.type === 'tip') ? other.anim : null;
               if (!otherDyn) continue;
 
               // Separate both dice in-plane.
@@ -1583,7 +1604,7 @@
               const u = d.mesh.userData.lockedUWorld;
               const qNow = v ? (u ? quaternionForValuePreserveTwist(d.mesh, v, u) : quaternionForValuePreserveTwist(d.mesh, v, null)) : null;
               if (qNow) {
-                d.mesh.quaternion.copy(qNow);
+                d.mesh.quaternion.slerp(qNow, slerpEase(d.mesh.quaternion, qNow, dt, 22.0));
               } else if (d.anim.fixedQ) {
                 d.mesh.quaternion.copy(d.anim.fixedQ);
               }
@@ -1640,7 +1661,7 @@
               const nz = dist > 1e-6 ? (dv / dist) : 0;
               const pen = (minDist - dist) + 1e-3;
 
-              const otherMoving = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide');
+              const otherMoving = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide' || other.anim.type === 'physicsRandom' || other.anim.type === 'tip');
               if (!otherMoving) {
                 other.anim = {
                   type: 'slide',
@@ -1665,7 +1686,7 @@
                 };
               }
 
-              const otherDyn = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide') ? other.anim : null;
+              const otherDyn = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide' || other.anim.type === 'physicsRandom' || other.anim.type === 'tip') ? other.anim : null;
               if (!otherDyn) continue;
 
               d.anim.u += nx * (pen * 0.5);
@@ -1696,15 +1717,6 @@
             d.mesh.position.copy(d.anim.planePoint)
               .addScaledVector(d.anim.planeRight, d.anim.u)
               .addScaledVector(d.anim.planeUp, d.anim.v);
-
-            // Re-apply face-on after moving.
-            {
-              const v = Number.isFinite(d.mesh.userData.lockedValue) ? d.mesh.userData.lockedValue : null;
-              const qNow = v ? quaternionForValue(d.mesh, v) : null;
-              if (qNow) {
-                d.mesh.quaternion.copy(qNow);
-              }
-            }
 
             // Stop once we've basically stopped for a short moment.
             if (Math.hypot(d.anim.vu, d.anim.vv) < 0.10) {
@@ -1856,7 +1868,8 @@
             // After a random amount of time, pick whichever face is currently facing the camera
             // and "tip" to land on it.
             const tipStartSpeed = 0.55;
-            if (d.anim.t >= d.anim.stopAfter && speed <= tipStartSpeed) {
+            const forceTipT = Math.max(d.anim.stopAfter + 0.85, 2.65);
+            if ((d.anim.t >= d.anim.stopAfter && speed <= tipStartSpeed) || d.anim.t >= forceTipT) {
               const chosen = valueFacingCamera(d.mesh);
               const v = Number.isFinite(chosen) ? chosen : 1;
               d.mesh.userData.lockedValue = v;
@@ -1965,12 +1978,6 @@
               }
 
               if (d.anim.restTime >= 0.10) {
-                // Hard-lock to the exact face-on pose.
-                if (qTargetNow) {
-                  d.mesh.quaternion.copy(qTargetNow);
-                } else {
-                  d.mesh.quaternion.copy(d.anim.targetQ);
-                }
                 if (Number.isFinite(d.anim.value)) {
                   d.mesh.userData.lockedValue = d.anim.value;
                 }
@@ -2016,6 +2023,9 @@
         d.lines.quaternion.copy(d.mesh.quaternion);
       }
 
+      // Prevent dice from ever remaining merged/clipped, even after settling.
+      ensureNonOverlapAllDice();
+
       // Maintain face-on orientation for any die that is "settled" (no active animation)
       // and has a known locked value. This ensures bumps/slides never leave it tilted.
       for (const d of dice) {
@@ -2024,7 +2034,7 @@
           const u = d.mesh.userData.lockedUWorld;
           const qNow = u ? quaternionForValuePreserveTwist(d.mesh, v, u) : quaternionForValuePreserveTwist(d.mesh, v, null);
           if (qNow) {
-            d.mesh.quaternion.copy(qNow);
+            d.mesh.quaternion.slerp(qNow, slerpEase(d.mesh.quaternion, qNow, dt, 18.0));
             d.lines.quaternion.copy(d.mesh.quaternion);
           }
         }
