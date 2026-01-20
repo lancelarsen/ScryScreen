@@ -257,7 +257,7 @@ public class WebView2Host : NativeControlHost
             IntPtr hInstance,
             IntPtr lpParam);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "DestroyWindow", SetLastError = true)]
         private static extern bool DestroyWindowNative(IntPtr hWnd);
     }
 }

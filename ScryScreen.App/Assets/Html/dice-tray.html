@@ -598,6 +598,9 @@
     const _rollPlaneNormal = new THREE.Vector3();
     const _rollPlaneRight = new THREE.Vector3();
     const _rollPlaneUp = new THREE.Vector3();
+    const _tmpQ0 = new THREE.Quaternion();
+    const _tmpQ1 = new THREE.Quaternion();
+    const _tmpQRock = new THREE.Quaternion();
     const _tmpHit = new THREE.Vector3();
     const _tmpRel = new THREE.Vector3();
     const _tmpPos = new THREE.Vector3();
@@ -1549,8 +1552,14 @@
             // or after a timeout. This guarantees we don't roll forever and gives a visible
             // "tip and land" finish.
             const tipStartSpeed = 0.55;
+            const tipLeadSeconds = 1.50;
             const forceTipT = 2.25;
-            if (d.anim.t >= minFreeT && (speed <= tipStartSpeed || d.anim.t >= forceTipT)) {
+            {
+              const aEffNow = d.anim.approach ? (d.anim.aApproach ?? d.anim.a) : d.anim.a;
+              const tToStop = speed / Math.max(0.001, aEffNow);
+              const okToTipEarly = (d.anim.approach || angErr <= (1.5 * approachAngle));
+              const shouldTip = (speed <= tipStartSpeed) || (okToTipEarly && tToStop <= tipLeadSeconds);
+              if (d.anim.t >= minFreeT && (shouldTip || d.anim.t >= forceTipT)) {
               const v = Number.isFinite(d.anim.value) ? d.anim.value : null;
 
               // Preserve the current printed twist (no upright snap) while landing flat.
@@ -1570,6 +1579,23 @@
                 || (v ? quaternionForValue(d.mesh, v) : null)
                 || d.anim.targetQ
               ).clone();
+
+              // Add a subtle per-die rock axis for the final landing.
+              // Keep it in the roll plane so it reads as a physical tilt/rock.
+              let rockAxis = null;
+              {
+                const id = (d.mesh.userData && Number.isFinite(d.mesh.userData.instanceId)) ? d.mesh.userData.instanceId : (Math.random() * 1000);
+                const s1 = prng(id * 12.9898 + 78.233) < 0.5 ? -1 : 1;
+                const s2 = prng(id * 93.9898 + 67.345) < 0.5 ? -1 : 1;
+                const axis = new THREE.Vector3()
+                  .copy(d.anim.planeRight).multiplyScalar(s1)
+                  .addScaledVector(d.anim.planeUp, 0.7 * s2);
+                if (axis.lengthSq() > 1e-8) {
+                  axis.normalize();
+                  rockAxis = axis;
+                }
+              }
+
               d.anim = {
                 type: 'tip',
                 value: d.anim.value,
@@ -1590,9 +1616,16 @@
                 planeNormal: d.anim.planeNormal,
                 planeRight: d.anim.planeRight,
                 planeUp: d.anim.planeUp,
+                fromQ: new THREE.Quaternion().copy(d.mesh.quaternion),
                 targetQ: qTip,
+                tipDur: 0.52,
+                rockAxis,
+                rockStart: 0.68,
+                rockCycles: 1.6,
+                rockAmp: 3.25 * (Math.PI / 180),
                 restTime: 0,
               };
+              }
             }
           } else if (d.anim.type === 'slide') {
             d.anim.t += dt;
@@ -1868,8 +1901,13 @@
             // After a random amount of time, pick whichever face is currently facing the camera
             // and "tip" to land on it.
             const tipStartSpeed = 0.55;
+            const tipLeadSeconds = 1.50;
             const forceTipT = Math.max(d.anim.stopAfter + 0.85, 2.65);
-            if ((d.anim.t >= d.anim.stopAfter && speed <= tipStartSpeed) || d.anim.t >= forceTipT) {
+            {
+              const aEffNow = d.anim.approach ? (d.anim.aApproach ?? d.anim.a) : d.anim.a;
+              const tToStop = speed / Math.max(0.001, aEffNow);
+              const shouldTip = (speed <= tipStartSpeed) || (tToStop <= tipLeadSeconds);
+              if ((d.anim.t >= d.anim.stopAfter && shouldTip) || d.anim.t >= forceTipT) {
               const chosen = valueFacingCamera(d.mesh);
               const v = Number.isFinite(chosen) ? chosen : 1;
               d.mesh.userData.lockedValue = v;
@@ -1883,6 +1921,22 @@
               }
 
               const qTip = quaternionForValuePreserveTwist(d.mesh, v, lockedU) || new THREE.Quaternion().copy(d.mesh.quaternion);
+
+              // Add a subtle per-die rock axis for the final landing.
+              let rockAxis = null;
+              {
+                const id = (d.mesh.userData && Number.isFinite(d.mesh.userData.instanceId)) ? d.mesh.userData.instanceId : (Math.random() * 1000);
+                const s1 = prng(id * 12.9898 + 78.233) < 0.5 ? -1 : 1;
+                const s2 = prng(id * 93.9898 + 67.345) < 0.5 ? -1 : 1;
+                const axis = new THREE.Vector3()
+                  .copy(d.anim.planeRight).multiplyScalar(s1)
+                  .addScaledVector(d.anim.planeUp, 0.7 * s2);
+                if (axis.lengthSq() > 1e-8) {
+                  axis.normalize();
+                  rockAxis = axis;
+                }
+              }
+
               d.anim = {
                 type: 'tip',
                 requestId: d.anim.requestId,
@@ -1904,9 +1958,16 @@
                 planeNormal: d.anim.planeNormal,
                 planeRight: d.anim.planeRight,
                 planeUp: d.anim.planeUp,
+                fromQ: new THREE.Quaternion().copy(d.mesh.quaternion),
                 targetQ: qTip.clone(),
+                tipDur: 0.52,
+                rockAxis,
+                rockStart: 0.68,
+                rockCycles: 1.6,
+                rockAmp: 3.25 * (Math.PI / 180),
                 restTime: 0,
               };
+              }
             }
           } else if (d.anim.type === 'tip') {
             d.anim.t += dt;
@@ -1952,20 +2013,39 @@
 
             // Rotate toward the target at a bounded angular speed (looks like tipping/landing).
             {
+              // Back-compat: older tip objects might not have these.
+              if (!d.anim.fromQ) d.anim.fromQ = new THREE.Quaternion().copy(d.mesh.quaternion);
+              if (!Number.isFinite(d.anim.tipDur)) d.anim.tipDur = 0.52;
+              if (!Number.isFinite(d.anim.rockStart)) d.anim.rockStart = 0.68;
+              if (!Number.isFinite(d.anim.rockCycles)) d.anim.rockCycles = 1.6;
+              if (!Number.isFinite(d.anim.rockAmp)) d.anim.rockAmp = 3.25 * (Math.PI / 180);
+
+              // Time-based ease-in: slow start, faster fall into final face.
+              const uT = Math.max(0, Math.min(1, d.anim.t / Math.max(1e-6, d.anim.tipDur)));
+              const s = uT * uT;
+              _tmpQ0.slerpQuaternions(d.anim.fromQ, d.anim.targetQ, s);
+
+              // Add a small decaying rock near the end.
+              if (d.anim.rockAxis && d.anim.rockAxis.lengthSq && d.anim.rockAxis.lengthSq() > 1e-8) {
+                const rs = Math.max(0, Math.min(0.98, d.anim.rockStart));
+                const x = Math.max(0, Math.min(1, (uT - rs) / Math.max(1e-6, 1 - rs)));
+                const ramp = x * x * (3 - 2 * x);
+                const decay = (1 - x);
+                const amp = d.anim.rockAmp * ramp * decay;
+                const cycles = d.anim.rockCycles;
+                const phase = 2 * Math.PI * cycles * x;
+                const rockAngle = amp * Math.sin(phase);
+
+                _tmpQRock.setFromAxisAngle(d.anim.rockAxis, rockAngle);
+                _tmpQ1.copy(_tmpQ0).premultiply(_tmpQRock);
+                d.mesh.quaternion.copy(_tmpQ1);
+              } else {
+                d.mesh.quaternion.copy(_tmpQ0);
+              }
+
               const dot = Math.abs(d.mesh.quaternion.dot(d.anim.targetQ));
               const clamped = Math.max(-1, Math.min(1, dot));
               const angErr = 2 * Math.acos(clamped);
-
-              const kRot = 16.0; // 1/s (spring strength)
-              let alpha = 1 - Math.exp(-kRot * dt);
-
-              const maxOmega = 11.0; // rad/s cap
-              const alphaMax = angErr > 1e-5 ? (maxOmega * dt) / angErr : 1;
-              if (alpha > alphaMax) alpha = alphaMax;
-              if (alpha < 0) alpha = 0;
-              if (alpha > 1) alpha = 1;
-
-              d.mesh.quaternion.slerp(d.anim.targetQ, alpha);
 
               // Finish once we're both very close and basically stopped.
               const speed = Math.hypot(d.anim.vu, d.anim.vv);
