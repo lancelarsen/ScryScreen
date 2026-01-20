@@ -15,7 +15,38 @@
           CornerRadius="10"
           Padding="10">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-      <controls:DiceTray3DHost x:Name="DiceTray" Height="180" />
+      <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <Button Background="Transparent" BorderThickness="0" Padding="0"
+                ToolTip.Tip="Roll d20"
+                Command="{Binding RollSingleDieCommand}" CommandParameter="20">
+          <i:Icon Value="mdi-dice-d20-outline" FontSize="28" Foreground="{DynamicResource ScryTextMuted}" />
+        </Button>
+        <Button Background="Transparent" BorderThickness="0" Padding="0"
+                ToolTip.Tip="Roll d12"
+                Command="{Binding RollSingleDieCommand}" CommandParameter="12">
+          <i:Icon Value="mdi-dice-d12-outline" FontSize="28" Foreground="{DynamicResource ScryTextMuted}" />
+        </Button>
+        <Button Background="Transparent" BorderThickness="0" Padding="0"
+                ToolTip.Tip="Roll d10"
+                Command="{Binding RollSingleDieCommand}" CommandParameter="10">
+          <i:Icon Value="mdi-dice-d10-outline" FontSize="28" Foreground="{DynamicResource ScryTextMuted}" />
+        </Button>
+        <Button Background="Transparent" BorderThickness="0" Padding="0"
+                ToolTip.Tip="Roll d8"
+                Command="{Binding RollSingleDieCommand}" CommandParameter="8">
+          <i:Icon Value="mdi-dice-d8-outline" FontSize="28" Foreground="{DynamicResource ScryTextMuted}" />
+        </Button>
+        <Button Background="Transparent" BorderThickness="0" Padding="0"
+                ToolTip.Tip="Roll d6"
+                Command="{Binding RollSingleDieCommand}" CommandParameter="6">
+          <i:Icon Value="mdi-dice-d6-outline" FontSize="28" Foreground="{DynamicResource ScryTextMuted}" />
+        </Button>
+        <Button Background="Transparent" BorderThickness="0" Padding="0"
+                ToolTip.Tip="Roll d4"
+                Command="{Binding RollSingleDieCommand}" CommandParameter="4">
+          <i:Icon Value="mdi-dice-d4-outline" FontSize="28" Foreground="{DynamicResource ScryTextMuted}" />
+        </Button>
+      </StackPanel>
 
       <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
         <TextBlock Text="Roll" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />

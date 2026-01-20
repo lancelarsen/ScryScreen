@@ -276,13 +276,16 @@
       const mat = new THREE.MeshBasicMaterial({
         map: plate.tex,
         transparent: true,
+        alphaTest: 0.01,
         depthTest: true,
         depthWrite: false,
-        side: THREE.DoubleSide,
+        // Only show the label from the outside of the die.
+        side: THREE.FrontSide,
+        toneMapped: false,
         // Keep the label visually "printed" on the face without needing a large offset.
         polygonOffset: true,
-        polygonOffsetFactor: -2,
-        polygonOffsetUnits: -2,
+        polygonOffsetFactor: -6,
+        polygonOffsetUnits: -6,
       });
       const geo = new THREE.PlaneGeometry(scale, scale);
       const mesh = new THREE.Mesh(geo, mat);
@@ -382,7 +385,7 @@
       mesh.geometry.computeBoundingSphere();
       const rad = mesh.geometry.boundingSphere ? mesh.geometry.boundingSphere.radius : 1;
       // Keep labels very close to the surface. We rely on polygonOffset to avoid z-fighting.
-      const offset = Math.max(0.004, rad * 0.012);
+      const offset = Math.max(0.006, rad * 0.016);
 
       const zAxis = new THREE.Vector3(0, 0, 1);
       const valueToNormal = new Map();
@@ -910,6 +913,8 @@
     function applyIdlePose(d) {
       d.mesh.rotation.set(0.65, 0.55, 0.08);
       d.anim = null;
+      // Preview is not a "settled roll" state, so clear any face-on lock.
+      try { delete d.mesh.userData.lockedValue; } catch { d.mesh.userData.lockedValue = undefined; }
     }
 
     const UP = new THREE.Vector3(0, 1, 0);
@@ -972,7 +977,6 @@
     }
 
     function kickRollToValue(d, value) {
-      const targetQ = quaternionForValue(d.mesh, value);
       const seed = (d.sides * 1000) + (value * 17);
       const r1 = prng(seed + 1);
       const r2 = prng(seed + 2);
@@ -1029,8 +1033,16 @@
         .addScaledVector(_rollPlaneRight, startU)
         .addScaledVector(_rollPlaneUp, 0);
       d.mesh.position.copy(_tmpPos);
+
+      // IMPORTANT: the exact face-on alignment depends on the die position (perspective).
+      // We will recompute this again right before settling, but initialize it here too.
+      const targetQ = quaternionForValue(d.mesh, value);
+
+      // Track which value this die is rolling/settling to so we can keep it face-on later.
+      d.mesh.userData.lockedValue = value;
       d.anim = {
         type: 'physicsRoll',
+        value,
         t: 0,
         a,
         vu: vu0,
@@ -1108,6 +1120,8 @@
             if (![x, y, z, w].every(Number.isFinite)) return;
             d.anim = null;
             d.mesh.quaternion.set(x, y, z, w).normalize();
+            // If something external is setting rotation, don't force a face-on lock.
+            try { delete d.mesh.userData.lockedValue; } catch { d.mesh.userData.lockedValue = undefined; }
           }
         } catch { }
       });
@@ -1183,55 +1197,60 @@
               const nz = dist > 1e-6 ? (dv / dist) : 0;
               const pen = (minDist - dist) + 1e-3;
 
-              const otherRolling = other.anim && other.anim.type === 'physicsRoll';
-              if (!otherRolling) {
-                d.anim.u += nx * pen;
-                d.anim.v += nz * pen;
-
-                // Nudge the idle die a bit in-plane so it "gets hit".
-                const push = pen * 0.25;
-                const newOu = ou - nx * push;
-                const newOv = ov - nz * push;
-                other.mesh.position.copy(d.anim.planePoint)
-                  .addScaledVector(d.anim.planeRight, newOu)
-                  .addScaledVector(d.anim.planeUp, newOv);
-              } else {
-                d.anim.u += nx * (pen * 0.5);
-                d.anim.v += nz * (pen * 0.5);
-                other.anim.u -= nx * (pen * 0.5);
-                other.anim.v -= nz * (pen * 0.5);
-
-                // Apply immediately to keep both dice on the same plane.
-                other.mesh.position.copy(other.anim.planePoint)
-                  .addScaledVector(other.anim.planeRight, other.anim.u)
-                  .addScaledVector(other.anim.planeUp, other.anim.v);
+              // Dice that get hit should slide, but not rotate (so they keep their rolled face).
+              const otherMoving = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide');
+              if (!otherMoving) {
+                other.anim = {
+                  type: 'slide',
+                  t: 0,
+                  a: d.anim.a,
+                  vu: 0,
+                  vv: 0,
+                  u: ou,
+                  v: ov,
+                  uLeft: d.anim.uLeft,
+                  uRight: d.anim.uRight,
+                  vMin: d.anim.vMin,
+                  vMax: d.anim.vMax,
+                  restitution: d.anim.restitution,
+                  rad: r2,
+                  planePoint: d.anim.planePoint,
+                  planeNormal: d.anim.planeNormal,
+                  planeRight: d.anim.planeRight,
+                  planeUp: d.anim.planeUp,
+                  fixedQ: other.mesh.quaternion.clone(),
+                  restTime: 0,
+                };
               }
 
-              // Compute bounce response along collision normal.
-              const e = Math.min(d.anim.restitution, otherRolling ? other.anim.restitution : d.anim.restitution);
-              if (!otherRolling) {
-                const vdot = d.anim.vu * nx + d.anim.vv * nz;
-                if (vdot < 0) {
-                  d.anim.vu -= (1 + e) * vdot * nx;
-                  d.anim.vv -= (1 + e) * vdot * nz;
-                  bounced = true;
-                }
+              const otherDyn = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide') ? other.anim : null;
+              if (!otherDyn) continue;
 
-                // Visual impact on the stationary die.
-                // Keep it strictly on the table plane: a small yaw spin reads as a bump without any "hop".
-                other.mesh.rotateOnWorldAxis(UP, (Math.random() - 0.5) * 0.18);
-              } else {
-                const rvx = d.anim.vu - other.anim.vu;
-                const rvz = d.anim.vv - other.anim.vv;
-                const rel = rvx * nx + rvz * nz;
-                if (rel < 0) {
-                  const j = -(1 + e) * rel / 2; // equal mass
-                  d.anim.vu += j * nx;
-                  d.anim.vv += j * nz;
-                  other.anim.vu -= j * nx;
-                  other.anim.vv -= j * nz;
-                  bounced = true;
-                }
+              // Separate both dice in-plane.
+              d.anim.u += nx * (pen * 0.5);
+              d.anim.v += nz * (pen * 0.5);
+              otherDyn.u -= nx * (pen * 0.5);
+              otherDyn.v -= nz * (pen * 0.5);
+
+              // Apply immediately to keep both dice on the same plane.
+              other.mesh.position.copy(otherDyn.planePoint)
+                .addScaledVector(otherDyn.planeRight, otherDyn.u)
+                .addScaledVector(otherDyn.planeUp, otherDyn.v);
+
+              // Compute bounce response along collision normal.
+              const e = Math.min(d.anim.restitution, otherDyn.restitution ?? d.anim.restitution);
+              const ovu = Number.isFinite(otherDyn.vu) ? otherDyn.vu : 0;
+              const ovv = Number.isFinite(otherDyn.vv) ? otherDyn.vv : 0;
+              const rvx = d.anim.vu - ovu;
+              const rvz = d.anim.vv - ovv;
+              const rel = rvx * nx + rvz * nz;
+              if (rel < 0) {
+                const j = -(1 + e) * rel / 2; // equal mass
+                d.anim.vu += j * nx;
+                d.anim.vv += j * nz;
+                otherDyn.vu -= j * nx;
+                otherDyn.vv -= j * nz;
+                bounced = true;
               }
             }
 
@@ -1271,9 +1290,156 @@
 
             if (d.anim.restTime >= 0.10) {
               // Settle to exact face-on orientation.
+              const v = Number.isFinite(d.anim.value) ? d.anim.value : null;
+              const qNow = v ? quaternionForValue(d.mesh, v) : null;
+              if (qNow) {
+                d.anim.targetQ = qNow;
+              }
               d.anim.type = 'settle';
               d.anim.settleT = 0;
               d.anim.settleFromQ = d.mesh.quaternion.clone();
+            }
+          } else if (d.anim.type === 'slide') {
+            d.anim.t += dt;
+
+            // Keep the face-on orientation while sliding.
+            // This must be recomputed from position (perspective) to stay perfectly flat.
+            {
+              const v = Number.isFinite(d.mesh.userData.lockedValue) ? d.mesh.userData.lockedValue : null;
+              const qNow = v ? quaternionForValue(d.mesh, v) : null;
+              if (qNow) {
+                d.mesh.quaternion.copy(qNow);
+              } else if (d.anim.fixedQ) {
+                d.mesh.quaternion.copy(d.anim.fixedQ);
+              }
+            }
+
+            // Integrate velocity on the roll plane with friction.
+            const speed0 = Math.hypot(d.anim.vu, d.anim.vv);
+            const speed1 = Math.max(0, speed0 - d.anim.a * dt);
+            if (speed0 > 1e-6) {
+              const s = speed1 / speed0;
+              d.anim.vu *= s;
+              d.anim.vv *= s;
+            } else {
+              d.anim.vu = 0;
+              d.anim.vv = 0;
+            }
+
+            d.anim.u += d.anim.vu * dt;
+            d.anim.v += d.anim.vv * dt;
+
+            // Bounce off bounds.
+            if (d.anim.u >= d.anim.uRight) {
+              d.anim.u = d.anim.uRight;
+              d.anim.vu = -Math.abs(d.anim.vu) * d.anim.restitution;
+            } else if (d.anim.u <= d.anim.uLeft) {
+              d.anim.u = d.anim.uLeft;
+              d.anim.vu = Math.abs(d.anim.vu) * d.anim.restitution;
+            }
+            if (d.anim.v >= d.anim.vMax) {
+              d.anim.v = d.anim.vMax;
+              d.anim.vv = -Math.abs(d.anim.vv) * d.anim.restitution;
+            } else if (d.anim.v <= d.anim.vMin) {
+              d.anim.v = d.anim.vMin;
+              d.anim.vv = Math.abs(d.anim.vv) * d.anim.restitution;
+            }
+
+            // Collide with other dice (can push idle dice into slide, but never rotate them).
+            for (const other of dice) {
+              if (other === d) continue;
+              const r1 = d.anim.rad;
+              const r2 = (other.mesh.userData && Number.isFinite(other.mesh.userData.radius)) ? other.mesh.userData.radius : 0.85;
+
+              _tmpRel.copy(other.mesh.position).sub(d.anim.planePoint);
+              const ou = _tmpRel.dot(d.anim.planeRight);
+              const ov = _tmpRel.dot(d.anim.planeUp);
+
+              const du = d.anim.u - ou;
+              const dv = d.anim.v - ov;
+              const dist = Math.hypot(du, dv);
+              const minDist = Math.max(0.001, r1 + r2);
+              if (dist >= minDist) continue;
+
+              const nx = dist > 1e-6 ? (du / dist) : 1;
+              const nz = dist > 1e-6 ? (dv / dist) : 0;
+              const pen = (minDist - dist) + 1e-3;
+
+              const otherMoving = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide');
+              if (!otherMoving) {
+                other.anim = {
+                  type: 'slide',
+                  t: 0,
+                  a: d.anim.a,
+                  vu: 0,
+                  vv: 0,
+                  u: ou,
+                  v: ov,
+                  uLeft: d.anim.uLeft,
+                  uRight: d.anim.uRight,
+                  vMin: d.anim.vMin,
+                  vMax: d.anim.vMax,
+                  restitution: d.anim.restitution,
+                  rad: r2,
+                  planePoint: d.anim.planePoint,
+                  planeNormal: d.anim.planeNormal,
+                  planeRight: d.anim.planeRight,
+                  planeUp: d.anim.planeUp,
+                  fixedQ: other.mesh.quaternion.clone(),
+                  restTime: 0,
+                };
+              }
+
+              const otherDyn = other.anim && (other.anim.type === 'physicsRoll' || other.anim.type === 'slide') ? other.anim : null;
+              if (!otherDyn) continue;
+
+              d.anim.u += nx * (pen * 0.5);
+              d.anim.v += nz * (pen * 0.5);
+              otherDyn.u -= nx * (pen * 0.5);
+              otherDyn.v -= nz * (pen * 0.5);
+
+              other.mesh.position.copy(otherDyn.planePoint)
+                .addScaledVector(otherDyn.planeRight, otherDyn.u)
+                .addScaledVector(otherDyn.planeUp, otherDyn.v);
+
+              const e = Math.min(d.anim.restitution, otherDyn.restitution ?? d.anim.restitution);
+              const ovu = Number.isFinite(otherDyn.vu) ? otherDyn.vu : 0;
+              const ovv = Number.isFinite(otherDyn.vv) ? otherDyn.vv : 0;
+              const rvx = d.anim.vu - ovu;
+              const rvz = d.anim.vv - ovv;
+              const rel = rvx * nx + rvz * nz;
+              if (rel < 0) {
+                const j = -(1 + e) * rel / 2;
+                d.anim.vu += j * nx;
+                d.anim.vv += j * nz;
+                otherDyn.vu -= j * nx;
+                otherDyn.vv -= j * nz;
+              }
+            }
+
+            // Convert plane coordinates back to world position.
+            d.mesh.position.copy(d.anim.planePoint)
+              .addScaledVector(d.anim.planeRight, d.anim.u)
+              .addScaledVector(d.anim.planeUp, d.anim.v);
+
+            // Re-apply face-on after moving.
+            {
+              const v = Number.isFinite(d.mesh.userData.lockedValue) ? d.mesh.userData.lockedValue : null;
+              const qNow = v ? quaternionForValue(d.mesh, v) : null;
+              if (qNow) {
+                d.mesh.quaternion.copy(qNow);
+              }
+            }
+
+            // Stop once we've basically stopped for a short moment.
+            if (Math.hypot(d.anim.vu, d.anim.vv) < 0.10) {
+              d.anim.restTime += dt;
+            } else {
+              d.anim.restTime = 0;
+            }
+
+            if (d.anim.restTime >= 0.12) {
+              d.anim = null;
             }
           } else if (d.anim.type === 'settle') {
             d.anim.settleT += dt;
@@ -1281,6 +1447,10 @@
             const s = u * u * (3 - 2 * u);
             d.mesh.quaternion.slerpQuaternions(d.anim.settleFromQ, d.anim.targetQ, s);
             if (u >= 1) {
+              // Once settled, keep this die face-on forever (even if it gets slid/bumped).
+              if (Number.isFinite(d.anim.value)) {
+                d.mesh.userData.lockedValue = d.anim.value;
+              }
               d.anim = null;
             }
           } else {
@@ -1295,6 +1465,19 @@
 
         d.lines.position.copy(d.mesh.position);
         d.lines.quaternion.copy(d.mesh.quaternion);
+      }
+
+      // Maintain face-on orientation for any die that is "settled" (no active animation)
+      // and has a known locked value. This ensures bumps/slides never leave it tilted.
+      for (const d of dice) {
+        if (!d.anim && Number.isFinite(d.mesh.userData.lockedValue)) {
+          const v = d.mesh.userData.lockedValue;
+          const qNow = quaternionForValue(d.mesh, v);
+          if (qNow) {
+            d.mesh.quaternion.copy(qNow);
+            d.lines.quaternion.copy(d.mesh.quaternion);
+          }
+        }
       }
 
       renderer.render(scene, camera);

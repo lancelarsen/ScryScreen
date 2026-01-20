@@ -91,6 +91,23 @@ public partial class DiceRollerViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void RollSingleDie(object? parameter)
+    {
+        if (parameter is null)
+        {
+            return;
+        }
+
+        if (!int.TryParse(parameter.ToString(), out var sides) || sides is < 2 or > 100)
+        {
+            return;
+        }
+
+        Expression = $"1d{sides}";
+        Roll();
+    }
+
+    [RelayCommand]
     private void Clear()
     {
         LastErrorText = null;
