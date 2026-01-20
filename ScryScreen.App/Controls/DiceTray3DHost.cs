@@ -11,6 +11,7 @@ public sealed class DiceTray3DHost : WebView2Host
 {
     public event EventHandler<int>? DieClicked;
     public event EventHandler<DieRotationChangedEventArgs>? DieRotationChanged;
+    public event EventHandler<DieRollCompletedEventArgs>? DieRollCompleted;
 
     public sealed class DieRotationChangedEventArgs : EventArgs
     {
@@ -18,13 +19,17 @@ public sealed class DiceTray3DHost : WebView2Host
         public required Quaternion Rotation { get; init; }
     }
 
+    public sealed class DieRollCompletedEventArgs : EventArgs
+    {
+        public required long RequestId { get; init; }
+        public required int Sides { get; init; }
+        public required int Value { get; init; }
+    }
+
     public DiceTray3DHost()
     {
         WebMessageReceived += OnWebMessageReceived;
         Html = LoadHtml();
-
-        // Default state: show die types on faces.
-        ShowPreviewDice();
     }
 
     public void ShowPreviewDice()
@@ -32,11 +37,16 @@ public sealed class DiceTray3DHost : WebView2Host
         PostWebMessage("{\"type\":\"preview\"}");
     }
 
+    public void ClearAllDice()
+    {
+        PostWebMessage("{\"type\":\"clearAll\"}");
+    }
+
     public void ShowRollResults(System.Collections.Generic.IReadOnlyList<(int Sides, int Value)> dice)
     {
         if (dice is null || dice.Count == 0)
         {
-            ShowPreviewDice();
+            ClearAllDice();
             return;
         }
 
@@ -52,6 +62,28 @@ public sealed class DiceTray3DHost : WebView2Host
         {
             type = "roll",
             dice = System.Linq.Enumerable.Select(limited, d => new { sides = d.Sides, value = d.Value }),
+        };
+
+        PostWebMessage(JsonSerializer.Serialize(payload));
+    }
+
+    public void RequestRandomRoll(long requestId, int sides)
+    {
+        if (requestId <= 0)
+        {
+            return;
+        }
+
+        if (sides is < 2 or > 100)
+        {
+            return;
+        }
+
+        var payload = new
+        {
+            type = "rollRandom",
+            requestId,
+            sides,
         };
 
         PostWebMessage(JsonSerializer.Serialize(payload));
@@ -137,6 +169,40 @@ public sealed class DiceTray3DHost : WebView2Host
 
                 rot = Quaternion.Normalize(rot);
                 DieRotationChanged?.Invoke(this, new DieRotationChangedEventArgs { Sides = sides, Rotation = rot });
+                return;
+            }
+
+            if (string.Equals(type, "rollResult", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!doc.RootElement.TryGetProperty("requestId", out var requestIdEl))
+                {
+                    return;
+                }
+
+                var requestId = requestIdEl.GetInt64();
+                if (requestId <= 0)
+                {
+                    return;
+                }
+
+                if (!doc.RootElement.TryGetProperty("sides", out var sidesEl) || !doc.RootElement.TryGetProperty("value", out var valueEl))
+                {
+                    return;
+                }
+
+                var sides = sidesEl.GetInt32();
+                var value = valueEl.GetInt32();
+                if (sides is < 2 or > 100)
+                {
+                    return;
+                }
+
+                if (value <= 0 || value > sides)
+                {
+                    return;
+                }
+
+                DieRollCompleted?.Invoke(this, new DieRollCompletedEventArgs { RequestId = requestId, Sides = sides, Value = value });
                 return;
             }
         }

@@ -24,6 +24,12 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
     [ObservableProperty]
     private IReadOnlyList<DiceDieRotation> rotations = Array.Empty<DiceDieRotation>();
 
+    [ObservableProperty]
+    private DiceRollRequest? rollRequest;
+
+    [ObservableProperty]
+    private long clearDiceId;
+
     public bool HasText => !string.IsNullOrWhiteSpace(Text);
 
     partial void OnTextChanged(string value) => OnPropertyChanged(nameof(HasText));
@@ -34,5 +40,7 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
         OverlayOpacity = state.OverlayOpacity;
         RollId = state.RollId;
         Rotations = state.Rotations ?? Array.Empty<DiceDieRotation>();
+        RollRequest = state.RollRequest;
+        ClearDiceId = state.ClearDiceId;
     }
 }

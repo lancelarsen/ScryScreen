@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using ScryScreen.App.Controls;
+using ScryScreen.App.Services;
 using ScryScreen.App.Utilities;
 using ScryScreen.App.ViewModels;
 
@@ -50,6 +51,8 @@ public partial class DiceRollerPortalView : UserControl
 
     private DiceRollerPortalViewModel? _vm;
     private DiceTray3DHost? _tray;
+    private long _lastRollRequestId;
+    private long _lastClearDiceId;
 
     public DiceRollerPortalView()
     {
@@ -61,12 +64,19 @@ public partial class DiceRollerPortalView : UserControl
         AttachedToVisualTree += (_, _) =>
         {
             _tray = this.FindControl<DiceTray3DHost>("PortalDiceTray");
-            _tray?.ShowPreviewDice();
+            if (_tray is not null)
+            {
+                _tray.DieRollCompleted += OnTrayDieRollCompleted;
+            }
             HookVm();
         };
         DetachedFromVisualTree += (_, _) =>
         {
             UnhookVm();
+            if (_tray is not null)
+            {
+                _tray.DieRollCompleted -= OnTrayDieRollCompleted;
+            }
             _tray = null;
         };
         DataContextChanged += (_, _) => HookVm();
@@ -99,10 +109,9 @@ public partial class DiceRollerPortalView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if ((e.PropertyName == nameof(DiceRollerPortalViewModel.Text) || e.PropertyName == nameof(DiceRollerPortalViewModel.RollId))
-            && _vm is not null)
+        if (e.PropertyName == nameof(DiceRollerPortalViewModel.Text) && _vm is not null)
         {
-            // Defer until after layout so Bounds are correct (prevents top-left/0x0 issues).
+            // Text panel updates should not drive tray rolls.
             Dispatcher.UIThread.Post(() => StartRollAnimation(_vm.Text), DispatcherPriority.Render);
         }
 
@@ -110,6 +119,59 @@ public partial class DiceRollerPortalView : UserControl
         {
             Dispatcher.UIThread.Post(ApplyRotationsToTray, DispatcherPriority.Render);
         }
+
+        if (e.PropertyName == nameof(DiceRollerPortalViewModel.RollRequest) && _vm is not null)
+        {
+            Dispatcher.UIThread.Post(ApplyRollRequestToTray, DispatcherPriority.Render);
+        }
+
+        if (e.PropertyName == nameof(DiceRollerPortalViewModel.ClearDiceId) && _vm is not null)
+        {
+            Dispatcher.UIThread.Post(ApplyClearToTray, DispatcherPriority.Render);
+        }
+    }
+
+    private void ApplyClearToTray()
+    {
+        if (_tray is null || _vm is null)
+        {
+            return;
+        }
+
+        if (_vm.ClearDiceId == _lastClearDiceId)
+        {
+            return;
+        }
+
+        _lastClearDiceId = _vm.ClearDiceId;
+        _tray.ClearAllDice();
+    }
+
+    private void ApplyRollRequestToTray()
+    {
+        if (_tray is null || _vm is null)
+        {
+            return;
+        }
+
+        var req = _vm.RollRequest;
+        if (req is null)
+        {
+            return;
+        }
+
+        if (req.RequestId == _lastRollRequestId)
+        {
+            return;
+        }
+
+        _lastRollRequestId = req.RequestId;
+        _tray.RequestRandomRoll(req.RequestId, req.Sides);
+    }
+
+    private void OnTrayDieRollCompleted(object? sender, DiceTray3DHost.DieRollCompletedEventArgs e)
+    {
+        DiceRollerEventBus.RaiseSingleDieRollCompleted(e.RequestId, e.Sides, e.Value);
     }
 
     private void ApplyRotationsToTray()
@@ -133,25 +195,16 @@ public partial class DiceRollerPortalView : UserControl
             _timer.Stop();
             DiceCanvas.Children.Clear();
             _anims.Clear();
-            _tray?.ShowPreviewDice();
+            _tray?.ClearAllDice();
             return;
         }
 
-        // Parse rolled dice values from the display string. Example: "2d6(3,5) + 1 = 9".
-        var dice = DiceRollTextParser.ParseDice(text);
-        if (dice.Count == 0)
-        {
-            // Non-roll text (e.g., placeholder title). Keep tray visible in preview mode.
-            _tray?.ShowPreviewDice();
-            ApplyRotationsToTray();
-            return;
-        }
-
-        // Prefer true 3D dice display when available; stop the old 2D animation stage.
+        // If the native 3D tray is present, it is driven by explicit RollRequest messages.
+        // Do not parse Text and re-trigger rolls from it (that causes rerolls/snapbacks).
         if (_tray is not null)
         {
-            _tray.ShowRollResults(dice);
             ApplyRotationsToTray();
+            ApplyRollRequestToTray();
             _timer.Stop();
             DiceCanvas.Children.Clear();
             _anims.Clear();
@@ -159,6 +212,13 @@ public partial class DiceRollerPortalView : UserControl
             {
                 DiceStage.IsVisible = false;
             }
+            return;
+        }
+
+        // Parse rolled dice values from the display string. Example: "2d6(3,5) + 1 = 9".
+        var dice = DiceRollTextParser.ParseDice(text);
+        if (dice.Count == 0)
+        {
             return;
         }
 

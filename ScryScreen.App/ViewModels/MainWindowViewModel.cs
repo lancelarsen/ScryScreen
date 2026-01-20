@@ -1590,7 +1590,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var state = DiceRoller.SnapshotState();
         if (string.IsNullOrWhiteSpace(state.Text))
         {
-            state = new DiceRollerState("Dice Roller", state.OverlayOpacity, state.RollId, state.Rotations);
+            state = new DiceRollerState("Dice Roller", state.OverlayOpacity, state.RollId, state.Rotations, state.RollRequest, state.ClearDiceId);
         }
 
         _portalHost.SetContentDiceRollerOverlay(portal.PortalNumber, state);
