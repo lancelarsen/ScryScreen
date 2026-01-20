@@ -386,11 +386,13 @@
 
       const zAxis = new THREE.Vector3(0, 0, 1);
       const valueToNormal = new Map();
+      const valueToFrame = new Map();
 
       const pos = mesh.geometry.getAttribute('position');
       const tmpA = new THREE.Vector3();
       const tmpB = new THREE.Vector3();
       const tmpC = new THREE.Vector3();
+      const tmpU = new THREE.Vector3();
 
       for (let i = 0; i < faceGroups.length; i++) {
         const g = faceGroups[i];
@@ -417,9 +419,27 @@
 
         // Keep internal mapping keyed by numeric value (10 stays 10 even if we display it as 0).
         if (!valueToNormal.has(v)) valueToNormal.set(v, g.normal.clone().normalize());
+
+        // Also store a stable in-face tangent so we can align the face upright to the camera.
+        // Pick a representative vertex direction from center and project it onto the face plane.
+        let ia0 = null;
+        if (g.triangles && g.triangles.length > 0) {
+          ia0 = g.triangles[0].ia;
+        }
+        if (ia0 != null) {
+          tmpA.fromBufferAttribute(pos, ia0);
+          tmpU.copy(tmpA).sub(g.center);
+          const nn = g.normal.clone().normalize();
+          tmpU.sub(nn.clone().multiplyScalar(tmpU.dot(nn)));
+          if (tmpU.lengthSq() > 1e-8) {
+            tmpU.normalize();
+            if (!valueToFrame.has(v)) valueToFrame.set(v, { normal: nn, u: tmpU.clone() });
+          }
+        }
       }
 
       mesh.userData.valueToNormal = valueToNormal;
+      mesh.userData.valueToFrame = valueToFrame;
     }
 
     function buildOppositePairingValues(faceGroups, sides) {
@@ -816,16 +836,62 @@
     }
 
     const UP = new THREE.Vector3(0, 1, 0);
+    const _tmpCamDir = new THREE.Vector3();
+    const _tmpUp = new THREE.Vector3();
+    const _tmpV1 = new THREE.Vector3();
+    const _tmpV2 = new THREE.Vector3();
+    const _tmpV3 = new THREE.Vector3();
+    const _tmpQ = new THREE.Quaternion();
 
     function quaternionForValue(mesh, value) {
-      const map = mesh.userData.valueToNormal;
-      if (!map || !map.get) return null;
-      const n = map.get(value);
+      const frames = mesh.userData.valueToFrame;
+      const normals = mesh.userData.valueToNormal;
+
+      const frame = frames && frames.get ? frames.get(value) : null;
+      const n = frame?.normal || (normals && normals.get ? normals.get(value) : null);
       if (!n) return null;
-      const q = new THREE.Quaternion().setFromUnitVectors(n.clone().normalize(), UP);
-      const yaw = new THREE.Quaternion().setFromAxisAngle(UP, (Math.random() * Math.PI * 2));
-      q.multiply(yaw);
-      return q;
+
+      // Target normal: aim at the camera along the view ray for THIS die.
+      // In a perspective camera, using camera forward can look "not quite flat" for off-center objects.
+      _tmpCamDir.copy(camera.position).sub(mesh.position);
+      if (_tmpCamDir.lengthSq() < 1e-8) {
+        _tmpCamDir.copy(UP);
+      }
+      _tmpCamDir.normalize();
+
+      // First rotate the face normal to the target normal.
+      const q1 = _tmpQ.setFromUnitVectors(n.clone().normalize(), _tmpCamDir);
+
+      // If we have a stable in-face tangent, add a deterministic twist so the face is upright.
+      if (frame && frame.u) {
+        // Camera up in world space.
+        _tmpUp.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+
+        // Project desired up onto the face plane.
+        const targetUp = _tmpV1.copy(_tmpUp).sub(_tmpCamDir.clone().multiplyScalar(_tmpUp.dot(_tmpCamDir)));
+        if (targetUp.lengthSq() > 1e-8) {
+          targetUp.normalize();
+
+          // Current face-U in world space after q1.
+          const uWorld = _tmpV2.copy(frame.u).applyQuaternion(q1);
+          const uProj = _tmpV3.copy(uWorld).sub(_tmpCamDir.clone().multiplyScalar(uWorld.dot(_tmpCamDir)));
+          if (uProj.lengthSq() > 1e-8) {
+            uProj.normalize();
+
+            // Signed angle from uProj -> targetUp around _tmpCamDir.
+            const cross = uProj.clone().cross(targetUp);
+            const sin = cross.dot(_tmpCamDir);
+            const cos = Math.max(-1, Math.min(1, uProj.dot(targetUp)));
+            const angle = Math.atan2(sin, cos);
+
+            const qTwist = new THREE.Quaternion().setFromAxisAngle(_tmpCamDir, angle);
+            // Apply twist in world space: q = qTwist * q1
+            return q1.premultiply(qTwist);
+          }
+        }
+      }
+
+      return q1;
     }
 
     function kickRollToValue(d, value) {
@@ -867,8 +933,6 @@
         if (values.length > 0) {
           const v = values.shift();
           kickRollToValue(d, v);
-        } else {
-          applyIdlePose(d);
         }
       }
     }
