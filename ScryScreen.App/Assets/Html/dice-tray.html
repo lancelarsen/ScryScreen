@@ -1553,6 +1553,19 @@
       }
       mesh.userData.faceLabels = [];
 
+      // Tuned default label scaling per die type so UI slider 1.0 is a sensible baseline.
+      // The user-controlled `numberScale` remains a direct multiplier on top of these defaults.
+      const DEFAULT_NUMBER_MULTIPLIERS = {
+        4: 1.40,
+        6: 2.00,
+        8: 1.40,
+        10: 1.40,
+        12: 1.40,
+        20: 1.27,
+        100: 1.00,
+      };
+      const baseNumberMult = DEFAULT_NUMBER_MULTIPLIERS[sides] || 1.00;
+
       mesh.geometry.computeBoundingSphere();
       const rad = mesh.geometry.boundingSphere ? mesh.geometry.boundingSphere.radius : 1;
       // Keep labels very close to the surface. We rely on polygonOffset to avoid z-fighting.
@@ -1582,8 +1595,9 @@
           area += new THREE.Triangle(tmpA, tmpB, tmpC).getArea();
         }
         let labelSize = Math.max(0.24, Math.min(0.62, Math.sqrt(area) * 0.90));
-        const ns = Number.isFinite(numberScale) ? numberScale : 1.0;
-        labelSize = Math.max(0.18, Math.min(0.95, labelSize * Math.max(0.25, Math.min(4.0, ns))));
+        const nsUser = Number.isFinite(numberScale) ? numberScale : 1.0;
+        const ns = Math.max(0.25, Math.min(4.0, nsUser * baseNumberMult));
+        labelSize = Math.max(0.18, Math.min(0.95, labelSize * ns));
 
         let displayText;
         if (mesh.userData && mesh.userData.labelMode === 'd100Tens') {
@@ -1962,10 +1976,11 @@
     const _tmpRel = new THREE.Vector3();
     const _tmpPos = new THREE.Vector3();
     const geometries = [
-      [4, new THREE.TetrahedronGeometry(0.78, 0)],
-      [6, new THREE.BoxGeometry(1.05, 1.05, 1.05)],
-      [8, new THREE.OctahedronGeometry(0.82, 0)],
-      [10, createD10Geometry(0.86)],
+      // Geometry sizes are tuned so dieScale=1.0 is a sensible default.
+      [4, new THREE.TetrahedronGeometry(0.78 * 1.18, 0)],
+      [6, new THREE.BoxGeometry(1.05 * 1.12, 1.05 * 1.12, 1.05 * 1.12)],
+      [8, new THREE.OctahedronGeometry(0.82 * 1.19, 0)],
+      [10, createD10Geometry(0.86 * 1.22)],
       [12, new THREE.DodecahedronGeometry(0.86, 0)],
       [20, new THREE.IcosahedronGeometry(0.9, 0)],
     ];

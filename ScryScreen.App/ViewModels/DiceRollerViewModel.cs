@@ -18,24 +18,6 @@ public partial class DiceRollerViewModel : ViewModelBase
     private long _clearDiceIdCounter;
     private readonly Dictionary<int, DiceDieRotation> _rotationsBySides = new();
 
-    // Baseline dice visuals (absolute scale values) that correspond to slider value 1.0.
-    // The sliders in the UI are treated as multipliers against these baselines.
-    private static readonly IReadOnlyDictionary<int, (double DieScale, double NumberScale)> VisualBaselines
-        = new Dictionary<int, (double DieScale, double NumberScale)>
-        {
-            // Tuned baselines from in-app tweaking.
-            [4] = (1.18, 1.40),
-            [6] = (1.12, 2.00),
-            [8] = (1.19, 1.40),
-            [10] = (1.22, 1.40),
-            [12] = (1.00, 1.40),
-            [20] = (1.00, 1.27),
-            [100] = (1.00, 1.00),
-        };
-
-    private static (double DieScale, double NumberScale) GetBaseline(int sides)
-        => VisualBaselines.TryGetValue(sides, out var b) ? b : (1.0, 1.0);
-
     private static double Clamp(double value, double min, double max)
         => value < min ? min : (value > max ? max : value);
 
@@ -104,12 +86,10 @@ public partial class DiceRollerViewModel : ViewModelBase
         var visualConfigs = DiceVisualConfigs.Count == 0
             ? Array.Empty<DiceDieVisualConfig>()
             : DiceVisualConfigs
-                // Sliders are relative multipliers; convert to absolute scales for the tray.
                 .Select(c =>
                 {
-                    var baseline = GetBaseline(c.Sides);
-                    var dieScale = Clamp(baseline.DieScale * c.DieScale, 0.5, 1.75);
-                    var numberScale = Clamp(baseline.NumberScale * c.NumberScale, 0.5, 2.0);
+                    var dieScale = Clamp(c.DieScale, 0.5, 1.75);
+                    var numberScale = Clamp(c.NumberScale, 0.5, 2.0);
                     return new DiceDieVisualConfig(c.Sides, dieScale, numberScale);
                 })
                 .OrderBy(c => c.Sides)
