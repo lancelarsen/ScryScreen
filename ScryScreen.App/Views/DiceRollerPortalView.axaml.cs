@@ -53,6 +53,7 @@ public partial class DiceRollerPortalView : UserControl
     private DiceTray3DHost? _tray;
     private long _lastRollRequestId;
     private long _lastClearDiceId;
+    private long _lastVisualConfigRevision;
 
     public DiceRollerPortalView()
     {
@@ -90,6 +91,9 @@ public partial class DiceRollerPortalView : UserControl
         if (_vm is not null)
         {
             _vm.PropertyChanged += OnVmPropertyChanged;
+            // Force a config push on initial attach.
+            _lastVisualConfigRevision = long.MinValue;
+            Dispatcher.UIThread.Post(ApplyVisualConfigToTray, DispatcherPriority.Render);
         }
     }
 
@@ -101,6 +105,7 @@ public partial class DiceRollerPortalView : UserControl
         }
 
         _vm = null;
+        _lastVisualConfigRevision = 0;
 
         _timer.Stop();
         DiceCanvas.Children.Clear();
@@ -129,6 +134,34 @@ public partial class DiceRollerPortalView : UserControl
         {
             Dispatcher.UIThread.Post(ApplyClearToTray, DispatcherPriority.Render);
         }
+
+        if (e.PropertyName == nameof(DiceRollerPortalViewModel.VisualConfigRevision) && _vm is not null)
+        {
+            Dispatcher.UIThread.Post(ApplyVisualConfigToTray, DispatcherPriority.Render);
+        }
+    }
+
+    private void ApplyVisualConfigToTray()
+    {
+        if (_tray is null || _vm is null)
+        {
+            return;
+        }
+
+        if (_vm.VisualConfigRevision == _lastVisualConfigRevision)
+        {
+            return;
+        }
+
+        _lastVisualConfigRevision = _vm.VisualConfigRevision;
+
+        var configs = _vm.VisualConfigs;
+        if (configs is null || configs.Count == 0)
+        {
+            return;
+        }
+
+        _tray.SetDiceVisualConfig(configs, _vm.VisualConfigRevision);
     }
 
     private void ApplyClearToTray()

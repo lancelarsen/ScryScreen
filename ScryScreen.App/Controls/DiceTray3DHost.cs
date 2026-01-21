@@ -2,8 +2,10 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Numerics;
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Platform;
+using ScryScreen.App.Models;
 
 namespace ScryScreen.App.Controls;
 
@@ -112,6 +114,38 @@ public sealed class DiceTray3DHost : WebView2Host
         PostWebMessage(JsonSerializer.Serialize(payload));
     }
 
+    public void SetDiceVisualConfig(System.Collections.Generic.IReadOnlyList<DiceDieVisualConfig> configs)
+    {
+        if (configs is null)
+        {
+            return;
+        }
+
+        SetDiceVisualConfig(configs, null);
+    }
+
+    public void SetDiceVisualConfig(System.Collections.Generic.IReadOnlyList<DiceDieVisualConfig> configs, long? revision)
+    {
+        if (configs is null)
+        {
+            return;
+        }
+
+        var payload = new
+        {
+            type = "setConfig",
+            revision,
+            configs = System.Linq.Enumerable.Select(configs, c => new
+            {
+                sides = c.Sides,
+                dieScale = c.DieScale,
+                numberScale = c.NumberScale,
+            }),
+        };
+
+        PostWebMessage(JsonSerializer.Serialize(payload));
+    }
+
     private void OnWebMessageReceived(object? sender, string message)
     {
         try
@@ -209,6 +243,55 @@ public sealed class DiceTray3DHost : WebView2Host
                 }
 
                 DieRollCompleted?.Invoke(this, new DieRollCompletedEventArgs { RequestId = requestId, Sides = sides, Value = value });
+                return;
+            }
+
+            if (string.Equals(type, "configAck", StringComparison.OrdinalIgnoreCase))
+            {
+                long? revision = null;
+                if (doc.RootElement.TryGetProperty("revision", out var revisionEl))
+                {
+                    try
+                    {
+                        var r = revisionEl.GetInt64();
+                        revision = r;
+                    }
+                    catch
+                    {
+                        revision = null;
+                    }
+                }
+
+                var diceCount = -1;
+                if (doc.RootElement.TryGetProperty("diceCount", out var diceCountEl))
+                {
+                    try { diceCount = diceCountEl.GetInt32(); } catch { diceCount = -1; }
+                }
+
+                var configCount = -1;
+                if (doc.RootElement.TryGetProperty("configCount", out var configCountEl))
+                {
+                    try { configCount = configCountEl.GetInt32(); } catch { configCount = -1; }
+                }
+
+                string? firstDie = null;
+                if (doc.RootElement.TryGetProperty("firstDie", out var firstDieEl) && firstDieEl.ValueKind == JsonValueKind.Object)
+                {
+                    try
+                    {
+                        var sides = firstDieEl.TryGetProperty("sides", out var sEl) ? sEl.GetInt32() : (int?)null;
+                        var key = firstDieEl.TryGetProperty("configKey", out var kEl) ? kEl.GetInt32() : (int?)null;
+                        var sx = firstDieEl.TryGetProperty("meshScaleX", out var msEl) ? msEl.GetDouble() : (double?)null;
+                        var lx = firstDieEl.TryGetProperty("linesScaleX", out var lsEl) ? lsEl.GetDouble() : (double?)null;
+                        firstDie = $"d{sides} key={key} scale={sx:0.###} lines={lx:0.###}";
+                    }
+                    catch
+                    {
+                        firstDie = null;
+                    }
+                }
+
+                Debug.WriteLine($"[DiceTray] configAck rev={revision?.ToString() ?? "-"} dice={diceCount} configs={configCount}{(firstDie is null ? "" : " " + firstDie)}");
                 return;
             }
         }

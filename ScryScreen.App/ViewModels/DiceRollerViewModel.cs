@@ -21,6 +21,8 @@ public partial class DiceRollerViewModel : ViewModelBase
     private readonly Dictionary<long, DiceRollRequest> _pendingSingleDieRollsByRequestId = new();
     private DiceRollRequest? _lastIssuedRollRequest;
 
+    private long _visualConfigRevision;
+
     public event Action? StateChanged;
 
     public DiceRollerViewModel()
@@ -28,10 +30,23 @@ public partial class DiceRollerViewModel : ViewModelBase
         Expression = "1d20";
         OverlayOpacity = DiceRollerState.Default.OverlayOpacity;
 
+        DiceVisualConfigs = new ObservableCollection<DiceDieVisualConfigViewModel>(new[]
+        {
+            new DiceDieVisualConfigViewModel(4, 1.0, 1.0, NotifyDiceVisualConfigChanged),
+            new DiceDieVisualConfigViewModel(6, 1.0, 1.0, NotifyDiceVisualConfigChanged),
+            new DiceDieVisualConfigViewModel(8, 1.0, 1.0, NotifyDiceVisualConfigChanged),
+            new DiceDieVisualConfigViewModel(10, 1.0, 1.0, NotifyDiceVisualConfigChanged),
+            new DiceDieVisualConfigViewModel(12, 1.0, 1.0, NotifyDiceVisualConfigChanged),
+            new DiceDieVisualConfigViewModel(20, 1.0, 1.0, NotifyDiceVisualConfigChanged),
+            new DiceDieVisualConfigViewModel(100, 1.0, 1.0, NotifyDiceVisualConfigChanged),
+        });
+
         DiceRollerEventBus.SingleDieRollCompleted += OnSingleDieRollCompleted;
     }
 
     public ObservableCollection<string> History { get; } = new();
+
+    public ObservableCollection<DiceDieVisualConfigViewModel> DiceVisualConfigs { get; }
 
     [ObservableProperty]
     private string expression = "1d20";
@@ -46,6 +61,9 @@ public partial class DiceRollerViewModel : ViewModelBase
     private double overlayOpacity;
 
     [ObservableProperty]
+    private bool showDiceConfiguration;
+
+    [ObservableProperty]
     private DiceRollDirection rollDirection = DiceRollDirection.Right;
 
     [ObservableProperty]
@@ -58,7 +76,24 @@ public partial class DiceRollerViewModel : ViewModelBase
         var rotations = _rotationsBySides.Count == 0
             ? Array.Empty<DiceDieRotation>()
             : _rotationsBySides.Values.OrderBy(r => r.Sides).ToArray();
-        return new(text, OverlayOpacity, RollId, rotations, RollDirection, _lastIssuedRollRequest, _clearDiceIdCounter);
+
+        var visualConfigs = DiceVisualConfigs.Count == 0
+            ? Array.Empty<DiceDieVisualConfig>()
+            : DiceVisualConfigs
+                .Select(c => new DiceDieVisualConfig(c.Sides, c.DieScale, c.NumberScale))
+                .OrderBy(c => c.Sides)
+                .ToArray();
+
+        return new(
+            text,
+            OverlayOpacity,
+            RollId,
+            rotations,
+            visualConfigs,
+            VisualConfigRevision: _visualConfigRevision,
+            RollDirection,
+            _lastIssuedRollRequest,
+            _clearDiceIdCounter);
     }
 
     public bool IsRollDirectionRight => RollDirection == DiceRollDirection.Right;
@@ -231,6 +266,12 @@ public partial class DiceRollerViewModel : ViewModelBase
         StateChanged?.Invoke();
     }
 
+    private void NotifyDiceVisualConfigChanged()
+    {
+        _visualConfigRevision++;
+        StateChanged?.Invoke();
+    }
+
     partial void OnRollDirectionChanged(DiceRollDirection value)
     {
         OnPropertyChanged(nameof(IsRollDirectionRight));
@@ -245,6 +286,11 @@ public partial class DiceRollerViewModel : ViewModelBase
     {
         if (OverlayOpacity < 0) OverlayOpacity = 0;
         if (OverlayOpacity > 1) OverlayOpacity = 1;
+        StateChanged?.Invoke();
+    }
+
+    partial void OnShowDiceConfigurationChanged(bool value)
+    {
         StateChanged?.Invoke();
     }
 }

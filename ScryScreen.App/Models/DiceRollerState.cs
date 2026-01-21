@@ -20,9 +20,17 @@ public sealed record DiceRollerState(
     double OverlayOpacity,
     long RollId,
     IReadOnlyList<DiceDieRotation> Rotations,
+    IReadOnlyList<DiceDieVisualConfig> VisualConfigs,
+    long VisualConfigRevision = 0,
     DiceRollDirection RollDirection = DiceRollDirection.Right,
     DiceRollRequest? RollRequest = null,
     long ClearDiceId = 0)
 {
-    public static DiceRollerState Default { get; } = new(Text: string.Empty, OverlayOpacity: 0.85, RollId: 0, Rotations: System.Array.Empty<DiceDieRotation>());
+    public static DiceRollerState Default { get; } = new(
+        Text: string.Empty,
+        OverlayOpacity: 0.85,
+        RollId: 0,
+        Rotations: System.Array.Empty<DiceDieRotation>(),
+        VisualConfigs: System.Array.Empty<DiceDieVisualConfig>(),
+        VisualConfigRevision: 0);
 }

@@ -1985,7 +1985,7 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="6" VerticalAlignment="Center">
+                                <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                     <TextBlock Text="Overlay" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
                                     <Slider Grid.Column="1"
                                             Classes="portalTimeline"
@@ -1994,6 +1994,15 @@
                                             Maximum="1"
                                             Value="{Binding DiceRoller.OverlayOpacity, Mode=TwoWay}" />
                                     <TextBlock Grid.Column="2" Text="{Binding DiceRoller.OverlayOpacity, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+
+                                    <!-- (123) far right: Dice configuration -->
+                                    <ToggleButton Grid.Column="3"
+                                                  Classes="circleSmall effectToggle"
+                                                  IsChecked="{Binding DiceRoller.ShowDiceConfiguration, Mode=TwoWay}"
+                                                  ToolTip.Tip="Show Dice Configuration">
+                                        <i:Icon Value="mdi-numeric" FontSize="18"
+                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                    </ToggleButton>
                                 </Grid>
                             </Grid>
 

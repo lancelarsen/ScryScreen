@@ -8,16 +8,92 @@
     html, body { width:100%; height:100%; margin:0; padding:0; overflow:hidden; background:#0A0F18; }
     #c { display:block; width:100%; height:100%; }
     .hint { position:absolute; left:10px; top:8px; color:#94a3b8; font: 12px/1.2 system-ui, Segoe UI, sans-serif; opacity:0.85; user-select:none; }
+    .hud { position:absolute; left:10px; top:26px; color:#a1a1aa; font: 11px/1.25 system-ui, Segoe UI, sans-serif; opacity:0.9; user-select:none; pointer-events:none; background: rgba(2,6,23,0.35); padding: 4px 6px; border-radius: 6px; white-space: pre; }
   </style>
 </head>
 <body>
   <canvas id="c"></canvas>
   <div class="hint">Click a die: d4 d6 d8 d10 d12 d20 (d100 from app)</div>
+  <div id="hud" class="hud"></div>
 
   <script type="module">
     import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
     const canvas = document.getElementById('c');
+    const hudEl = document.getElementById('hud');
+    const hudState = {
+      lastMsgType: '(none)',
+      lastMsgAtMs: 0,
+      lastConfigRevision: null,
+      lastConfigCount: 0,
+      lastConfigSummary: '',
+      lastError: null,
+    };
+
+    function getDiceCountSafe() {
+      try {
+        return (typeof dice !== 'undefined' && Array.isArray(dice)) ? dice.length : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function getFirstDieDebug() {
+      try {
+        if (typeof dice === 'undefined' || !Array.isArray(dice) || dice.length === 0) return null;
+        const d = dice[0];
+        if (!d || !d.mesh) return null;
+        const rawKey = d.mesh.userData ? d.mesh.userData.configKey : null;
+        const k = (rawKey != null && Number.isFinite(Number(rawKey)) && Number(rawKey) > 0) ? Number(rawKey) : Number(d.sides);
+        const s = Number(d.sides);
+        const sx = (d.mesh.scale && Number.isFinite(d.mesh.scale.x)) ? d.mesh.scale.x : null;
+        const lx = (d.lines && d.lines.scale && Number.isFinite(d.lines.scale.x)) ? d.lines.scale.x : null;
+        return { sides: s, configKey: k, meshScaleX: sx, linesScaleX: lx };
+      } catch {
+        return null;
+      }
+    }
+
+    function fmtMsAgo(ms) {
+      if (!Number.isFinite(ms) || ms <= 0) return 'never';
+      const ago = Math.max(0, Date.now() - ms);
+      if (ago < 1500) return 'just now';
+      if (ago < 60000) return `${Math.round(ago / 1000)}s ago`;
+      return `${Math.round(ago / 60000)}m ago`;
+    }
+
+    function renderHud() {
+      const dc = getDiceCountSafe();
+      const rev = (hudState.lastConfigRevision == null) ? '-' : String(hudState.lastConfigRevision);
+      const cc = Number.isFinite(hudState.lastConfigCount) ? hudState.lastConfigCount : 0;
+      const fd = getFirstDieDebug();
+      const dieLine = fd
+        ? `die0: d${fd.sides} (key ${fd.configKey}) scale=${(fd.meshScaleX ?? '-')} lines=${(fd.linesScaleX ?? '-')}`
+        : 'die0: -';
+      const cfgLine = hudState.lastConfigSummary ? `\ncfg: ${hudState.lastConfigSummary}` : '';
+      const err = hudState.lastError ? `\nerr: ${hudState.lastError}` : '';
+      return `msg: ${hudState.lastMsgType} (${fmtMsAgo(hudState.lastMsgAtMs)})\ndice: ${dc}\n${dieLine}\nconfig: rev ${rev}, ${cc} entries${cfgLine}${err}`;
+    }
+
+    function hudSet(patch) {
+      if (patch && typeof patch === 'object') {
+        Object.assign(hudState, patch);
+      }
+      if (!hudEl) return;
+      hudEl.textContent = renderHud();
+    }
+
+    function postHostJson(obj) {
+      try {
+        if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
+          window.chrome.webview.postMessage(JSON.stringify(obj));
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    hudSet(null);
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setClearColor(0x0A0F18, 1);
@@ -1327,7 +1403,7 @@
       return null;
     }
 
-    function addFaceNumberLabels(mesh, sides, faceGroups, valueByFace) {
+    function addFaceNumberLabels(mesh, sides, faceGroups, valueByFace, numberScale = 1.0) {
       // Removes old face labels and adds new ones.
       if (mesh.userData.faceLabels) {
         for (const l of mesh.userData.faceLabels) mesh.remove(l);
@@ -1362,7 +1438,9 @@
           tmpC.fromBufferAttribute(pos, t.ic);
           area += new THREE.Triangle(tmpA, tmpB, tmpC).getArea();
         }
-        const labelSize = Math.max(0.24, Math.min(0.62, Math.sqrt(area) * 0.90));
+        let labelSize = Math.max(0.24, Math.min(0.62, Math.sqrt(area) * 0.90));
+        const ns = Number.isFinite(numberScale) ? numberScale : 1.0;
+        labelSize = Math.max(0.18, Math.min(0.95, labelSize * Math.max(0.25, Math.min(4.0, ns))));
 
         let displayText;
         if (mesh.userData && mesh.userData.labelMode === 'd100Tens') {
@@ -1586,15 +1664,25 @@
       return v;
     }
 
-    function makeDie(sides, geometry, faceGroups, valueByFace, labelMode = null) {
+    function makeDie(sides, geometry, faceGroups, valueByFace, labelMode = null, configKey = null) {
       const mesh = new THREE.Mesh(geometry, baseMat.clone());
       mesh.castShadow = true;
       mesh.receiveShadow = false;
       mesh.userData = { sides };
       if (labelMode) mesh.userData.labelMode = labelMode;
+      let key = sides;
+      if (configKey != null) {
+        const n = Number(configKey);
+        if (Number.isFinite(n) && n > 0) key = n;
+      }
+      mesh.userData.configKey = key;
+      mesh.userData.faceGroups = faceGroups;
+      mesh.userData.valueByFace = valueByFace;
 
-      // User request: dice should be half the size.
-      mesh.scale.setScalar(DICE_SCALE);
+      const cfg = getDieVisualConfig(key);
+      const dieScale = normalizeScale(cfg.dieScale, 0.5, 1.75, 1.0);
+      const numberScale = normalizeScale(cfg.numberScale, 0.5, 2.0, 1.0);
+      mesh.scale.setScalar(DICE_SCALE * dieScale);
 
       // Slightly different tint per die
       const tints = {
@@ -1613,7 +1701,7 @@
       mesh.material.needsUpdate = true;
 
       // Add per-face numbers.
-      addFaceNumberLabels(mesh, sides, faceGroups, valueByFace);
+      addFaceNumberLabels(mesh, sides, faceGroups, valueByFace, numberScale);
 
       return mesh;
     }
@@ -1623,6 +1711,95 @@
     let _dieInstanceCounter = 0;
 
     const DICE_SCALE = 0.5;
+
+    // Per-die visual configuration: scale (overall size) and numberScale (label plane sizing).
+    // Keys are the "logical" die type: 4/6/8/10/12/20 and 100 for percentile.
+    const dieVisualConfigs = new Map();
+    const DEFAULT_DIE_CONFIG_KEYS = [4, 6, 8, 10, 12, 20, 100];
+
+    function normalizeScale(v, min, max, def) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return def;
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function ensureDefaultDieVisualConfigs() {
+      for (const k of DEFAULT_DIE_CONFIG_KEYS) {
+        if (!dieVisualConfigs.has(k)) {
+          dieVisualConfigs.set(k, { dieScale: 1.0, numberScale: 1.0 });
+        }
+      }
+    }
+    ensureDefaultDieVisualConfigs();
+
+    function getDieVisualConfig(configKey) {
+      ensureDefaultDieVisualConfigs();
+      if (configKey == null) return { dieScale: 1.0, numberScale: 1.0 };
+      const key = Number(configKey);
+      if (Number.isFinite(key) && key > 0 && dieVisualConfigs.has(key)) return dieVisualConfigs.get(key);
+      return { dieScale: 1.0, numberScale: 1.0 };
+    }
+
+    function getMaxConfiguredDieScale() {
+      ensureDefaultDieVisualConfigs();
+      let m = 1.0;
+      for (const v of dieVisualConfigs.values()) {
+        const s = v && Number.isFinite(v.dieScale) ? v.dieScale : 1.0;
+        if (s > m) m = s;
+      }
+      return Math.max(0.5, Math.min(2.0, m));
+    }
+
+    function applyDieVisualConfigList(list) {
+      if (!Array.isArray(list)) return;
+      ensureDefaultDieVisualConfigs();
+
+      for (const it of list) {
+        if (!it) continue;
+        const key = Number(it.sides);
+        if (!Number.isFinite(key) || key < 2 || key > 1000) continue;
+        const dieScale = normalizeScale(it.dieScale, 0.5, 1.75, 1.0);
+        const numberScale = normalizeScale(it.numberScale, 0.5, 2.0, 1.0);
+        dieVisualConfigs.set(key, { dieScale, numberScale });
+      }
+
+      applyVisualConfigToAllDice();
+    }
+
+    function applyVisualConfigToDie(d) {
+      if (!d || !d.mesh || !d.lines) return;
+      const rawKey = d.mesh.userData ? d.mesh.userData.configKey : null;
+      const configKey = (rawKey != null && Number.isFinite(Number(rawKey)) && Number(rawKey) > 0) ? Number(rawKey) : d.sides;
+      const cfg = getDieVisualConfig(configKey);
+
+      const dieScale = normalizeScale(cfg.dieScale, 0.5, 1.75, 1.0);
+      const numberScale = normalizeScale(cfg.numberScale, 0.5, 2.0, 1.0);
+
+      const scalar = DICE_SCALE * dieScale;
+      d.mesh.scale.setScalar(scalar);
+      d.lines.scale.setScalar(scalar);
+
+      const baseRadius = (d.mesh.userData && Number.isFinite(d.mesh.userData.baseRadius)) ? d.mesh.userData.baseRadius : (dieTemplates.get(d.sides)?.baseRadius ?? 0.85 * DICE_SCALE);
+      d.mesh.userData.radius = baseRadius * dieScale;
+      if (d.anim && Number.isFinite(d.anim.rad)) {
+        d.anim.rad = d.mesh.userData.radius;
+      }
+
+      const fg = d.mesh.userData && d.mesh.userData.faceGroups ? d.mesh.userData.faceGroups : dieTemplates.get(d.sides)?.faceGroups;
+      const vb = d.mesh.userData && d.mesh.userData.valueByFace ? d.mesh.userData.valueByFace : dieTemplates.get(d.sides)?.valueByFace;
+      if (fg && vb) {
+        addFaceNumberLabels(d.mesh, d.sides, fg, vb, numberScale);
+      }
+    }
+
+    function applyVisualConfigToAllDice() {
+      for (const d of dice) {
+        applyVisualConfigToDie(d);
+      }
+      // After rescaling, keep dice separated and within lane bounds.
+      ensureNonOverlapAllDice();
+    }
+
     const ROLL_LANE_Y = 2.2;
     const ROLL_LANE_Z = 0.0;
     const ROLL_AXIS_Z = new THREE.Vector3(0, 0, 1);
@@ -1700,7 +1877,7 @@
       dice.length = 0;
     }
 
-    function spawnDie(sides, labelMode = null) {
+    function spawnDie(sides, labelMode = null, configKey = null) {
       const tpl = dieTemplates.get(sides);
       if (!tpl) return null;
 
@@ -1714,9 +1891,18 @@
         try { scene.remove(victim.lines); } catch { }
       }
 
-      const mesh = makeDie(sides, tpl.geo, tpl.faceGroups, tpl.valueByFace, labelMode);
+      let key = sides;
+      if (configKey != null) {
+        const n = Number(configKey);
+        if (Number.isFinite(n) && n > 0) key = n;
+      }
+      const cfg = getDieVisualConfig(key);
+      const dieScale = normalizeScale(cfg.dieScale, 0.5, 1.75, 1.0);
+
+      const mesh = makeDie(sides, tpl.geo, tpl.faceGroups, tpl.valueByFace, labelMode, key);
       const lines = makeEdges(mesh);
-      mesh.userData.radius = tpl.baseRadius;
+      mesh.userData.baseRadius = tpl.baseRadius;
+      mesh.userData.radius = tpl.baseRadius * dieScale;
       mesh.userData.instanceId = (++_dieInstanceCounter);
       scene.add(mesh);
       scene.add(lines);
@@ -1827,7 +2013,7 @@
     function computeLaneBounds(out) {
       const uv = { u: 0, v: 0 };
       rollPlaneUVAtNdc(-1, 0, uv);
-      const laneInset = 0.6 * DICE_SCALE;
+      const laneInset = 0.6 * DICE_SCALE * getMaxConfiguredDieScale();
       const uLeft = uv.u + laneInset;
       rollPlaneUVAtNdc(1, 0, uv);
       const uRight = uv.u - laneInset;
@@ -2436,6 +2622,20 @@
         if (s < 2 || s > 100) continue;
         if (v < 1 || v > s) continue;
 
+        if (s === 100) {
+          const total = v;
+          const onesDigit = total === 100 ? 0 : (total % 10);
+          const tensDigit = total === 100 ? 0 : Math.floor(total / 10);
+          const onesVal = onesDigit === 0 ? 10 : onesDigit;
+          const tensVal = tensDigit === 0 ? 10 : tensDigit;
+          const tens = spawnDie(10, 'd100Tens', 100);
+          const ones = spawnDie(10, null, 100);
+          if (!tens || !ones) continue;
+          kickRollToValue(tens, tensVal);
+          kickRollToValue(ones, onesVal);
+          continue;
+        }
+
         const d = spawnDie(s);
         if (!d) continue;
         kickRollToValue(d, v);
@@ -2448,6 +2648,48 @@
         try {
           const msg = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data;
           if (!msg || !msg.type) return;
+
+          hudSet({ lastMsgType: String(msg.type), lastMsgAtMs: Date.now(), lastError: null });
+
+          if (msg.type === 'setConfig') {
+            const cfgList = msg.configs || [];
+            // Capture a compact summary of the incoming config values so we can see if they're changing.
+            let summary = '';
+            try {
+              if (Array.isArray(cfgList)) {
+                const parts = [];
+                for (let i = 0; i < cfgList.length && i < 8; i++) {
+                  const it = cfgList[i];
+                  if (!it) continue;
+                  const k = Number(it.sides);
+                  const ds = Number(it.dieScale);
+                  const ns = Number(it.numberScale);
+                  if (!Number.isFinite(k)) continue;
+                  const dsS = Number.isFinite(ds) ? ds.toFixed(2) : '-';
+                  const nsS = Number.isFinite(ns) ? ns.toFixed(2) : '-';
+                  parts.push(`${k}:${dsS}/${nsS}`);
+                }
+                summary = parts.join(' ');
+              }
+            } catch { }
+
+            applyDieVisualConfigList(cfgList);
+
+            const rev = (msg.revision != null && Number.isFinite(Number(msg.revision))) ? Number(msg.revision) : null;
+            const count = Array.isArray(cfgList) ? cfgList.length : 0;
+            hudSet({ lastConfigRevision: rev, lastConfigCount: count, lastConfigSummary: summary });
+
+            const fd = getFirstDieDebug();
+
+            postHostJson({
+              type: 'configAck',
+              revision: rev,
+              diceCount: getDiceCountSafe(),
+              configCount: count,
+              firstDie: fd,
+            });
+            return;
+          }
           if (msg.type === 'preview') setPreview();
           if (msg.type === 'roll') showRollResults(msg.dice || []);
           if (msg.type === 'rollRandom') {
@@ -2457,8 +2699,8 @@
             if (!Number.isFinite(requestId) || requestId <= 0) return;
             if (!Number.isFinite(sides) || sides < 2 || sides > 100) return;
             if (sides === 100) {
-              const tens = spawnDie(10, 'd100Tens');
-              const ones = spawnDie(10, null);
+              const tens = spawnDie(10, 'd100Tens', 100);
+              const ones = spawnDie(10, null, 100);
               if (!tens || !ones) return;
               kickRandomRoll(tens, requestId, 1, { group: 'd100', part: 'tens' }, dir);
               kickRandomRoll(ones, requestId, 2, { group: 'd100', part: 'ones' }, dir);
@@ -2490,7 +2732,9 @@
             try { delete d.mesh.userData.lockedValue; } catch { d.mesh.userData.lockedValue = undefined; }
             try { delete d.mesh.userData.lockedUWorld; } catch { d.mesh.userData.lockedUWorld = undefined; }
           }
-        } catch { }
+        } catch (e) {
+          try { hudSet({ lastError: (e && e.message) ? String(e.message) : 'message handler error' }); } catch { }
+        }
       });
     }
 

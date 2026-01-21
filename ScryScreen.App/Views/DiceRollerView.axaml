@@ -14,7 +14,7 @@
           BorderThickness="1"
           CornerRadius="10"
           Padding="10">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
       <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
         <Button Background="Transparent" BorderThickness="0" Padding="0"
                 ToolTip.Tip="Roll d20"
@@ -104,7 +104,59 @@
         </Button>
       </StackPanel>
 
-      <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+      <!-- Dice configuration (shown via (123) toggle in MainWindow) -->
+      <Border Grid.Row="1"
+              IsVisible="{Binding ShowDiceConfiguration}"
+              Background="#0A0F18"
+              BorderBrush="{DynamicResource ScryBorder}"
+              BorderThickness="1"
+              CornerRadius="10"
+              Padding="12">
+        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+          <Grid Grid.Row="0" ColumnDefinitions="*" ColumnSpacing="10" VerticalAlignment="Center">
+            <TextBlock Grid.Column="0"
+                       Text="Dice Configuration"
+                       Foreground="{DynamicResource ScryTextMuted}"
+                       FontWeight="SemiBold" />
+          </Grid>
+
+          <ItemsControl Grid.Row="1" ItemsSource="{Binding DiceVisualConfigs}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="10" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DiceDieVisualConfigViewModel">
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                  <TextBlock Grid.Column="0" Text="{Binding DisplayName}" Foreground="{DynamicResource ScryTextMuted}" Width="44" VerticalAlignment="Center" />
+
+                  <TextBlock Grid.Column="1" Text="Size" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                  <Slider Grid.Column="2"
+                          Classes="portalTimeline"
+                          Width="120"
+                          Minimum="0.5"
+                          Maximum="1.75"
+                          Value="{Binding DieScale, Mode=TwoWay}" />
+                  <TextBlock Grid.Column="3" Text="{Binding DieScale, StringFormat={}{0:0.00}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+
+                  <TextBlock Grid.Column="4" Text="Numbers" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                  <Slider Grid.Column="5"
+                          Classes="portalTimeline"
+                          Width="120"
+                          Minimum="0.5"
+                          Maximum="2.0"
+                          Value="{Binding NumberScale, Mode=TwoWay}" />
+                  <TextBlock Grid.Column="6" Text="{Binding NumberScale, StringFormat={}{0:0.00}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
         <TextBlock Text="Roll" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
         <TextBox Grid.Column="1"
@@ -145,14 +197,14 @@
         </Button>
       </Grid>
 
-      <TextBlock Grid.Row="2"
+      <TextBlock Grid.Row="3"
                  IsVisible="{Binding LastErrorText, Converter={StaticResource StringNotNullOrEmptyConverter}}"
                  Text="{Binding LastErrorText}"
                  Foreground="#F87171"
                  FontSize="12"
                  TextWrapping="Wrap" />
 
-      <ScrollViewer Grid.Row="3" MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <ScrollViewer Grid.Row="4" MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <ItemsControl ItemsSource="{Binding History}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
