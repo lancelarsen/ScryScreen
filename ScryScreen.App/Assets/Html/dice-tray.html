@@ -608,6 +608,724 @@
       return null;
     }
 
+    function buildD8ValuesExactFromNet(geometry, faceGroups) {
+      // Build a D8 face numbering that matches the provided net image.
+      // The net implies the following adjacency (3 neighbors per face), and opposite faces sum to 9.
+      //
+      // Corrected neighbor map (value -> 3 adjacent values):
+      // 1: 3, 4, 7
+      // 2: 3, 4, 8
+      // 3: 1, 2, 5
+      // 4: 1, 2, 6
+      // 5: 3, 7, 8
+      // 6: 4, 7, 8
+      // 7: 1, 5, 6
+      // 8: 2, 5, 6
+      if (!geometry || !faceGroups || faceGroups.length !== 8) return null;
+
+      const pos = geometry.getAttribute('position');
+      if (!pos) return null;
+
+      const eps = 1e-4;
+      const eps2 = eps * eps;
+      const a = new THREE.Vector3();
+      const b = new THREE.Vector3();
+      const c = new THREE.Vector3();
+
+      // Extract 3 representative vertices per face group.
+      const faceVerts = new Array(faceGroups.length);
+      for (let i = 0; i < faceGroups.length; i++) {
+        const g = faceGroups[i];
+        if (!g || !g.triangles || g.triangles.length === 0) return null;
+        const t = g.triangles[0];
+        a.fromBufferAttribute(pos, t.ia);
+        b.fromBufferAttribute(pos, t.ib);
+        c.fromBufferAttribute(pos, t.ic);
+        faceVerts[i] = [a.clone(), b.clone(), c.clone()];
+      }
+
+      function sharedVertexCount(i, j) {
+        let shared = 0;
+        const vi = faceVerts[i];
+        const vj = faceVerts[j];
+        for (let ii = 0; ii < 3; ii++) {
+          for (let jj = 0; jj < 3; jj++) {
+            if (vi[ii].distanceToSquared(vj[jj]) <= eps2) {
+              shared++;
+              break;
+            }
+          }
+        }
+        return shared;
+      }
+
+      // Build adjacency by shared edges (2 shared vertices).
+      const adj = new Array(8);
+      for (let i = 0; i < 8; i++) adj[i] = [];
+      for (let i = 0; i < 8; i++) {
+        for (let j = i + 1; j < 8; j++) {
+          if (sharedVertexCount(i, j) >= 2) {
+            adj[i].push(j);
+            adj[j].push(i);
+          }
+        }
+      }
+      for (let i = 0; i < 8; i++) {
+        if (adj[i].length !== 3) return null;
+      }
+
+      // Find opposite face for each face by most-opposite normal.
+      const opp = new Array(8).fill(-1);
+      for (let i = 0; i < 8; i++) {
+        let bestJ = -1;
+        let bestDot = 1;
+        const ni = faceGroups[i].normal;
+        for (let j = 0; j < 8; j++) {
+          if (i === j) continue;
+          const d = ni.dot(faceGroups[j].normal);
+          if (d < bestDot) {
+            bestDot = d;
+            bestJ = j;
+          }
+        }
+        opp[i] = bestJ;
+      }
+      for (let i = 0; i < 8; i++) {
+        if (opp[i] < 0 || opp[opp[i]] !== i) return null;
+      }
+
+      const neighborReq = new Map([
+        [1, [3, 4, 7]],
+        [2, [3, 4, 8]],
+        [3, [1, 2, 5]],
+        [4, [1, 2, 6]],
+        [5, [3, 7, 8]],
+        [6, [4, 7, 8]],
+        [7, [1, 5, 6]],
+        [8, [2, 5, 6]],
+      ]);
+      const neighborReqSet = new Map();
+      for (const [k, arr] of neighborReq.entries()) neighborReqSet.set(k, new Set(arr));
+
+      const faceToValue = new Array(8).fill(0);
+      const valueToFace = new Array(9).fill(-1);
+
+      function cloneState() {
+        return {
+          faceToValue: faceToValue.slice(),
+          valueToFace: valueToFace.slice(),
+        };
+      }
+      function restoreState(st) {
+        for (let i = 0; i < 8; i++) faceToValue[i] = st.faceToValue[i];
+        for (let i = 0; i <= 8; i++) valueToFace[i] = st.valueToFace[i];
+      }
+
+      function assign(faceIdx, value) {
+        const cur = faceToValue[faceIdx];
+        if (cur !== 0) return cur === value;
+        if (valueToFace[value] !== -1) return false;
+
+        faceToValue[faceIdx] = value;
+        valueToFace[value] = faceIdx;
+
+        // Opposites sum to 9.
+        const of = opp[faceIdx];
+        const ov = 9 - value;
+        const curOpp = faceToValue[of];
+        if (curOpp !== 0 && curOpp !== ov) return false;
+        if (curOpp === 0) {
+          if (!assign(of, ov)) return false;
+        }
+
+        // Enforce neighbor requirements.
+        const req = neighborReqSet.get(value);
+        if (req) {
+          const neighFaces = adj[faceIdx];
+          for (const nf of neighFaces) {
+            const nv = faceToValue[nf];
+            if (nv !== 0 && !req.has(nv)) return false;
+          }
+          for (const rv of req) {
+            const rf = valueToFace[rv];
+            if (rf !== -1 && !neighFaces.includes(rf)) return false;
+          }
+        }
+        for (const nf of adj[faceIdx]) {
+          const nv = faceToValue[nf];
+          const reqN = neighborReqSet.get(nv);
+          if (reqN && !reqN.has(value)) return false;
+        }
+
+        return true;
+      }
+
+      function solveRemaining() {
+        let bestFace = -1;
+        let bestDomain = null;
+
+        for (let f = 0; f < 8; f++) {
+          if (faceToValue[f] !== 0) continue;
+          const of = opp[f];
+          const ov = faceToValue[of];
+
+          let domain = [];
+          if (ov !== 0) {
+            const v = 9 - ov;
+            if (valueToFace[v] === -1) domain = [v];
+            else domain = [];
+          } else {
+            for (let v = 1; v <= 8; v++) {
+              if (valueToFace[v] !== -1) continue;
+              const ovWanted = 9 - v;
+              if (valueToFace[ovWanted] !== -1) continue;
+              domain.push(v);
+            }
+          }
+
+          if (domain.length === 0) return false;
+          if (bestFace === -1 || domain.length < bestDomain.length) {
+            bestFace = f;
+            bestDomain = domain;
+            if (domain.length === 1) break;
+          }
+        }
+
+        if (bestFace === -1) return true;
+        bestDomain.sort((x, y) => x - y);
+        for (const v of bestDomain) {
+          const snapshot = cloneState();
+          if (assign(bestFace, v) && solveRemaining()) return true;
+          restoreState(snapshot);
+        }
+        return false;
+      }
+
+      for (let f1 = 0; f1 < 8; f1++) {
+        const snapshot0 = cloneState();
+        restoreState(snapshot0);
+        if (!assign(f1, 1)) continue;
+        if (!solveRemaining()) {
+          restoreState(snapshot0);
+          continue;
+        }
+
+        // Validate all neighbor sets.
+        let okAll = true;
+        for (const [vKey, reqArr] of neighborReq.entries()) {
+          const f = valueToFace[vKey];
+          if (f === -1) { okAll = false; break; }
+          const got = new Set(adj[f].map(nf => faceToValue[nf]));
+          const want = neighborReqSet.get(vKey);
+          if (got.size !== 3) { okAll = false; break; }
+          for (const w of want) {
+            if (!got.has(w)) { okAll = false; break; }
+          }
+          if (!okAll) break;
+        }
+        if (okAll) {
+          for (let i = 0; i < 8; i++) {
+            const v = faceToValue[i];
+            const ov = faceToValue[opp[i]];
+            if (!Number.isFinite(v) || !Number.isFinite(ov) || (v + ov) !== 9) { okAll = false; break; }
+          }
+        }
+
+        if (okAll) {
+          const out = new Array(8);
+          for (let i = 0; i < 8; i++) out[i] = faceToValue[i];
+          if (out.every(v => Number.isFinite(v) && v >= 1 && v <= 8)) return out;
+        }
+
+        restoreState(snapshot0);
+      }
+
+      return null;
+    }
+
+    function buildD10ValuesExactFromAdjacency(geometry, faceGroups) {
+      // Build a D10 face numbering that matches the provided adjacency table.
+      // Note: user uses 0 for the face labeled "0" (meaning 10). Internally we treat that as value 10.
+      // Opposites are enforced as sum-to-11 (treating 0 as 10).
+      if (!geometry || !faceGroups || faceGroups.length !== 10) return null;
+
+      const pos = geometry.getAttribute('position');
+      if (!pos) return null;
+
+      const eps = 1e-4;
+      const eps2 = eps * eps;
+      const tmp = new THREE.Vector3();
+
+      function uniqueVertsForGroup(g) {
+        const verts = [];
+        for (const t of g.triangles) {
+          const idxs = [t.ia, t.ib, t.ic];
+          for (const idx of idxs) {
+            tmp.fromBufferAttribute(pos, idx);
+            let found = false;
+            for (let k = 0; k < verts.length; k++) {
+              if (verts[k].distanceToSquared(tmp) <= eps2) { found = true; break; }
+            }
+            if (!found) verts.push(tmp.clone());
+          }
+        }
+        return verts;
+      }
+
+      const faceVerts = new Array(faceGroups.length);
+      for (let i = 0; i < faceGroups.length; i++) {
+        const g = faceGroups[i];
+        if (!g || !g.triangles || g.triangles.length === 0) return null;
+        faceVerts[i] = uniqueVertsForGroup(g);
+        if (faceVerts[i].length < 3) return null;
+      }
+
+      function sharedVertexCount(i, j) {
+        let shared = 0;
+        const vi = faceVerts[i];
+        const vj = faceVerts[j];
+        for (let ii = 0; ii < vi.length; ii++) {
+          for (let jj = 0; jj < vj.length; jj++) {
+            if (vi[ii].distanceToSquared(vj[jj]) <= eps2) {
+              shared++;
+              break;
+            }
+          }
+        }
+        return shared;
+      }
+
+      // Build adjacency by shared edges (at least 2 shared vertices).
+      const adj = new Array(10);
+      for (let i = 0; i < 10; i++) adj[i] = [];
+      for (let i = 0; i < 10; i++) {
+        for (let j = i + 1; j < 10; j++) {
+          if (sharedVertexCount(i, j) >= 2) {
+            adj[i].push(j);
+            adj[j].push(i);
+          }
+        }
+      }
+      for (let i = 0; i < 10; i++) {
+        if (adj[i].length !== 4) return null;
+      }
+
+      // Find opposite face for each face by most-opposite normal.
+      const opp = new Array(10).fill(-1);
+      for (let i = 0; i < 10; i++) {
+        let bestJ = -1;
+        let bestDot = 2;
+        const ni = faceGroups[i].normal;
+        for (let j = 0; j < 10; j++) {
+          if (i === j) continue;
+          const d = ni.dot(faceGroups[j].normal);
+          if (d < bestDot) {
+            bestDot = d;
+            bestJ = j;
+          }
+        }
+        opp[i] = bestJ;
+      }
+      for (let i = 0; i < 10; i++) {
+        if (opp[i] < 0 || opp[opp[i]] !== i) return null;
+      }
+
+      // User-provided adjacency (0 means 10).
+      const neighborReq = new Map([
+        [1, [9, 7, 4, 6]],
+        [2, [6, 8, 9, 5]],
+        [3, [7, 5, 10, 8]],
+        [4, [10, 6, 1, 7]],
+        [5, [3, 9, 2, 8]],
+        [6, [4, 2, 1, 9]],
+        [7, [1, 3, 4, 10]],
+        [8, [2, 10, 3, 5]],
+        [9, [5, 1, 2, 6]],
+        [10, [8, 4, 7, 3]],
+      ]);
+      const neighborReqSet = new Map();
+      for (const [k, arr] of neighborReq.entries()) neighborReqSet.set(k, new Set(arr));
+
+      const faceToValue = new Array(10).fill(0);
+      const valueToFace = new Array(11).fill(-1);
+
+      function cloneState() {
+        return {
+          faceToValue: faceToValue.slice(),
+          valueToFace: valueToFace.slice(),
+        };
+      }
+      function restoreState(st) {
+        for (let i = 0; i < 10; i++) faceToValue[i] = st.faceToValue[i];
+        for (let i = 0; i <= 10; i++) valueToFace[i] = st.valueToFace[i];
+      }
+
+      function assign(faceIdx, value) {
+        const cur = faceToValue[faceIdx];
+        if (cur !== 0) return cur === value;
+        if (valueToFace[value] !== -1) return false;
+
+        faceToValue[faceIdx] = value;
+        valueToFace[value] = faceIdx;
+
+        // Opposites sum to 11.
+        const of = opp[faceIdx];
+        const ov = 11 - value;
+        const curOpp = faceToValue[of];
+        if (curOpp !== 0 && curOpp !== ov) return false;
+        if (curOpp === 0) {
+          if (valueToFace[ov] !== -1 && valueToFace[ov] !== of) return false;
+          if (!assign(of, ov)) return false;
+        }
+
+        // Enforce neighbor requirements.
+        const req = neighborReqSet.get(value);
+        if (req) {
+          const neighFaces = adj[faceIdx];
+          for (const nf of neighFaces) {
+            const nv = faceToValue[nf];
+            if (nv !== 0 && !req.has(nv)) return false;
+          }
+          for (const rv of req) {
+            const rf = valueToFace[rv];
+            if (rf !== -1 && !neighFaces.includes(rf)) return false;
+          }
+        }
+        for (const nf of adj[faceIdx]) {
+          const nv = faceToValue[nf];
+          const reqN = neighborReqSet.get(nv);
+          if (reqN && !reqN.has(value)) return false;
+        }
+
+        return true;
+      }
+
+      function solveRemaining() {
+        let bestFace = -1;
+        let bestDomain = null;
+
+        for (let f = 0; f < 10; f++) {
+          if (faceToValue[f] !== 0) continue;
+          const of = opp[f];
+          const ov = faceToValue[of];
+
+          let domain = [];
+          if (ov !== 0) {
+            const v = 11 - ov;
+            if (v >= 1 && v <= 10 && valueToFace[v] === -1) domain = [v];
+            else domain = [];
+          } else {
+            for (let v = 1; v <= 10; v++) {
+              if (valueToFace[v] !== -1) continue;
+              const ovWanted = 11 - v;
+              if (ovWanted < 1 || ovWanted > 10) continue;
+              if (valueToFace[ovWanted] !== -1) continue;
+              domain.push(v);
+            }
+          }
+
+          if (domain.length === 0) return false;
+          if (bestFace === -1 || domain.length < bestDomain.length) {
+            bestFace = f;
+            bestDomain = domain;
+            if (domain.length === 1) break;
+          }
+        }
+
+        if (bestFace === -1) return true;
+        bestDomain.sort((x, y) => x - y);
+        for (const v of bestDomain) {
+          const snapshot = cloneState();
+          if (assign(bestFace, v) && solveRemaining()) return true;
+          restoreState(snapshot);
+        }
+        return false;
+      }
+
+      for (let f1 = 0; f1 < 10; f1++) {
+        const snapshot0 = cloneState();
+        restoreState(snapshot0);
+        if (!assign(f1, 1)) continue;
+        if (!solveRemaining()) {
+          restoreState(snapshot0);
+          continue;
+        }
+
+        // Validate all neighbor sets exactly.
+        let okAll = true;
+        for (const [vKey, reqArr] of neighborReq.entries()) {
+          const f = valueToFace[vKey];
+          if (f === -1) { okAll = false; break; }
+          const got = new Set(adj[f].map(nf => faceToValue[nf]));
+          const want = neighborReqSet.get(vKey);
+          if (got.size !== 4) { okAll = false; break; }
+          for (const w of want) {
+            if (!got.has(w)) { okAll = false; break; }
+          }
+          if (!okAll) break;
+        }
+        if (okAll) {
+          for (let i = 0; i < 10; i++) {
+            const v = faceToValue[i];
+            const ov = faceToValue[opp[i]];
+            if (!Number.isFinite(v) || !Number.isFinite(ov) || (v + ov) !== 11) { okAll = false; break; }
+          }
+        }
+
+        if (okAll) {
+          const out = new Array(10);
+          for (let i = 0; i < 10; i++) out[i] = faceToValue[i];
+          if (out.every(v => Number.isFinite(v) && v >= 1 && v <= 10)) return out;
+        }
+
+        restoreState(snapshot0);
+      }
+
+      return null;
+    }
+
+    function buildD12ValuesExactFromAdjacency(geometry, faceGroups) {
+      // Build a D12 face numbering that matches the provided adjacency table.
+      // Opposites are enforced as sum-to-13.
+      if (!geometry || !faceGroups || faceGroups.length !== 12) return null;
+
+      const pos = geometry.getAttribute('position');
+      if (!pos) return null;
+
+      const eps = 1e-4;
+      const eps2 = eps * eps;
+      const tmp = new THREE.Vector3();
+
+      function uniqueVertsForGroup(g) {
+        const verts = [];
+        for (const t of g.triangles) {
+          const idxs = [t.ia, t.ib, t.ic];
+          for (const idx of idxs) {
+            tmp.fromBufferAttribute(pos, idx);
+            let found = false;
+            for (let k = 0; k < verts.length; k++) {
+              if (verts[k].distanceToSquared(tmp) <= eps2) { found = true; break; }
+            }
+            if (!found) verts.push(tmp.clone());
+          }
+        }
+        return verts;
+      }
+
+      const faceVerts = new Array(faceGroups.length);
+      for (let i = 0; i < faceGroups.length; i++) {
+        const g = faceGroups[i];
+        if (!g || !g.triangles || g.triangles.length === 0) return null;
+        faceVerts[i] = uniqueVertsForGroup(g);
+        if (faceVerts[i].length < 3) return null;
+      }
+
+      function sharedVertexCount(i, j) {
+        let shared = 0;
+        const vi = faceVerts[i];
+        const vj = faceVerts[j];
+        for (let ii = 0; ii < vi.length; ii++) {
+          for (let jj = 0; jj < vj.length; jj++) {
+            if (vi[ii].distanceToSquared(vj[jj]) <= eps2) {
+              shared++;
+              break;
+            }
+          }
+        }
+        return shared;
+      }
+
+      // Build adjacency by shared edges (at least 2 shared vertices).
+      const adj = new Array(12);
+      for (let i = 0; i < 12; i++) adj[i] = [];
+      for (let i = 0; i < 12; i++) {
+        for (let j = i + 1; j < 12; j++) {
+          if (sharedVertexCount(i, j) >= 2) {
+            adj[i].push(j);
+            adj[j].push(i);
+          }
+        }
+      }
+      for (let i = 0; i < 12; i++) {
+        if (adj[i].length !== 5) return null;
+      }
+
+      // Find opposite face for each face by most-opposite normal.
+      const opp = new Array(12).fill(-1);
+      for (let i = 0; i < 12; i++) {
+        let bestJ = -1;
+        let bestDot = 2;
+        const ni = faceGroups[i].normal;
+        for (let j = 0; j < 12; j++) {
+          if (i === j) continue;
+          const d = ni.dot(faceGroups[j].normal);
+          if (d < bestDot) {
+            bestDot = d;
+            bestJ = j;
+          }
+        }
+        opp[i] = bestJ;
+      }
+      for (let i = 0; i < 12; i++) {
+        if (opp[i] < 0 || opp[opp[i]] !== i) return null;
+      }
+
+      // User-provided adjacency.
+      const neighborReq = new Map([
+        [1, [5, 10, 2, 4, 6]],
+        [2, [1, 4, 8, 7, 10]],
+        [3, [4, 6, 11, 12, 8]],
+        [4, [1, 2, 8, 3, 6]],
+        [5, [1, 6, 11, 9, 10]],
+        [6, [3, 11, 5, 1, 4]],
+        [7, [2, 10, 9, 12, 8]],
+        [8, [3, 4, 2, 7, 12]],
+        [9, [10, 5, 11, 12, 7]],
+        [10, [1, 2, 7, 9, 5]],
+        [11, [5, 6, 3, 12, 9]],
+        [12, [8, 7, 9, 11, 3]],
+      ]);
+      const neighborReqSet = new Map();
+      for (const [k, arr] of neighborReq.entries()) neighborReqSet.set(k, new Set(arr));
+
+      const faceToValue = new Array(12).fill(0);
+      const valueToFace = new Array(13).fill(-1);
+
+      function cloneState() {
+        return {
+          faceToValue: faceToValue.slice(),
+          valueToFace: valueToFace.slice(),
+        };
+      }
+      function restoreState(st) {
+        for (let i = 0; i < 12; i++) faceToValue[i] = st.faceToValue[i];
+        for (let i = 0; i <= 12; i++) valueToFace[i] = st.valueToFace[i];
+      }
+
+      function assign(faceIdx, value) {
+        const cur = faceToValue[faceIdx];
+        if (cur !== 0) return cur === value;
+        if (valueToFace[value] !== -1) return false;
+
+        faceToValue[faceIdx] = value;
+        valueToFace[value] = faceIdx;
+
+        // Opposites sum to 13.
+        const of = opp[faceIdx];
+        const ov = 13 - value;
+        const curOpp = faceToValue[of];
+        if (curOpp !== 0 && curOpp !== ov) return false;
+        if (curOpp === 0) {
+          if (valueToFace[ov] !== -1 && valueToFace[ov] !== of) return false;
+          if (!assign(of, ov)) return false;
+        }
+
+        // Enforce neighbor requirements.
+        const req = neighborReqSet.get(value);
+        if (req) {
+          const neighFaces = adj[faceIdx];
+          for (const nf of neighFaces) {
+            const nv = faceToValue[nf];
+            if (nv !== 0 && !req.has(nv)) return false;
+          }
+          for (const rv of req) {
+            const rf = valueToFace[rv];
+            if (rf !== -1 && !neighFaces.includes(rf)) return false;
+          }
+        }
+        for (const nf of adj[faceIdx]) {
+          const nv = faceToValue[nf];
+          const reqN = neighborReqSet.get(nv);
+          if (reqN && !reqN.has(value)) return false;
+        }
+
+        return true;
+      }
+
+      function solveRemaining() {
+        let bestFace = -1;
+        let bestDomain = null;
+
+        for (let f = 0; f < 12; f++) {
+          if (faceToValue[f] !== 0) continue;
+          const of = opp[f];
+          const ov = faceToValue[of];
+
+          let domain = [];
+          if (ov !== 0) {
+            const v = 13 - ov;
+            if (v >= 1 && v <= 12 && valueToFace[v] === -1) domain = [v];
+            else domain = [];
+          } else {
+            for (let v = 1; v <= 12; v++) {
+              if (valueToFace[v] !== -1) continue;
+              const ovWanted = 13 - v;
+              if (ovWanted < 1 || ovWanted > 12) continue;
+              if (valueToFace[ovWanted] !== -1) continue;
+              domain.push(v);
+            }
+          }
+
+          if (domain.length === 0) return false;
+          if (bestFace === -1 || domain.length < bestDomain.length) {
+            bestFace = f;
+            bestDomain = domain;
+            if (domain.length === 1) break;
+          }
+        }
+
+        if (bestFace === -1) return true;
+        bestDomain.sort((x, y) => x - y);
+        for (const v of bestDomain) {
+          const snapshot = cloneState();
+          if (assign(bestFace, v) && solveRemaining()) return true;
+          restoreState(snapshot);
+        }
+        return false;
+      }
+
+      for (let f1 = 0; f1 < 12; f1++) {
+        const snapshot0 = cloneState();
+        restoreState(snapshot0);
+        if (!assign(f1, 1)) continue;
+        if (!solveRemaining()) {
+          restoreState(snapshot0);
+          continue;
+        }
+
+        // Validate all neighbor sets exactly.
+        let okAll = true;
+        for (const [vKey, reqArr] of neighborReq.entries()) {
+          const f = valueToFace[vKey];
+          if (f === -1) { okAll = false; break; }
+          const got = new Set(adj[f].map(nf => faceToValue[nf]));
+          const want = neighborReqSet.get(vKey);
+          if (got.size !== 5) { okAll = false; break; }
+          for (const w of want) {
+            if (!got.has(w)) { okAll = false; break; }
+          }
+          if (!okAll) break;
+        }
+        if (okAll) {
+          for (let i = 0; i < 12; i++) {
+            const v = faceToValue[i];
+            const ov = faceToValue[opp[i]];
+            if (!Number.isFinite(v) || !Number.isFinite(ov) || (v + ov) !== 13) { okAll = false; break; }
+          }
+        }
+
+        if (okAll) {
+          const out = new Array(12);
+          for (let i = 0; i < 12; i++) out[i] = faceToValue[i];
+          if (out.every(v => Number.isFinite(v) && v >= 1 && v <= 12)) return out;
+        }
+
+        restoreState(snapshot0);
+      }
+
+      return null;
+    }
+
     function addFaceNumberLabels(mesh, sides, faceGroups, valueByFace) {
       // Removes old face labels and adds new ones.
       if (mesh.userData.faceLabels) {
@@ -933,14 +1651,14 @@
       } else if (sides === 6 && faceGroups.length >= 6) {
         valueByFace = buildD6Values(faceGroups) || buildOppositePairingValues(faceGroups, sides);
       } else if (sides === 8 && faceGroups.length === 8) {
-        valueByFace = buildD8Values(faceGroups) || buildOppositePairingValues(faceGroups, sides);
+        valueByFace = buildD8ValuesExactFromNet(geo, faceGroups) || buildD8Values(faceGroups) || buildOppositePairingValues(faceGroups, sides);
       } else if (sides === 10 && faceGroups.length === 10) {
-        valueByFace = buildD10Values(faceGroups) || buildOppositePairingValues(faceGroups, sides);
+        valueByFace = buildD10ValuesExactFromAdjacency(geo, faceGroups) || buildD10Values(faceGroups) || buildOppositePairingValues(faceGroups, sides);
       } else if ((sides === 12 || sides === 20) && faceGroups.length === sides) {
         if (sides === 20) {
           valueByFace = buildD20Values(geo, faceGroups) || buildOppositeSumValues(faceGroups, sides) || buildOppositePairingValues(faceGroups, sides);
         } else {
-          valueByFace = buildOppositeSumValues(faceGroups, sides) || buildOppositePairingValues(faceGroups, sides);
+          valueByFace = buildD12ValuesExactFromAdjacency(geo, faceGroups) || buildOppositeSumValues(faceGroups, sides) || buildOppositePairingValues(faceGroups, sides);
         }
       } else {
         valueByFace = buildOppositePairingValues(faceGroups, sides);
