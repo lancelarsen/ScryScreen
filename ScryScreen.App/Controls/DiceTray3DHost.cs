@@ -14,6 +14,9 @@ public sealed class DiceTray3DHost : WebView2Host
     public event EventHandler<int>? DieClicked;
     public event EventHandler<DieRotationChangedEventArgs>? DieRotationChanged;
     public event EventHandler<DieRollCompletedEventArgs>? DieRollCompleted;
+    public event EventHandler? TrayReady;
+
+    public bool IsTrayReady { get; private set; }
 
     public sealed class DieRotationChangedEventArgs : EventArgs
     {
@@ -141,6 +144,40 @@ public sealed class DiceTray3DHost : WebView2Host
                 dieScale = c.DieScale,
                 numberScale = c.NumberScale,
             }),
+        };
+
+        PostWebMessage(JsonSerializer.Serialize(payload));
+    }
+
+    public void ClearBackdrop()
+    {
+        var payload = new
+        {
+            type = "setBackdrop",
+            kind = "none",
+            src = (string?)null,
+        };
+
+        PostWebMessage(JsonSerializer.Serialize(payload));
+    }
+
+    public void SetBackdrop(string kind, string src, string scaleMode, string align, bool loop = false, bool muted = true)
+    {
+        if (string.IsNullOrWhiteSpace(kind) || string.IsNullOrWhiteSpace(src))
+        {
+            ClearBackdrop();
+            return;
+        }
+
+        var payload = new
+        {
+            type = "setBackdrop",
+            kind,
+            src,
+            scaleMode,
+            align,
+            loop,
+            muted,
         };
 
         PostWebMessage(JsonSerializer.Serialize(payload));
@@ -292,6 +329,14 @@ public sealed class DiceTray3DHost : WebView2Host
                 }
 
                 Debug.WriteLine($"[DiceTray] configAck rev={revision?.ToString() ?? "-"} dice={diceCount} configs={configCount}{(firstDie is null ? "" : " " + firstDie)}");
+                return;
+            }
+
+            if (string.Equals(type, "trayReady", StringComparison.OrdinalIgnoreCase))
+            {
+                IsTrayReady = true;
+                Debug.WriteLine("[DiceTray] trayReady");
+                TrayReady?.Invoke(this, EventArgs.Empty);
                 return;
             }
         }

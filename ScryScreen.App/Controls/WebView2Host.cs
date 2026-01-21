@@ -128,6 +128,16 @@ public class WebView2Host : NativeControlHost
             _webView = _controller.CoreWebView2;
             _isInitialized = true;
 
+            try
+            {
+                // Allow the hosted HTML/Canvas to be transparent so content behind the window can show through.
+                _controller.DefaultBackgroundColor = System.Drawing.Color.Transparent;
+            }
+            catch
+            {
+                // ignore
+            }
+
             _controller.IsVisible = true;
             UpdateBounds();
 

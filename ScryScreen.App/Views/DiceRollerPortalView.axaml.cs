@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using ScryScreen.App.Controls;
 using ScryScreen.App.Services;
@@ -50,10 +52,17 @@ public partial class DiceRollerPortalView : UserControl
     private double _animHeight;
 
     private DiceRollerPortalViewModel? _vm;
+    private PortalWindowViewModel? _portalVm;
     private DiceTray3DHost? _tray;
     private long _lastRollRequestId;
     private long _lastClearDiceId;
     private long _lastVisualConfigRevision;
+
+    private Bitmap? _lastBackdropImage;
+    private string? _lastBackdropImageDataUrl;
+    private string? _lastBackdropVideoPath;
+    private MediaScaleMode _lastBackdropScaleMode;
+    private MediaAlign _lastBackdropAlign;
 
     public DiceRollerPortalView()
     {
@@ -68,19 +77,67 @@ public partial class DiceRollerPortalView : UserControl
             if (_tray is not null)
             {
                 _tray.DieRollCompleted += OnTrayDieRollCompleted;
+                _tray.TrayReady += OnTrayReady;
             }
+            HookPortalVm();
             HookVm();
         };
         DetachedFromVisualTree += (_, _) =>
         {
             UnhookVm();
+            UnhookPortalVm();
             if (_tray is not null)
             {
                 _tray.DieRollCompleted -= OnTrayDieRollCompleted;
+                _tray.TrayReady -= OnTrayReady;
             }
             _tray = null;
         };
         DataContextChanged += (_, _) => HookVm();
+    }
+
+    private void HookPortalVm()
+    {
+        UnhookPortalVm();
+
+        // This view is hosted inside PortalWindow/PortalOverlayWindow; their DataContext is PortalWindowViewModel.
+        _portalVm = TopLevel.GetTopLevel(this)?.DataContext as PortalWindowViewModel;
+        if (_portalVm is not null)
+        {
+            _portalVm.PropertyChanged += OnPortalVmPropertyChanged;
+            Dispatcher.UIThread.Post(ApplyBackdropToTray, DispatcherPriority.Render);
+        }
+    }
+
+    private void UnhookPortalVm()
+    {
+        if (_portalVm is not null)
+        {
+            _portalVm.PropertyChanged -= OnPortalVmPropertyChanged;
+        }
+
+        _portalVm = null;
+        _lastBackdropImage = null;
+        _lastBackdropImageDataUrl = null;
+        _lastBackdropVideoPath = null;
+    }
+
+    private void OnPortalVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_portalVm is null)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(PortalWindowViewModel.ContentImage)
+            || e.PropertyName == nameof(PortalWindowViewModel.ContentVideoPath)
+            || e.PropertyName == nameof(PortalWindowViewModel.IsShowingImage)
+            || e.PropertyName == nameof(PortalWindowViewModel.IsShowingVideo)
+            || e.PropertyName == nameof(PortalWindowViewModel.ScaleMode)
+            || e.PropertyName == nameof(PortalWindowViewModel.Align))
+        {
+            Dispatcher.UIThread.Post(ApplyBackdropToTray, DispatcherPriority.Render);
+        }
     }
 
     private void HookVm()
@@ -94,6 +151,147 @@ public partial class DiceRollerPortalView : UserControl
             // Force a config push on initial attach.
             _lastVisualConfigRevision = long.MinValue;
             Dispatcher.UIThread.Post(ApplyVisualConfigToTray, DispatcherPriority.Render);
+        }
+    }
+
+    private void OnTrayReady(object? sender, EventArgs e)
+    {
+        // JS side has attached its message listener; re-push config to avoid early-send race.
+        if (_tray is null)
+        {
+            return;
+        }
+
+        // Force a resend of any pending state now that the tray can receive messages.
+        _lastVisualConfigRevision = long.MinValue;
+        _lastClearDiceId = 0;
+        _lastRollRequestId = 0;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            ApplyBackdropToTray();
+            ApplyVisualConfigToTray();
+            ApplyClearToTray();
+            ApplyRollRequestToTray();
+            ApplyRotationsToTray();
+        }, DispatcherPriority.Render);
+    }
+
+    private void ApplyBackdropToTray()
+    {
+        if (_tray is null)
+        {
+            return;
+        }
+
+        if (!_tray.IsTrayReady)
+        {
+            return;
+        }
+
+        var portal = _portalVm;
+        if (portal is null)
+        {
+            _tray.ClearBackdrop();
+            return;
+        }
+
+        var scaleMode = portal.ScaleMode;
+        var align = portal.Align;
+
+        // Avoid resending if nothing relevant changed.
+        var vidPath = portal.IsShowingVideo ? portal.ContentVideoPath : null;
+        var img = portal.IsShowingImage ? portal.ContentImage : null;
+
+        if (vidPath is not null)
+        {
+            if (string.Equals(_lastBackdropVideoPath, vidPath, StringComparison.Ordinal)
+                && _lastBackdropScaleMode == scaleMode
+                && _lastBackdropAlign == align)
+            {
+                return;
+            }
+
+            _lastBackdropVideoPath = vidPath;
+            _lastBackdropImage = null;
+            _lastBackdropImageDataUrl = null;
+            _lastBackdropScaleMode = scaleMode;
+            _lastBackdropAlign = align;
+
+            var uri = new Uri(vidPath, UriKind.Absolute);
+            _tray.SetBackdrop(
+                kind: "video",
+                src: uri.AbsoluteUri,
+                scaleMode: scaleMode == MediaScaleMode.FillWidth ? "fillWidth" : "fillHeight",
+                align: align.ToString().ToLowerInvariant(),
+                loop: false,
+                muted: true);
+            return;
+        }
+
+        if (img is not null)
+        {
+            if (ReferenceEquals(_lastBackdropImage, img)
+                && _lastBackdropScaleMode == scaleMode
+                && _lastBackdropAlign == align
+                && !string.IsNullOrWhiteSpace(_lastBackdropImageDataUrl))
+            {
+                return;
+            }
+
+            _lastBackdropVideoPath = null;
+            _lastBackdropScaleMode = scaleMode;
+            _lastBackdropAlign = align;
+
+            if (!ReferenceEquals(_lastBackdropImage, img) || string.IsNullOrWhiteSpace(_lastBackdropImageDataUrl))
+            {
+                _lastBackdropImage = img;
+                _lastBackdropImageDataUrl = TryEncodePngDataUrl(img);
+            }
+
+            if (string.IsNullOrWhiteSpace(_lastBackdropImageDataUrl))
+            {
+                _tray.ClearBackdrop();
+                return;
+            }
+
+            _tray.SetBackdrop(
+                kind: "image",
+                src: _lastBackdropImageDataUrl,
+                scaleMode: scaleMode == MediaScaleMode.FillWidth ? "fillWidth" : "fillHeight",
+                align: align.ToString().ToLowerInvariant(),
+                loop: false,
+                muted: true);
+            return;
+        }
+
+        if (_lastBackdropVideoPath is null && _lastBackdropImage is null)
+        {
+            return;
+        }
+
+        _lastBackdropVideoPath = null;
+        _lastBackdropImage = null;
+        _lastBackdropImageDataUrl = null;
+        _tray.ClearBackdrop();
+    }
+
+    private static string? TryEncodePngDataUrl(Bitmap bitmap)
+    {
+        try
+        {
+            using var ms = new MemoryStream();
+            bitmap.Save(ms);
+            var bytes = ms.ToArray();
+            if (bytes.Length == 0)
+            {
+                return null;
+            }
+            return "data:image/png;base64," + Convert.ToBase64String(bytes);
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -148,6 +346,12 @@ public partial class DiceRollerPortalView : UserControl
             return;
         }
 
+        if (!_tray.IsTrayReady)
+        {
+            // Avoid sending config before JS is ready (it can be dropped, causing default-size flicker).
+            return;
+        }
+
         if (_vm.VisualConfigRevision == _lastVisualConfigRevision)
         {
             return;
@@ -171,6 +375,11 @@ public partial class DiceRollerPortalView : UserControl
             return;
         }
 
+        if (!_tray.IsTrayReady)
+        {
+            return;
+        }
+
         if (_vm.ClearDiceId == _lastClearDiceId)
         {
             return;
@@ -183,6 +392,11 @@ public partial class DiceRollerPortalView : UserControl
     private void ApplyRollRequestToTray()
     {
         if (_tray is null || _vm is null)
+        {
+            return;
+        }
+
+        if (!_tray.IsTrayReady)
         {
             return;
         }
@@ -210,6 +424,11 @@ public partial class DiceRollerPortalView : UserControl
     private void ApplyRotationsToTray()
     {
         if (_tray is null || _vm is null)
+        {
+            return;
+        }
+
+        if (!_tray.IsTrayReady)
         {
             return;
         }

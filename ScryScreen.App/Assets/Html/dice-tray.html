@@ -5,13 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ScryScreen Dice Tray</title>
   <style>
-    html, body { width:100%; height:100%; margin:0; padding:0; overflow:hidden; background:#0A0F18; }
-    #c { display:block; width:100%; height:100%; }
+    html, body { width:100%; height:100%; margin:0; padding:0; overflow:hidden; background:#000; }
+    #bg { position:absolute; left:0; top:0; right:0; bottom:0; overflow:hidden; }
+    #bgImg, #bgVid { position:absolute; left:0; top:0; display:none; }
+    #bgVid { background:black; }
+    #c { position:absolute; left:0; top:0; width:100%; height:100%; display:block; }
     .hint { position:absolute; left:10px; top:8px; color:#94a3b8; font: 12px/1.2 system-ui, Segoe UI, sans-serif; opacity:0.85; user-select:none; }
-    .hud { position:absolute; left:10px; top:26px; color:#a1a1aa; font: 11px/1.25 system-ui, Segoe UI, sans-serif; opacity:0.9; user-select:none; pointer-events:none; background: rgba(2,6,23,0.35); padding: 4px 6px; border-radius: 6px; white-space: pre; }
+    .hud { position:absolute; left:10px; top:26px; color:#a1a1aa; font: 11px/1.25 system-ui, Segoe UI, sans-serif; opacity:0.9; user-select:none; pointer-events:none; background: rgba(2,6,23,0.25); padding: 4px 6px; border-radius: 6px; white-space: pre; }
   </style>
 </head>
 <body>
+  <div id="bg">
+    <img id="bgImg" alt="" />
+    <video id="bgVid" playsinline muted loop></video>
+  </div>
   <canvas id="c"></canvas>
   <div class="hint">Click a die: d4 d6 d8 d10 d12 d20 (d100 from app)</div>
   <div id="hud" class="hud"></div>
@@ -20,6 +27,8 @@
     import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
     const canvas = document.getElementById('c');
+    const bgImg = document.getElementById('bgImg');
+    const bgVid = document.getElementById('bgVid');
     const hudEl = document.getElementById('hud');
     const hudState = {
       lastMsgType: '(none)',
@@ -93,10 +102,138 @@
       }
     }
 
+    const backdropState = {
+      kind: 'none',
+      src: null,
+      scaleMode: 'fillHeight',
+      align: 'center',
+      loop: false,
+      muted: true,
+    };
+
+    function clamp01(x) {
+      if (!Number.isFinite(x)) return 0;
+      return Math.max(0, Math.min(1, x));
+    }
+
+    function alignFactor(align) {
+      const a = String(align || '').toLowerCase();
+      switch (a) {
+        case 'start': return 0.0;
+        case 'end': return 1.0;
+        default: return 0.5;
+      }
+    }
+
+    function setBackdropLayoutFor(el, mediaW, mediaH) {
+      if (!el || !Number.isFinite(mediaW) || !Number.isFinite(mediaH) || mediaW <= 0 || mediaH <= 0) return;
+      const hostW = canvas.clientWidth;
+      const hostH = canvas.clientHeight;
+      if (!Number.isFinite(hostW) || !Number.isFinite(hostH) || hostW <= 0 || hostH <= 0) return;
+
+      const mode = String(backdropState.scaleMode || 'fillHeight').toLowerCase();
+      const isFillHeight = (mode === 'fillheight');
+
+      // Match PortalWindow.axaml.cs logic:
+      // - Fill Height: scale to fill HEIGHT, align horizontally (crop L/C/R)
+      // - Fill Width: scale to fill WIDTH, align vertically (crop T/C/B)
+      const scale = isFillHeight ? (hostH / mediaH) : (hostW / mediaW);
+      if (!Number.isFinite(scale) || scale <= 0) return;
+
+      const w = mediaW * scale;
+      const h = mediaH * scale;
+
+      // Start centered on both axes
+      let left = (hostW - w) * 0.5;
+      let top = (hostH - h) * 0.5;
+
+      const a = alignFactor(backdropState.align);
+
+      if (isFillHeight) {
+        // Horizontal alignment (Start/Center/End)
+        left = (hostW - w) * a;
+      } else {
+        // Vertical alignment (Start/Center/End)
+        top = (hostH - h) * a;
+      }
+
+      el.style.width = `${w}px`;
+      el.style.height = `${h}px`;
+      el.style.left = `${left}px`;
+      el.style.top = `${top}px`;
+    }
+
+    function layoutBackdrop() {
+      try {
+        if (backdropState.kind === 'image' && bgImg && bgImg.style.display !== 'none') {
+          const mw = bgImg.naturalWidth;
+          const mh = bgImg.naturalHeight;
+          setBackdropLayoutFor(bgImg, mw, mh);
+        }
+        if (backdropState.kind === 'video' && bgVid && bgVid.style.display !== 'none') {
+          const mw = bgVid.videoWidth;
+          const mh = bgVid.videoHeight;
+          if (Number.isFinite(mw) && mw > 0 && Number.isFinite(mh) && mh > 0) {
+            setBackdropLayoutFor(bgVid, mw, mh);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    function applyBackdrop(next) {
+      try {
+        const kind = String(next?.kind || next?.mode || next?.type || 'none').toLowerCase();
+        const src = (typeof next?.src === 'string' && next.src.length > 0) ? next.src : null;
+        const scaleMode = String(next?.scaleMode || 'fillHeight');
+        const align = String(next?.align || 'center');
+        const loop = !!next?.loop;
+        const muted = (next?.muted == null) ? true : !!next.muted;
+
+        backdropState.kind = (kind === 'image' || kind === 'video') ? kind : 'none';
+        backdropState.src = src;
+        backdropState.scaleMode = scaleMode;
+        backdropState.align = align;
+        backdropState.loop = loop;
+        backdropState.muted = muted;
+
+        if (bgImg) {
+          bgImg.style.display = (backdropState.kind === 'image' && src) ? 'block' : 'none';
+          if (backdropState.kind === 'image' && src) {
+            if (bgImg.src !== src) bgImg.src = src;
+            // Wait for image to load before attempting layout
+            if (bgImg.naturalWidth === 0 || bgImg.naturalHeight === 0) {
+              bgImg.onload = layoutBackdrop;
+            } else {
+              layoutBackdrop();
+            }
+          }
+        }
+
+        if (bgVid) {
+          bgVid.style.display = (backdropState.kind === 'video' && src) ? 'block' : 'none';
+          if (backdropState.kind === 'video' && src) {
+            bgVid.loop = loop;
+            bgVid.muted = muted;
+            if (bgVid.src !== src) bgVid.src = src;
+            bgVid.onloadedmetadata = layoutBackdrop;
+            try { bgVid.currentTime = 0; } catch { }
+            try { bgVid.play(); } catch { }
+          } else {
+            try { bgVid.pause(); } catch { }
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     hudSet(null);
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setClearColor(0x0A0F18, 1);
+    // Transparent canvas so the portal/window behind can show through.
+    renderer.setClearColor(0x000000, 0);
     // Unlit mode: keep dice readable everywhere; no lighting required.
     renderer.physicallyCorrectLights = false;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -2005,6 +2142,7 @@
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       updateRollPlaneBasis();
+      layoutBackdrop();
     }
 
     window.addEventListener('resize', resize);
@@ -2690,6 +2828,10 @@
             });
             return;
           }
+          if (msg.type === 'setBackdrop') {
+            applyBackdrop(msg);
+            return;
+          }
           if (msg.type === 'preview') setPreview();
           if (msg.type === 'roll') showRollResults(msg.dice || []);
           if (msg.type === 'rollRandom') {
@@ -2736,6 +2878,9 @@
           try { hudSet({ lastError: (e && e.message) ? String(e.message) : 'message handler error' }); } catch { }
         }
       });
+
+      // Signal readiness back to the host so it can safely push initial config.
+      postHostJson({ type: 'trayReady' });
     }
 
     // Default: no dice until explicitly requested.
