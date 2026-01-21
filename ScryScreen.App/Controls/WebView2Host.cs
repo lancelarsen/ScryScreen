@@ -19,6 +19,18 @@ public class WebView2Host : NativeControlHost
     private bool _isInitialized;
     private string? _pendingPostMessage;
 
+    private static Task<CoreWebView2Environment?>? s_environmentTask;
+
+    public static void WarmUpWebView2()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        _ = GetEnvironmentAsync();
+    }
+
     public event EventHandler<string>? WebMessageReceived;
 
     public void PostWebMessage(string message)
@@ -116,14 +128,12 @@ public class WebView2Host : NativeControlHost
 
         try
         {
-            var userDataFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ScryScreen",
-                "WebView2");
+            var env = await GetEnvironmentAsync();
+            if (env is null)
+            {
+                return;
+            }
 
-            Directory.CreateDirectory(userDataFolder);
-
-            var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
             _controller = await env.CreateCoreWebView2ControllerAsync(_hwnd);
             _webView = _controller.CoreWebView2;
             _isInitialized = true;
@@ -165,6 +175,35 @@ public class WebView2Host : NativeControlHost
         catch
         {
             // If WebView2 runtime is missing or init fails, just no-op.
+        }
+    }
+
+    private static Task<CoreWebView2Environment?> GetEnvironmentAsync()
+    {
+        if (s_environmentTask is not null)
+        {
+            return s_environmentTask;
+        }
+
+        s_environmentTask = CreateEnvironmentAsync();
+        return s_environmentTask;
+    }
+
+    private static async Task<CoreWebView2Environment?> CreateEnvironmentAsync()
+    {
+        try
+        {
+            var userDataFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ScryScreen",
+                "WebView2");
+
+            Directory.CreateDirectory(userDataFolder);
+            return await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+        }
+        catch
+        {
+            return null;
         }
     }
 

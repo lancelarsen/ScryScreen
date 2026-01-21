@@ -4,6 +4,7 @@ using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using Avalonia.Markup.Xaml;
+using ScryScreen.App.Controls;
 using ScryScreen.App.ViewModels;
 using ScryScreen.App.Services;
 using ScryScreen.App.Views;
@@ -27,6 +28,10 @@ public partial class App : Application
 
             var mainWindow = new MainWindow();
             ErrorReporter.Initialize(mainWindow);
+
+            // Start WebView2 environment early to reduce first-use flashing when Dice Tray appears.
+            WebView2Host.WarmUpWebView2();
+
             var portalHost = new PortalHostService(mainWindow);
             var vm = new MainWindowViewModel(portalHost);
             mainWindow.DataContext = vm;

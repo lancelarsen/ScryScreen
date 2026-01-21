@@ -85,6 +85,9 @@ public partial class DiceRollerViewModel : ViewModelBase
     private bool showDiceConfiguration;
 
     [ObservableProperty]
+    private bool showDebugInfo;
+
+    [ObservableProperty]
     private DiceRollDirection rollDirection = DiceRollDirection.Right;
 
     [ObservableProperty]
@@ -93,7 +96,7 @@ public partial class DiceRollerViewModel : ViewModelBase
     public DiceRollerState SnapshotState()
     {
         // Keep the portal overlay alive so dice can appear immediately when requested.
-        var text = string.IsNullOrWhiteSpace(LastResultText) ? "Dice Roller" : LastResultText;
+        var text = string.IsNullOrWhiteSpace(LastResultText) ? "Dice Tray" : LastResultText;
         var rotations = _rotationsBySides.Count == 0
             ? Array.Empty<DiceDieRotation>()
             : _rotationsBySides.Values.OrderBy(r => r.Sides).ToArray();
@@ -121,7 +124,8 @@ public partial class DiceRollerViewModel : ViewModelBase
             VisualConfigRevision: _visualConfigRevision,
             RollDirection,
             _lastIssuedRollRequest,
-            _clearDiceIdCounter);
+            _clearDiceIdCounter,
+            DebugVisible: ShowDebugInfo);
     }
 
     public bool IsRollDirectionRight => RollDirection == DiceRollDirection.Right;
@@ -318,6 +322,11 @@ public partial class DiceRollerViewModel : ViewModelBase
     }
 
     partial void OnShowDiceConfigurationChanged(bool value)
+    {
+        StateChanged?.Invoke();
+    }
+
+    partial void OnShowDebugInfoChanged(bool value)
     {
         StateChanged?.Invoke();
     }

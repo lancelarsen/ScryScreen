@@ -113,11 +113,20 @@
               CornerRadius="10"
               Padding="12">
         <Grid RowDefinitions="Auto,*" RowSpacing="10">
-          <Grid Grid.Row="0" ColumnDefinitions="*" ColumnSpacing="10" VerticalAlignment="Center">
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
             <TextBlock Grid.Column="0"
                        Text="Dice Configuration"
                        Foreground="{DynamicResource ScryTextMuted}"
                        FontWeight="SemiBold" />
+
+            <ToggleButton Grid.Column="1"
+                          Width="28" Height="28"
+                  Classes="circleSmall"
+                          IsChecked="{Binding ShowDebugInfo, Mode=TwoWay}"
+                          ToolTip.Tip="Show debug info">
+              <i:Icon Value="mdi-bug-outline" FontSize="18"
+                      Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+            </ToggleButton>
           </Grid>
 
           <ItemsControl Grid.Row="1" ItemsSource="{Binding DiceVisualConfigs}">

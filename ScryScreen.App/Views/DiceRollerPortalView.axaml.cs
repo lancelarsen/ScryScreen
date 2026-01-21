@@ -57,6 +57,7 @@ public partial class DiceRollerPortalView : UserControl
     private long _lastRollRequestId;
     private long _lastClearDiceId;
     private long _lastVisualConfigRevision;
+    private bool? _lastDebugVisible;
 
     private Bitmap? _lastBackdropImage;
     private string? _lastBackdropImageDataUrl;
@@ -166,9 +167,11 @@ public partial class DiceRollerPortalView : UserControl
         _lastVisualConfigRevision = long.MinValue;
         _lastClearDiceId = 0;
         _lastRollRequestId = 0;
+        _lastDebugVisible = null;
 
         Dispatcher.UIThread.Post(() =>
         {
+            ApplyDebugToTray();
             ApplyBackdropToTray();
             ApplyVisualConfigToTray();
             ApplyClearToTray();
@@ -337,6 +340,37 @@ public partial class DiceRollerPortalView : UserControl
         {
             Dispatcher.UIThread.Post(ApplyVisualConfigToTray, DispatcherPriority.Render);
         }
+
+        if (e.PropertyName == nameof(DiceRollerPortalViewModel.VisualConfigs) && _vm is not null)
+        {
+            Dispatcher.UIThread.Post(ApplyVisualConfigToTray, DispatcherPriority.Render);
+        }
+
+        if (e.PropertyName == nameof(DiceRollerPortalViewModel.DebugVisible) && _vm is not null)
+        {
+            Dispatcher.UIThread.Post(ApplyDebugToTray, DispatcherPriority.Render);
+        }
+    }
+
+    private void ApplyDebugToTray()
+    {
+        if (_tray is null || _vm is null)
+        {
+            return;
+        }
+
+        if (!_tray.IsTrayReady)
+        {
+            return;
+        }
+
+        if (_lastDebugVisible == _vm.DebugVisible)
+        {
+            return;
+        }
+
+        _lastDebugVisible = _vm.DebugVisible;
+        _tray.SetDebugVisible(_vm.DebugVisible);
     }
 
     private void ApplyVisualConfigToTray()

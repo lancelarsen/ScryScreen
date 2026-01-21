@@ -1591,7 +1591,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(state.Text))
         {
             state = new DiceRollerState(
-                "Dice Roller",
+                "Dice Tray",
                 state.OverlayOpacity,
                 state.RollId,
                 state.Rotations,
@@ -1599,7 +1599,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 state.VisualConfigRevision,
                 state.RollDirection,
                 state.RollRequest,
-                state.ClearDiceId);
+                state.ClearDiceId,
+                state.DebugVisible);
         }
 
         _portalHost.SetContentDiceRollerOverlay(portal.PortalNumber, state);

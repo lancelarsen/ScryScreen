@@ -1138,7 +1138,7 @@
                                                         <!-- centered title -->
                                                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
                                                             <TextBlock Text="Dice" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" />
-                                                            <TextBlock Text="Roller" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" />
+                                                            <TextBlock Text="Tray" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" />
                                                         </StackPanel>
                                                     </Grid>
                                                 </Border>
@@ -1960,7 +1960,7 @@
                         </Grid>
                     </Border>
 
-                    <!-- Apps controls (Dice Roller) -->
+                    <!-- Apps controls (Dice Tray) -->
                     <Border Classes="card" Padding="10" IsVisible="{Binding IsDiceRollerControlsVisible}">
                         <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
                             <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
@@ -1977,7 +1977,7 @@
                                         <DataTemplate x:DataType="vm:PortalRowViewModel" x:CompileBindings="False">
                                             <ToggleButton Classes="circleSmall"
                                                           Content="{Binding PortalNumber}"
-                                                          ToolTip.Tip="Show Dice Roller on this Portal"
+                                                          ToolTip.Tip="Show Dice Tray on this Portal"
                                                           IsChecked="{Binding IsSelectedForDiceRoller, Mode=OneWay}"
                                                           Command="{Binding DataContext.ToggleDiceRollerForPortalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                           CommandParameter="{Binding .}" />
@@ -2009,8 +2009,13 @@
                             <views:DiceRollerView Grid.Row="1" DataContext="{Binding DiceRoller}" />
                         </Grid>
                     </Border>
-            </Grid>
-        </Border>
-    </Grid>
+                        </Grid>
+                </Border>
+
+                <!-- Warm-up hidden Dice Tray WebView2 so first visible use doesn't flash/load as much -->
+                <Canvas Grid.Row="0" Grid.RowSpan="4" ClipToBounds="True" IsHitTestVisible="False">
+                    <controls:DiceTray3DHost Width="1" Height="1" Canvas.Left="-2000" Canvas.Top="-2000" />
+                </Canvas>
+        </Grid>
 
 </Window>

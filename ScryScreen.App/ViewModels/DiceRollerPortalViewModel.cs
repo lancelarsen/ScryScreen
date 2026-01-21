@@ -36,6 +36,9 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
     [ObservableProperty]
     private long clearDiceId;
 
+    [ObservableProperty]
+    private bool debugVisible;
+
     public bool HasText => !string.IsNullOrWhiteSpace(Text);
 
     partial void OnTextChanged(string value) => OnPropertyChanged(nameof(HasText));
@@ -50,5 +53,6 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
         VisualConfigs = state.VisualConfigs ?? Array.Empty<DiceDieVisualConfig>();
         VisualConfigRevision = state.VisualConfigRevision;
         ClearDiceId = state.ClearDiceId;
+        DebugVisible = state.DebugVisible;
     }
 }

@@ -183,6 +183,17 @@ public sealed class DiceTray3DHost : WebView2Host
         PostWebMessage(JsonSerializer.Serialize(payload));
     }
 
+    public void SetDebugVisible(bool visible)
+    {
+        var payload = new
+        {
+            type = "setDebug",
+            visible,
+        };
+
+        PostWebMessage(JsonSerializer.Serialize(payload));
+    }
+
     private void OnWebMessageReceived(object? sender, string message)
     {
         try

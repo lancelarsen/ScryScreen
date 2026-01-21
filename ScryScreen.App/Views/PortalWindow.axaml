@@ -129,7 +129,7 @@
         <views:InitiativeTrackerPortalView DataContext="{Binding Initiative}" />
       </Grid>
 
-      <!-- Dice Roller overlay -->
+      <!-- Dice Tray overlay -->
       <Grid IsVisible="{Binding IsShowingDiceRoller}" IsHitTestVisible="False">
         <views:DiceRollerPortalView DataContext="{Binding DiceRoller}"
                                    HorizontalAlignment="Stretch"

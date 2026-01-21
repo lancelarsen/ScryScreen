@@ -24,7 +24,8 @@ public sealed record DiceRollerState(
     long VisualConfigRevision = 0,
     DiceRollDirection RollDirection = DiceRollDirection.Right,
     DiceRollRequest? RollRequest = null,
-    long ClearDiceId = 0)
+    long ClearDiceId = 0,
+    bool DebugVisible = false)
 {
     public static DiceRollerState Default { get; } = new(
         Text: string.Empty,
@@ -32,5 +33,6 @@ public sealed record DiceRollerState(
         RollId: 0,
         Rotations: System.Array.Empty<DiceDieRotation>(),
         VisualConfigs: System.Array.Empty<DiceDieVisualConfig>(),
-        VisualConfigRevision: 0);
+        VisualConfigRevision: 0,
+        DebugVisible: false);
 }
