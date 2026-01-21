@@ -12,7 +12,7 @@
 </head>
 <body>
   <canvas id="c"></canvas>
-  <div class="hint">Click a die: d4 d6 d8 d10 d12 d20</div>
+  <div class="hint">Click a die: d4 d6 d8 d10 d12 d20 (d100 from app)</div>
 
   <script type="module">
     import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
@@ -182,7 +182,8 @@
       ctx.fillText(s, 256, 256);
 
       // Underline 6/9 so they can't be confused when rotated.
-      if (s === '6' || s === '9') {
+      // Also underline percentile tens (e.g. 60/90) for the same reason.
+      if (s === '6' || s === '9' || s === '60' || s === '90') {
         let desc = 80;
         let w = 160;
         try {
@@ -1363,7 +1364,13 @@
         }
         const labelSize = Math.max(0.24, Math.min(0.62, Math.sqrt(area) * 0.90));
 
-        const displayText = (sides === 10 && v === 10) ? '0' : String(v);
+        let displayText;
+        if (mesh.userData && mesh.userData.labelMode === 'd100Tens') {
+          const digit = (v === 10) ? 0 : v;
+          displayText = (digit === 0) ? '00' : String(digit * 10);
+        } else {
+          displayText = (sides === 10 && v === 10) ? '0' : String(v);
+        }
         const label = createFaceLabelPlane(displayText, labelSize);
         label.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(zAxis, g.normal.clone().normalize()));
         label.position.copy(g.center).add(g.normal.clone().multiplyScalar(offset));
@@ -1579,11 +1586,12 @@
       return v;
     }
 
-    function makeDie(sides, geometry, faceGroups, valueByFace) {
+    function makeDie(sides, geometry, faceGroups, valueByFace, labelMode = null) {
       const mesh = new THREE.Mesh(geometry, baseMat.clone());
       mesh.castShadow = true;
       mesh.receiveShadow = false;
       mesh.userData = { sides };
+      if (labelMode) mesh.userData.labelMode = labelMode;
 
       // User request: dice should be half the size.
       mesh.scale.setScalar(DICE_SCALE);
@@ -1597,7 +1605,9 @@
         12: 0xe7e5e4,
         20: 0xf5f5f4,
       };
-      mesh.material.color.setHex(tints[sides] || 0xf3f4f6);
+      let tint = tints[sides] || 0xf3f4f6;
+      if (labelMode === 'd100Tens') tint = 0xfffbeb;
+      mesh.material.color.setHex(tint);
       // Ensure cloned materials keep the same shading model and pick up env changes.
       mesh.material.flatShading = true;
       mesh.material.needsUpdate = true;
@@ -1690,7 +1700,7 @@
       dice.length = 0;
     }
 
-    function spawnDie(sides) {
+    function spawnDie(sides, labelMode = null) {
       const tpl = dieTemplates.get(sides);
       if (!tpl) return null;
 
@@ -1704,7 +1714,7 @@
         try { scene.remove(victim.lines); } catch { }
       }
 
-      const mesh = makeDie(sides, tpl.geo, tpl.faceGroups, tpl.valueByFace);
+      const mesh = makeDie(sides, tpl.geo, tpl.faceGroups, tpl.valueByFace, labelMode);
       const lines = makeEdges(mesh);
       mesh.userData.radius = tpl.baseRadius;
       mesh.userData.instanceId = (++_dieInstanceCounter);
@@ -1713,6 +1723,38 @@
       const d = { mesh, lines, sides, anim: null };
       dice.push(d);
       return d;
+    }
+
+    const d100GroupsByRequestId = new Map();
+
+    function recordD100Part(requestId, part, rawValue) {
+      let st = d100GroupsByRequestId.get(requestId);
+      if (!st) {
+        st = { ones: null, tens: null };
+        d100GroupsByRequestId.set(requestId, st);
+      }
+      if (part === 'ones') st.ones = rawValue;
+      if (part === 'tens') st.tens = rawValue;
+
+      if (!Number.isFinite(st.ones) || !Number.isFinite(st.tens)) return;
+
+      const ones = (st.ones === 10) ? 0 : st.ones;
+      const tensDigit = (st.tens === 10) ? 0 : st.tens;
+      let total = tensDigit * 10 + ones;
+      if (total === 0) total = 100;
+
+      try {
+        if (window.chrome && window.chrome.webview) {
+          window.chrome.webview.postMessage(JSON.stringify({
+            type: 'rollResult',
+            requestId,
+            sides: 100,
+            value: total,
+          }));
+        }
+      } catch { }
+
+      d100GroupsByRequestId.delete(requestId);
     }
 
     function fract(x) { return x - Math.floor(x); }
@@ -2232,8 +2274,25 @@
       return bestVal;
     }
 
-    function kickRandomRoll(d, requestId) {
-      const seed = (Number(requestId) * 10007) + (d.sides * 97);
+    function normalizeRollDirection(dir) {
+      const s = (dir || '').toString().toLowerCase();
+      if (s === 'left' || s === 'right' || s === 'up' || s === 'down') return s;
+      if (s === 'random' || s === 'rnd') return 'random';
+      return 'right';
+    }
+
+    function pickRollDirection(dir, seed) {
+      const d0 = normalizeRollDirection(dir);
+      if (d0 !== 'random') return d0;
+      const r = prng(seed + 123.45);
+      if (r < 0.25) return 'right';
+      if (r < 0.50) return 'left';
+      if (r < 0.75) return 'down';
+      return 'up';
+    }
+
+    function kickRandomRoll(d, requestId, seedSalt = 0, report = null, direction = 'right') {
+      const seed = (Number(requestId) * 10007) + (d.sides * 97) + (Number(seedSalt) * 131);
       const r1 = prng(seed + 1);
       const r2 = prng(seed + 2);
       const r3 = prng(seed + 3);
@@ -2262,9 +2321,30 @@
 
       const inst = (d.mesh.userData && Number.isFinite(d.mesh.userData.instanceId)) ? d.mesh.userData.instanceId : 0;
       const rv = prng(seed + 99 + inst * 11);
-      const startU = uLeft;
-      const startV = vMin + (vMax - vMin) * rv;
-      const laneW = Math.max(0.001, uRight - uLeft);
+      const dir = pickRollDirection(direction, seed);
+
+      let startU;
+      let startV;
+      let laneW;
+      if (dir === 'left') {
+        startU = uRight;
+        startV = vMin + (vMax - vMin) * rv;
+        laneW = Math.max(0.001, uRight - uLeft);
+      } else if (dir === 'down') {
+        startU = uLeft + (uRight - uLeft) * rv;
+        startV = vMax;
+        laneW = Math.max(0.001, vMax - vMin);
+      } else if (dir === 'up') {
+        startU = uLeft + (uRight - uLeft) * rv;
+        startV = vMin;
+        laneW = Math.max(0.001, vMax - vMin);
+      } else {
+        // right
+        startU = uLeft;
+        startV = vMin + (vMax - vMin) * rv;
+        laneW = Math.max(0.001, uRight - uLeft);
+      }
+
       const a = 9.0;
       const aApproach = 18.0;
 
@@ -2278,8 +2358,22 @@
 
       const maxAngle = 30 * (Math.PI / 180);
       const theta = (r2 * 2 - 1) * maxAngle;
-      const vu0 = v0 * Math.cos(theta);
-      const vv0 = v0 * Math.sin(theta);
+      let vu0;
+      let vv0;
+      if (dir === 'left') {
+        vu0 = -v0 * Math.cos(theta);
+        vv0 = v0 * Math.sin(theta);
+      } else if (dir === 'down') {
+        vv0 = -v0 * Math.cos(theta);
+        vu0 = v0 * Math.sin(theta);
+      } else if (dir === 'up') {
+        vv0 = v0 * Math.cos(theta);
+        vu0 = v0 * Math.sin(theta);
+      } else {
+        // right
+        vu0 = v0 * Math.cos(theta);
+        vv0 = v0 * Math.sin(theta);
+      }
 
       _tmpPos.copy(_rollPlanePoint)
         .addScaledVector(_rollPlaneRight, startU)
@@ -2295,6 +2389,7 @@
       d.anim = {
         type: 'physicsRandom',
         requestId,
+        report,
         t: 0,
         stopAfter,
         a,
@@ -2358,11 +2453,20 @@
           if (msg.type === 'rollRandom') {
             const requestId = Number(msg.requestId);
             const sides = Number(msg.sides);
+            const dir = msg.direction || msg.dir || 'right';
             if (!Number.isFinite(requestId) || requestId <= 0) return;
             if (!Number.isFinite(sides) || sides < 2 || sides > 100) return;
-            const d = spawnDie(sides);
-            if (!d) return;
-            kickRandomRoll(d, requestId);
+            if (sides === 100) {
+              const tens = spawnDie(10, 'd100Tens');
+              const ones = spawnDie(10, null);
+              if (!tens || !ones) return;
+              kickRandomRoll(tens, requestId, 1, { group: 'd100', part: 'tens' }, dir);
+              kickRandomRoll(ones, requestId, 2, { group: 'd100', part: 'ones' }, dir);
+            } else {
+              const d = spawnDie(sides);
+              if (!d) return;
+              kickRandomRoll(d, requestId, 0, null, dir);
+            }
             // Hide the old stage dice (if present) now that we're showing 3D dice.
           }
           if (msg.type === 'clearAll') {
@@ -2971,6 +3075,7 @@
               d.anim = {
                 type: 'tip',
                 requestId: d.anim.requestId,
+                report: d.anim.report,
                 value: v,
                 t: 0,
                 a: d.anim.a,
@@ -3094,15 +3199,20 @@
                 }
 
                 // If this tip was from a random roll request, report the settled value back to host.
-                if (window.chrome && window.chrome.webview && Number.isFinite(d.anim.requestId) && Number.isFinite(d.anim.value)) {
-                  try {
-                    window.chrome.webview.postMessage(JSON.stringify({
-                      type: 'rollResult',
-                      requestId: d.anim.requestId,
-                      sides: d.sides,
-                      value: d.anim.value,
-                    }));
-                  } catch { }
+                if (Number.isFinite(d.anim.requestId) && Number.isFinite(d.anim.value)) {
+                  const report = d.anim.report;
+                  if (report && report.group === 'd100' && (report.part === 'ones' || report.part === 'tens')) {
+                    recordD100Part(d.anim.requestId, report.part, d.anim.value);
+                  } else if (window.chrome && window.chrome.webview) {
+                    try {
+                      window.chrome.webview.postMessage(JSON.stringify({
+                        type: 'rollResult',
+                        requestId: d.anim.requestId,
+                        sides: d.sides,
+                        value: d.anim.value,
+                      }));
+                    } catch { }
+                  }
                 }
 
                 d.anim = null;

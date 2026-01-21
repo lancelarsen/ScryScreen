@@ -69,6 +69,11 @@ public sealed class DiceTray3DHost : WebView2Host
 
     public void RequestRandomRoll(long requestId, int sides)
     {
+        RequestRandomRoll(requestId, sides, ScryScreen.App.Models.DiceRollDirection.Right);
+    }
+
+    public void RequestRandomRoll(long requestId, int sides, ScryScreen.App.Models.DiceRollDirection direction)
+    {
         if (requestId <= 0)
         {
             return;
@@ -84,6 +89,7 @@ public sealed class DiceTray3DHost : WebView2Host
             type = "rollRandom",
             requestId,
             sides,
+            direction = direction.ToString().ToLowerInvariant(),
         };
 
         PostWebMessage(JsonSerializer.Serialize(payload));

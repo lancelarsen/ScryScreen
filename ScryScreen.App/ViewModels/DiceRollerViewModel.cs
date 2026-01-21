@@ -46,6 +46,9 @@ public partial class DiceRollerViewModel : ViewModelBase
     private double overlayOpacity;
 
     [ObservableProperty]
+    private DiceRollDirection rollDirection = DiceRollDirection.Right;
+
+    [ObservableProperty]
     private long rollId;
 
     public DiceRollerState SnapshotState()
@@ -55,8 +58,14 @@ public partial class DiceRollerViewModel : ViewModelBase
         var rotations = _rotationsBySides.Count == 0
             ? Array.Empty<DiceDieRotation>()
             : _rotationsBySides.Values.OrderBy(r => r.Sides).ToArray();
-        return new(text, OverlayOpacity, RollId, rotations, _lastIssuedRollRequest, _clearDiceIdCounter);
+        return new(text, OverlayOpacity, RollId, rotations, RollDirection, _lastIssuedRollRequest, _clearDiceIdCounter);
     }
+
+    public bool IsRollDirectionRight => RollDirection == DiceRollDirection.Right;
+    public bool IsRollDirectionLeft => RollDirection == DiceRollDirection.Left;
+    public bool IsRollDirectionUp => RollDirection == DiceRollDirection.Up;
+    public bool IsRollDirectionDown => RollDirection == DiceRollDirection.Down;
+    public bool IsRollDirectionRandom => RollDirection == DiceRollDirection.Random;
 
     private static bool TryParseSingleDie(string? expression, out int sides)
     {
@@ -123,9 +132,11 @@ public partial class DiceRollerViewModel : ViewModelBase
         if (TryParseSingleDie(Expression, out var sides))
         {
             RollId = ++_rollIdCounter;
-            _lastIssuedRollRequest = new DiceRollRequest(RequestId: RollId, Sides: sides);
+            _lastIssuedRollRequest = new DiceRollRequest(RequestId: RollId, Sides: sides, Direction: RollDirection);
             _pendingSingleDieRollsByRequestId[RollId] = _lastIssuedRollRequest;
-            LastResultText = $"Rolling 1d{sides}...";
+            LastResultText = sides == 100
+                ? "Rolling 1d100 (percentile)..."
+                : $"Rolling 1d{sides}...";
             StateChanged?.Invoke();
             return;
         }
@@ -164,7 +175,9 @@ public partial class DiceRollerViewModel : ViewModelBase
         LastErrorText = null;
         _pendingSingleDieRollsByRequestId.Remove(requestId);
 
-        LastResultText = $"1d{sides}({value}) = {value}";
+        LastResultText = sides == 100
+            ? $"1d100({value}) = {value}%"
+            : $"1d{sides}({value}) = {value}";
         History.Insert(0, LastResultText);
         while (History.Count > 20)
         {
@@ -192,6 +205,20 @@ public partial class DiceRollerViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void SetRollDirection(object? parameter)
+    {
+        if (parameter is null)
+        {
+            return;
+        }
+
+        if (Enum.TryParse<DiceRollDirection>(parameter.ToString(), ignoreCase: true, out var dir))
+        {
+            RollDirection = dir;
+        }
+    }
+
+    [RelayCommand]
     private void Clear()
     {
         LastErrorText = null;
@@ -201,6 +228,16 @@ public partial class DiceRollerViewModel : ViewModelBase
         _pendingSingleDieRollsByRequestId.Clear();
         _lastIssuedRollRequest = null;
         _clearDiceIdCounter++;
+        StateChanged?.Invoke();
+    }
+
+    partial void OnRollDirectionChanged(DiceRollDirection value)
+    {
+        OnPropertyChanged(nameof(IsRollDirectionRight));
+        OnPropertyChanged(nameof(IsRollDirectionLeft));
+        OnPropertyChanged(nameof(IsRollDirectionUp));
+        OnPropertyChanged(nameof(IsRollDirectionDown));
+        OnPropertyChanged(nameof(IsRollDirectionRandom));
         StateChanged?.Invoke();
     }
 

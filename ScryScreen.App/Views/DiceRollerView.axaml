@@ -46,6 +46,62 @@
                 Command="{Binding RollSingleDieCommand}" CommandParameter="4">
           <i:Icon Value="mdi-dice-d4-outline" FontSize="28" Foreground="{DynamicResource ScryTextMuted}" />
         </Button>
+
+        <!-- d100 / percentile (compact circle button) -->
+        <Button Width="28" Height="28"
+                Classes="circleSmall"
+                BorderThickness="2"
+                ToolTip.Tip="Roll d100 (percentile)"
+                Command="{Binding RollSingleDieCommand}" CommandParameter="100">
+          <TextBlock Text="%" FontSize="14" FontWeight="Bold"
+                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                     Margin="0,1,0,0" />
+        </Button>
+
+        <Border Width="1" Height="24" Background="{DynamicResource ScryBorder}" Opacity="0.7" Margin="2,0" />
+
+        <!-- Roll direction -->
+        <Button Width="28" Height="28"
+          Classes="circleSmall"
+          Classes.active="{Binding IsRollDirectionRight}"
+          ToolTip.Tip="Roll from left to right"
+          Command="{Binding SetRollDirectionCommand}" CommandParameter="Right">
+          <i:Icon Value="mdi-arrow-right" FontSize="18"
+            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+        </Button>
+        <Button Width="28" Height="28"
+          Classes="circleSmall"
+          Classes.active="{Binding IsRollDirectionLeft}"
+          ToolTip.Tip="Roll from right to left"
+          Command="{Binding SetRollDirectionCommand}" CommandParameter="Left">
+          <i:Icon Value="mdi-arrow-left" FontSize="18"
+            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+        </Button>
+        <Button Width="28" Height="28"
+          Classes="circleSmall"
+          Classes.active="{Binding IsRollDirectionDown}"
+          ToolTip.Tip="Roll from top to bottom"
+          Command="{Binding SetRollDirectionCommand}" CommandParameter="Down">
+          <i:Icon Value="mdi-arrow-down" FontSize="18"
+            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+        </Button>
+        <Button Width="28" Height="28"
+          Classes="circleSmall"
+          Classes.active="{Binding IsRollDirectionUp}"
+          ToolTip.Tip="Roll from bottom to top"
+          Command="{Binding SetRollDirectionCommand}" CommandParameter="Up">
+          <i:Icon Value="mdi-arrow-up" FontSize="18"
+            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+        </Button>
+        <Button Width="28" Height="28"
+          Classes="circleSmall"
+          Classes.active="{Binding IsRollDirectionRandom}"
+          ToolTip.Tip="Random roll direction"
+          Command="{Binding SetRollDirectionCommand}" CommandParameter="Random">
+          <i:Icon Value="mdi-shuffle-variant" FontSize="18"
+            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+        </Button>
       </StackPanel>
 
       <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
