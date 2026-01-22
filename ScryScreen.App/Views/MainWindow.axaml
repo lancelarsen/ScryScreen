@@ -1338,7 +1338,7 @@
                                           Classes="circleSmall effectToggle"
                                               IsChecked="{Binding ShowEffectSliderBounds, Mode=TwoWay}"
                                               ToolTip.Tip="Show Slider Min/Max Fields">
-                                    <i:Icon Value="mdi-numeric" FontSize="18"
+                                    <i:Icon Value="mdi-cog" FontSize="18"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                             </Grid>
@@ -1768,12 +1768,12 @@
                                           ItemsSource="{Binding InitiativeTracker.PortalFontSizes}"
                                           SelectedItem="{Binding InitiativeTracker.PortalFontSize, Mode=TwoWay}" />
 
-                                <!-- (123) far right: Initiative conditions configuration -->
+                                <!-- Gear far right: Initiative conditions configuration -->
                                 <ToggleButton Grid.Column="9"
                                               Classes="circleSmall effectToggle"
                                               IsChecked="{Binding InitiativeTracker.ShowConditionsConfiguration, Mode=TwoWay}"
                                               ToolTip.Tip="Show Conditions Configuration">
-                                    <i:Icon Value="mdi-numeric" FontSize="18"
+                                    <i:Icon Value="mdi-cog" FontSize="18"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                             </Grid>
@@ -1859,7 +1859,7 @@
                                                VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <!-- Spacer: push play/reset/overlay/(123) to the far right -->
+                                <!-- Spacer: push play/reset/overlay/gear to the far right -->
                                 <Border Grid.Column="2" />
 
                                 <!-- Single play/pause button (swap visibility) -->
@@ -1896,7 +1896,7 @@
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
 
-                                <!-- Opacity (between reset and (123)) -->
+                                <!-- Opacity (between reset and gear) -->
                                 <Grid Grid.Column="6" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                     <TextBlock Grid.Column="0" Text="Overlay" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="1" Text="0%" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
@@ -1909,12 +1909,12 @@
                                     <TextBlock Grid.Column="3" Text="100%" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
                                 </Grid>
 
-                                <!-- (123) far right, icon-sized like other controls -->
+                                <!-- Gear far right, icon-sized like other controls -->
                                 <ToggleButton Grid.Column="7"
                                           Classes="circleSmall effectToggle"
                                               IsChecked="{Binding Hourglass.ShowSandPhysics, Mode=TwoWay}"
                                               ToolTip.Tip="Show Sand Physics">
-                                    <i:Icon Value="mdi-numeric" FontSize="18"
+                                    <i:Icon Value="mdi-cog" FontSize="18"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
                             </Grid>
@@ -1995,12 +1995,12 @@
                                             Value="{Binding DiceRoller.OverlayOpacity, Mode=TwoWay}" />
                                     <TextBlock Grid.Column="2" Text="{Binding DiceRoller.OverlayOpacity, StringFormat={}{0:P0}}" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
 
-                                    <!-- (123) far right: Dice configuration -->
+                                    <!-- Gear far right: Dice configuration -->
                                     <ToggleButton Grid.Column="3"
                                                   Classes="circleSmall effectToggle"
                                                   IsChecked="{Binding DiceRoller.ShowDiceConfiguration, Mode=TwoWay}"
                                                   ToolTip.Tip="Show Dice Configuration">
-                                        <i:Icon Value="mdi-numeric" FontSize="18"
+                                        <i:Icon Value="mdi-cog" FontSize="18"
                                                 Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                     </ToggleButton>
                                 </Grid>

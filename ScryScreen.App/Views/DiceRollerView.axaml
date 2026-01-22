@@ -104,7 +104,7 @@
         </Button>
       </StackPanel>
 
-      <!-- Dice configuration (shown via (123) toggle in MainWindow) -->
+      <!-- Dice configuration (shown via gear toggle in MainWindow) -->
       <Border Grid.Row="1"
               IsVisible="{Binding ShowDiceConfiguration}"
               Background="#0A0F18"
