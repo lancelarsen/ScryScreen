@@ -3,7 +3,9 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using ScryScreen.App.Controls;
 using ScryScreen.App.ViewModels;
 using ScryScreen.App.Services;
@@ -38,6 +40,53 @@ public partial class App : Application
 
             // Restore last saved session state (initiative/effects/media folder).
             LastSessionPersistence.Load(vm);
+
+            // Startup warmup: programmatically "click" Dice Tray and then Portal 1.
+            // This forces WebView2 + tray HTML/JS to initialize early.
+            mainWindow.Opened += (_, _) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        vm.SelectDiceRollerAppCommand.Execute(null);
+
+                        var portal1 = vm.Portals.FirstOrDefault(p => p.PortalNumber == 1);
+                        if (portal1 is not null && !portal1.IsSelectedForDiceRoller)
+                        {
+                            vm.ToggleDiceRollerForPortalCommand.Execute(portal1);
+                        }
+
+                        // Give WebView2/tray a moment to spin up, then revert the UI back
+                        // to the normal Images tab and unselect Portal 1 for Dice Tray.
+                        _ = Task.Run(async () =>
+                        {
+                            await Task.Delay(1000);
+                            Dispatcher.UIThread.Post(() =>
+                            {
+                                try
+                                {
+                                    if (portal1 is not null && portal1.IsSelectedForDiceRoller)
+                                    {
+                                        vm.ToggleDiceRollerForPortalCommand.Execute(portal1);
+                                    }
+
+                                    vm.ShowImagesTabCommand.Execute(null);
+                                }
+                                catch (System.Exception ex)
+                                {
+                                    ErrorReporter.Report(ex, "Startup Dice Tray warmup (restore)");
+                                }
+                            }, DispatcherPriority.Background);
+                        });
+                    }
+                    catch (System.Exception ex)
+                    {
+                        ErrorReporter.Report(ex, "Startup Dice Tray warmup");
+                    }
+                }, DispatcherPriority.Background);
+            };
+
             desktop.MainWindow = mainWindow;
             mainWindow.Show();
             mainWindow.Activate();
