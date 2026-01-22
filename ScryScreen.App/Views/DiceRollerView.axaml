@@ -16,6 +16,17 @@
           Padding="10">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
       <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+      <!-- Clear (compact circle button) -->
+      <Button Width="28" Height="28"
+        Classes="circleSmall"
+        ToolTip.Tip="Clear"
+        Command="{Binding ClearCommand}">
+        <i:Icon Value="mdi-broom" FontSize="18"
+          Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+      </Button>
+
+      <Border Width="1" Height="24" Background="{DynamicResource ScryBorder}" Opacity="0.7" Margin="2,0" />
+
         <Button Background="Transparent" BorderThickness="0" Padding="0"
                 ToolTip.Tip="Roll d20"
                 Command="{Binding RollSingleDieCommand}" CommandParameter="20">
@@ -50,6 +61,8 @@
         <!-- d100 / percentile (compact circle button) -->
         <Button Width="28" Height="28"
                 Classes="circleSmall"
+          Foreground="{DynamicResource ScryTextMuted}"
+          BorderBrush="{DynamicResource ScryTextMuted}"
                 BorderThickness="2"
                 ToolTip.Tip="Roll d100 (percentile)"
                 Command="{Binding RollSingleDieCommand}" CommandParameter="100">
@@ -119,14 +132,23 @@
                        Foreground="{DynamicResource ScryTextMuted}"
                        FontWeight="SemiBold" />
 
-            <ToggleButton Grid.Column="1"
-                          Width="28" Height="28"
-                  Classes="circleSmall"
-                          IsChecked="{Binding ShowDebugInfo, Mode=TwoWay}"
-                          ToolTip.Tip="Show debug info">
-              <i:Icon Value="mdi-bug-outline" FontSize="18"
-                      Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
-            </ToggleButton>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <Button Width="28" Height="28"
+                      Classes="circleSmall"
+                      ToolTip.Tip="Reset all dice scales to 1.0"
+                      Command="{Binding ResetDiceConfigurationCommand}">
+                <i:Icon Value="mdi-restore" FontSize="18"
+                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+              </Button>
+
+              <ToggleButton Width="28" Height="28"
+                            Classes="circleSmall"
+                            IsChecked="{Binding ShowDebugInfo, Mode=TwoWay}"
+                            ToolTip.Tip="Show debug info">
+                <i:Icon Value="mdi-bug-outline" FontSize="18"
+                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+              </ToggleButton>
+            </StackPanel>
           </Grid>
 
           <ItemsControl Grid.Row="1" ItemsSource="{Binding DiceVisualConfigs}">

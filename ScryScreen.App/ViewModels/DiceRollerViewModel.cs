@@ -31,7 +31,6 @@ public partial class DiceRollerViewModel : ViewModelBase
     public DiceRollerViewModel()
     {
         Expression = "1d20";
-        OverlayOpacity = DiceRollerState.Default.OverlayOpacity;
 
         DiceVisualConfigs = new ObservableCollection<DiceDieVisualConfigViewModel>(new[]
         {
@@ -59,9 +58,6 @@ public partial class DiceRollerViewModel : ViewModelBase
 
     [ObservableProperty]
     private string? lastErrorText;
-
-    [ObservableProperty]
-    private double overlayOpacity;
 
     [ObservableProperty]
     private bool showDiceConfiguration;
@@ -97,7 +93,6 @@ public partial class DiceRollerViewModel : ViewModelBase
 
         return new(
             text,
-            OverlayOpacity,
             RollId,
             rotations,
             visualConfigs,
@@ -284,6 +279,21 @@ public partial class DiceRollerViewModel : ViewModelBase
         StateChanged?.Invoke();
     }
 
+    [RelayCommand]
+    private void ResetDiceConfiguration()
+    {
+        if (DiceVisualConfigs.All(c => Math.Abs(c.DieScale - 1.0) < 1e-9 && Math.Abs(c.NumberScale - 1.0) < 1e-9))
+        {
+            return;
+        }
+
+        foreach (var cfg in DiceVisualConfigs)
+        {
+            cfg.DieScale = 1.0;
+            cfg.NumberScale = 1.0;
+        }
+    }
+
     partial void OnRollDirectionChanged(DiceRollDirection value)
     {
         OnPropertyChanged(nameof(IsRollDirectionRight));
@@ -291,13 +301,6 @@ public partial class DiceRollerViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsRollDirectionUp));
         OnPropertyChanged(nameof(IsRollDirectionDown));
         OnPropertyChanged(nameof(IsRollDirectionRandom));
-        StateChanged?.Invoke();
-    }
-
-    partial void OnOverlayOpacityChanged(double value)
-    {
-        if (OverlayOpacity < 0) OverlayOpacity = 0;
-        if (OverlayOpacity > 1) OverlayOpacity = 1;
         StateChanged?.Invoke();
     }
 

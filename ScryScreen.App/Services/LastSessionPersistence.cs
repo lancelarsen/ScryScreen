@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Avalonia.Threading;
+using ScryScreen.App.Models;
 using ScryScreen.App.ViewModels;
 
 namespace ScryScreen.App.Services;
@@ -40,7 +42,18 @@ public static class LastSessionPersistence
         public double? MapMasterEraserHardness { get; set; }
         public string? MapMasterMaskType { get; set; }
 
+        public string? DiceRollerRollDirection { get; set; }
+        public bool DiceRollerShowDebugInfo { get; set; }
+        public List<DiceRollerDieConfig>? DiceRollerDieConfigs { get; set; }
+
         public DateTimeOffset SavedAtUtc { get; set; }
+    }
+
+    private sealed class DiceRollerDieConfig
+    {
+        public int Sides { get; set; }
+        public double DieScale { get; set; }
+        public double NumberScale { get; set; }
     }
 
     private static int Clamp(int value, int min, int max)
@@ -81,6 +94,18 @@ public static class LastSessionPersistence
             MapMasterEraserDiameter = Clamp(vm.MapMaster.EraserDiameter, 2, 80),
             MapMasterEraserHardness = Clamp(vm.MapMaster.EraserHardness, 0, 1),
             MapMasterMaskType = vm.MapMaster.SelectedMaskType.ToString(),
+
+            DiceRollerRollDirection = vm.DiceRoller.RollDirection.ToString(),
+            DiceRollerShowDebugInfo = vm.DiceRoller.ShowDebugInfo,
+            DiceRollerDieConfigs = vm.DiceRoller.DiceVisualConfigs
+                .Select(c => new DiceRollerDieConfig
+                {
+                    Sides = c.Sides,
+                    DieScale = Clamp(c.DieScale, 0.5, 1.75),
+                    NumberScale = Clamp(c.NumberScale, 0.5, 2.0),
+                })
+                .OrderBy(c => c.Sides)
+                .ToList(),
 
             SavedAtUtc = DateTimeOffset.UtcNow,
         };
@@ -294,6 +319,30 @@ public static class LastSessionPersistence
                     && Enum.TryParse<ScryScreen.App.Models.MapMasterMaskType>(state.MapMasterMaskType, ignoreCase: true, out var mt))
                 {
                     vm.MapMaster.SelectedMaskType = mt;
+                }
+
+                // Dice Tray preferences
+                if (!string.IsNullOrWhiteSpace(state.DiceRollerRollDirection)
+                    && Enum.TryParse<DiceRollDirection>(state.DiceRollerRollDirection, ignoreCase: true, out var dir))
+                {
+                    vm.DiceRoller.RollDirection = dir;
+                }
+
+                vm.DiceRoller.ShowDebugInfo = state.DiceRollerShowDebugInfo;
+
+                if (state.DiceRollerDieConfigs is not null)
+                {
+                    foreach (var cfg in state.DiceRollerDieConfigs)
+                    {
+                        var target = vm.DiceRoller.DiceVisualConfigs.FirstOrDefault(c => c.Sides == cfg.Sides);
+                        if (target is null)
+                        {
+                            continue;
+                        }
+
+                        target.DieScale = Clamp(cfg.DieScale, 0.5, 1.75);
+                        target.NumberScale = Clamp(cfg.NumberScale, 0.5, 2.0);
+                    }
                 }
             }
 

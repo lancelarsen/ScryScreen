@@ -115,6 +115,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _diceRoller = new DiceRollerViewModel();
         _diceRoller.StateChanged += OnDiceRollerStateChanged;
+        _diceRoller.PropertyChanged += OnDiceRollerPropertyChangedForLastSession;
+        foreach (var cfg in _diceRoller.DiceVisualConfigs)
+        {
+            cfg.PropertyChanged += OnDiceVisualConfigPropertyChangedForLastSession;
+        }
 
         _hourglassAudio = new Services.HourglassAudioService(_hourglass);
 
@@ -1497,6 +1502,34 @@ public partial class MainWindowViewModel : ViewModelBase
         UpdateDiceRollerOnSelectedPortals();
     }
 
+    private void OnDiceRollerPropertyChangedForLastSession(object? sender, PropertyChangedEventArgs e)
+    {
+        if (IsAutoSaveSuppressed)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(DiceRollerViewModel.RollDirection) ||
+            e.PropertyName == nameof(DiceRollerViewModel.ShowDebugInfo))
+        {
+            ScheduleDebouncedLastSessionStateSave();
+        }
+    }
+
+    private void OnDiceVisualConfigPropertyChangedForLastSession(object? sender, PropertyChangedEventArgs e)
+    {
+        if (IsAutoSaveSuppressed)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(DiceDieVisualConfigViewModel.DieScale) ||
+            e.PropertyName == nameof(DiceDieVisualConfigViewModel.NumberScale))
+        {
+            ScheduleDebouncedLastSessionStateSave();
+        }
+    }
+
     private static bool IsPersistableHourglassProperty(string? propertyName)
     {
         return propertyName == nameof(HourglassViewModel.DurationMinutesText) ||
@@ -1618,7 +1651,6 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             state = new DiceRollerState(
                 "Dice Tray",
-                state.OverlayOpacity,
                 state.RollId,
                 state.Rotations,
                 state.VisualConfigs,

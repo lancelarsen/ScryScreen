@@ -17,7 +17,6 @@ public sealed record DiceRollRequest(long RequestId, int Sides, DiceRollDirectio
 
 public sealed record DiceRollerState(
     string Text,
-    double OverlayOpacity,
     long RollId,
     IReadOnlyList<DiceDieRotation> Rotations,
     IReadOnlyList<DiceDieVisualConfig> VisualConfigs,
@@ -29,7 +28,6 @@ public sealed record DiceRollerState(
 {
     public static DiceRollerState Default { get; } = new(
         Text: string.Empty,
-        OverlayOpacity: 0.85,
         RollId: 0,
         Rotations: System.Array.Empty<DiceDieRotation>(),
         VisualConfigs: System.Array.Empty<DiceDieVisualConfig>(),

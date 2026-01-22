@@ -30,8 +30,7 @@
             VerticalAlignment="Stretch" />
 
     <!-- Result text panel -->
-    <Border Background="#000000"
-            Opacity="{Binding OverlayOpacity}"
+    <Border Background="Transparent"
             CornerRadius="14"
             Padding="18,14"
             HorizontalAlignment="Center"
