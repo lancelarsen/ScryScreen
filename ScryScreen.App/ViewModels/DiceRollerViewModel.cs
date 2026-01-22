@@ -52,7 +52,10 @@ public partial class DiceRollerViewModel : ViewModelBase
     private readonly Dictionary<long, PendingTrayRoll> _pendingTrayRollsByRequestId = new();
     private readonly Dictionary<long, long> _trayBatchIdByRequestId = new();
     private readonly Dictionary<long, PendingTrayRollBatch> _pendingTrayRollBatchesByBatchId = new();
-    private IReadOnlyList<DiceRollRequest> _lastIssuedRollRequests = Array.Empty<DiceRollRequest>();
+    private readonly List<DiceRollRequest> _issuedRollRequests = new();
+
+    private const int MaxIssuedRollRequestsToKeep = 50;
+    private const int MaxPendingTrayRequests = 100;
 
     private long _visualConfigRevision;
 
@@ -128,9 +131,46 @@ public partial class DiceRollerViewModel : ViewModelBase
             visualConfigs,
             VisualConfigRevision: _visualConfigRevision,
             RollDirection,
-            _lastIssuedRollRequests,
+            _issuedRollRequests,
             _clearDiceIdCounter,
             DebugVisible: ShowDebugInfo);
+    }
+
+    private void TrackIssuedRequests(IEnumerable<DiceRollRequest> requests)
+    {
+        foreach (var r in requests)
+        {
+            _issuedRollRequests.Add(r);
+        }
+
+        if (_issuedRollRequests.Count > MaxIssuedRollRequestsToKeep)
+        {
+            _issuedRollRequests.RemoveRange(0, _issuedRollRequests.Count - MaxIssuedRollRequestsToKeep);
+        }
+    }
+
+    private void TrimPendingIfNeeded()
+    {
+        if (_pendingTrayRollsByRequestId.Count <= MaxPendingTrayRequests)
+        {
+            return;
+        }
+
+        var oldest = _pendingTrayRollsByRequestId.Keys.OrderBy(x => x).Take(_pendingTrayRollsByRequestId.Count - MaxPendingTrayRequests).ToList();
+        foreach (var requestId in oldest)
+        {
+            _pendingTrayRollsByRequestId.Remove(requestId);
+            if (_trayBatchIdByRequestId.TryGetValue(requestId, out var batchId))
+            {
+                _trayBatchIdByRequestId.Remove(requestId);
+                // Best-effort cleanup: if this makes the batch impossible to complete, leave it; it will be overwritten by later batches.
+                if (_pendingTrayRollBatchesByBatchId.TryGetValue(batchId, out var batch))
+                {
+                    batch.TotalsByRequestId.Remove(requestId);
+                    batch.DetailsByRequestId.Remove(requestId);
+                }
+            }
+        }
     }
 
     private static List<DiceRollDiceTerm> MergeLikeTermsPreserveOrder(List<DiceRollDiceTerm> parsedTerms)
@@ -417,10 +457,6 @@ public partial class DiceRollerViewModel : ViewModelBase
                     return;
                 }
 
-            _pendingTrayRollsByRequestId.Clear();
-            _pendingTrayRollBatchesByBatchId.Clear();
-            _trayBatchIdByRequestId.Clear();
-
             var batchId = ++_trayBatchIdCounter;
             var requests = new List<DiceRollRequest>(capacity: groups.Count);
             var requestIdsInOrder = new List<long>(capacity: groups.Count);
@@ -457,7 +493,8 @@ public partial class DiceRollerViewModel : ViewModelBase
                 RequestIdsInOrder = requestIdsInOrder,
             };
 
-                _lastIssuedRollRequests = requests;
+                TrackIssuedRequests(requests);
+                TrimPendingIfNeeded();
                 RollId = ++_rollIdCounter;
                 LastResultText = $"Rolling {groups.Count} totals...";
                 StateChanged?.Invoke();
@@ -482,14 +519,10 @@ public partial class DiceRollerViewModel : ViewModelBase
 
             var merged = MergeLikeTermsPreserveOrder(parsedTerms);
 
-            _pendingTrayRollsByRequestId.Clear();
-            _pendingTrayRollBatchesByBatchId.Clear();
-            _trayBatchIdByRequestId.Clear();
-
             var batchId = ++_trayBatchIdCounter;
             var requestId = ++_trayRequestIdCounter;
             var req = new DiceRollRequest(RequestId: requestId, Terms: merged, Direction: RollDirection);
-            _lastIssuedRollRequests = new[] { req };
+            TrackIssuedRequests(new[] { req });
 
             _pendingTrayRollsByRequestId[requestId] = new PendingTrayRoll
             {
@@ -514,6 +547,8 @@ public partial class DiceRollerViewModel : ViewModelBase
                 RequestIdsInOrder = new List<long> { requestId },
             };
 
+            TrimPendingIfNeeded();
+
             RollId = ++_rollIdCounter;
             LastResultText = $"Rolling {BuildPreviewText(merged, constantTotal)}...";
             StateChanged?.Invoke();
@@ -526,7 +561,7 @@ public partial class DiceRollerViewModel : ViewModelBase
             return;
         }
 
-        _lastIssuedRollRequests = Array.Empty<DiceRollRequest>();
+        // Non-tray evaluator path doesn't emit tray requests.
 
         if (!DiceExpressionEvaluator.TryEvaluate(Expression, _rng, out var result, out var error))
         {
@@ -632,6 +667,10 @@ public partial class DiceRollerViewModel : ViewModelBase
                 History.RemoveAt(History.Count - 1);
             }
 
+            // Cleanup finished batch/request bookkeeping.
+            _pendingTrayRollBatchesByBatchId.Remove(batchId);
+            _trayBatchIdByRequestId.Remove(requestId);
+
             StateChanged?.Invoke();
             return;
         }
@@ -703,7 +742,7 @@ public partial class DiceRollerViewModel : ViewModelBase
         _pendingTrayRollsByRequestId.Clear();
         _pendingTrayRollBatchesByBatchId.Clear();
         _trayBatchIdByRequestId.Clear();
-        _lastIssuedRollRequests = Array.Empty<DiceRollRequest>();
+        _issuedRollRequests.Clear();
         _clearDiceIdCounter++;
         StateChanged?.Invoke();
     }

@@ -73,9 +73,9 @@
       </Grid>
 
       <Grid IsVisible="{Binding IsShowingDiceRoller}" IsHitTestVisible="False">
-        <views:DiceRollerPortalView DataContext="{Binding DiceRoller}"
-                                   HorizontalAlignment="Stretch"
-                                   VerticalAlignment="Stretch" />
+        <views:DiceRollerResultsPortalView DataContext="{Binding DiceRoller}"
+                                           HorizontalAlignment="Stretch"
+                                           VerticalAlignment="Stretch" />
       </Grid>
 
       <!-- Identify overlay (needed because this window sits above the native video surface) -->

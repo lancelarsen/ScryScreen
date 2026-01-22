@@ -28,21 +28,5 @@
             IsHitTestVisible="False"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch" />
-
-    <!-- Result text panel -->
-    <Border Background="Transparent"
-            CornerRadius="14"
-            Padding="18,14"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Margin="24,24,24,0"
-            MaxWidth="1100">
-      <controls:BoldTotalsTextBlock RawText="{Binding Text}"
-                                    Foreground="White"
-                                    FontSize="34"
-                                    FontWeight="SemiBold"
-                                    TextAlignment="Center"
-                                    TextWrapping="Wrap" />
-    </Border>
   </Grid>
 </UserControl>

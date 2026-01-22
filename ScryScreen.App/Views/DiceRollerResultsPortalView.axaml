@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ScryScreen.App.ViewModels"
+             xmlns:controls="using:ScryScreen.App.Controls"
+             mc:Ignorable="d"
+             x:Class="ScryScreen.App.Views.DiceRollerResultsPortalView"
+             x:DataType="vm:DiceRollerPortalViewModel">
+
+  <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False">
+    <Border Background="Transparent"
+            CornerRadius="14"
+            Padding="18,14"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="24,24,24,0"
+            MaxWidth="1100">
+      <controls:BoldTotalsTextBlock RawText="{Binding Text}"
+                                    Foreground="White"
+                                    FontSize="34"
+                                    FontWeight="SemiBold"
+                                    TextAlignment="Center"
+                                    TextWrapping="Wrap" />
+    </Border>
+  </Grid>
+</UserControl>

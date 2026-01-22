@@ -77,7 +77,7 @@ public sealed class PortalHostService
 
         void UpdateOverlayVisibility()
         {
-            if (portalVm.IsShowingVideo)
+            if (portalVm.IsShowingVideo || portalVm.IsShowingDiceRoller)
             {
                 SyncOverlayBounds();
                 if (!overlayWindow.IsVisible)
@@ -165,7 +165,8 @@ public sealed class PortalHostService
 
         portalVm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(PortalWindowViewModel.IsShowingVideo))
+            if (e.PropertyName is nameof(PortalWindowViewModel.IsShowingVideo)
+                or nameof(PortalWindowViewModel.IsShowingDiceRoller))
             {
                 UpdateOverlayVisibility();
             }
