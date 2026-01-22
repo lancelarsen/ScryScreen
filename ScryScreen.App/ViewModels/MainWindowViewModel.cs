@@ -149,6 +149,32 @@ public partial class MainWindowViewModel : ViewModelBase
         ApplyEffectsToAllPortals();
     }
 
+    internal void WarmUpDiceTrayOnPortal(int portalNumber)
+    {
+        var portal = Portals.FirstOrDefault(p => p.PortalNumber == portalNumber);
+        if (portal is null)
+        {
+            return;
+        }
+
+        // Don't touch SelectedApp/SelectedLibraryTab and don't toggle any "selected" flags.
+        // We only want to force the portal overlay to be constructed so WebView2/JS initializes.
+        ApplyDiceRollerToPortal(portal);
+
+        // Clear on the next UI tick so the overlay can be created once.
+        Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
+            }
+            catch
+            {
+                // ignore warmup failures
+            }
+        }, DispatcherPriority.Background);
+    }
+
     private void StopMediaAudio()
     {
         _audioProgressTimer.Stop();
