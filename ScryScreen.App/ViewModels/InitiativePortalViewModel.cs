@@ -61,9 +61,7 @@ public sealed partial class InitiativePortalViewModel : ObservableObject
 
     public double RoundFontSize => PortalFontSize switch
     {
-        InitiativePortalFontSize.Small => 26,
-        InitiativePortalFontSize.Medium => 34,
-        _ => 42,
+        _ => 26,
     };
 
     public double MoreFontSize => PortalFontSize switch

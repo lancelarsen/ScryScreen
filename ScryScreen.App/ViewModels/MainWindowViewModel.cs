@@ -1660,6 +1660,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 OverlayOpacity: state.OverlayOpacity,
                 RollRequests: state.RollRequests,
                 ClearDiceId: state.ClearDiceId,
+                ResultsVisible: state.ResultsVisible,
+                ResultFontSize: state.ResultFontSize,
                 DebugVisible: state.DebugVisible);
         }
 

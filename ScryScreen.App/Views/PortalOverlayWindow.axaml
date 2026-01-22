@@ -48,7 +48,7 @@
           IsHitTestVisible="False" />
 
       <!-- Map Master overlay (below hourglass/dice) -->
-      <Grid IsVisible="{Binding IsShowingMapMaster}" IsHitTestVisible="False">
+      <Grid IsVisible="{Binding IsShowingMapMasterInOverlayWindow}" IsHitTestVisible="False">
         <Grid Opacity="{Binding MapMaster.PlayerMaskOpacity}">
           <Border IsVisible="{Binding MapMaster.IsSolidBlackMask}"
                   Background="Black">
@@ -68,8 +68,13 @@
       </Grid>
 
       <!-- Keep hourglass visible above effects and Map Master -->
-      <Grid IsVisible="{Binding IsShowingHourglass}" IsHitTestVisible="False">
+      <Grid IsVisible="{Binding IsShowingHourglassInOverlayWindow}" IsHitTestVisible="False">
         <views:HourglassPortalView DataContext="{Binding Hourglass}" />
+      </Grid>
+
+      <!-- Initiative tracker above Map Master (and above native surfaces like the dice tray) -->
+      <Grid IsVisible="{Binding IsShowingInitiativeInOverlayWindow}" IsHitTestVisible="False">
+        <views:InitiativeTrackerPortalView DataContext="{Binding Initiative}" />
       </Grid>
 
       <Grid IsVisible="{Binding IsShowingDiceRoller}" IsHitTestVisible="False">

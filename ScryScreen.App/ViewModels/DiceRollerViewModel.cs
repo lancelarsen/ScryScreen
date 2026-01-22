@@ -61,6 +61,10 @@ public partial class DiceRollerViewModel : ViewModelBase
 
     private double overlayOpacity = 0.65;
 
+    private DiceRollerResultFontSize resultFontSize = DiceRollerResultFontSize.Medium;
+
+    private bool resultsVisible = true;
+
     public event Action? StateChanged;
 
     public DiceRollerViewModel()
@@ -68,6 +72,7 @@ public partial class DiceRollerViewModel : ViewModelBase
         Expression = "1d20";
 
         OverlayOpacity = 0.65;
+        ResultFontSize = DiceRollerResultFontSize.Medium;
 
         DiceVisualConfigs = new ObservableCollection<DiceDieVisualConfigViewModel>(new[]
         {
@@ -81,6 +86,29 @@ public partial class DiceRollerViewModel : ViewModelBase
         });
 
         DiceRollerEventBus.SingleDieRollCompleted += OnSingleDieRollCompleted;
+    }
+
+    public IReadOnlyList<DiceRollerResultFontSize> ResultFontSizes { get; } = new[]
+    {
+        DiceRollerResultFontSize.Small,
+        DiceRollerResultFontSize.Medium,
+        DiceRollerResultFontSize.Large,
+    };
+
+    public bool ResultsVisible
+    {
+        get => resultsVisible;
+        set
+        {
+            if (resultsVisible == value)
+            {
+                return;
+            }
+
+            resultsVisible = value;
+            OnPropertyChanged(nameof(ResultsVisible));
+            StateChanged?.Invoke();
+        }
     }
 
     public ObservableCollection<string> History { get; } = new();
@@ -115,6 +143,22 @@ public partial class DiceRollerViewModel : ViewModelBase
 
             overlayOpacity = clamped;
             OnPropertyChanged(nameof(OverlayOpacity));
+            StateChanged?.Invoke();
+        }
+    }
+
+    public DiceRollerResultFontSize ResultFontSize
+    {
+        get => resultFontSize;
+        set
+        {
+            if (resultFontSize == value)
+            {
+                return;
+            }
+
+            resultFontSize = value;
+            OnPropertyChanged(nameof(ResultFontSize));
             StateChanged?.Invoke();
         }
     }
@@ -155,6 +199,8 @@ public partial class DiceRollerViewModel : ViewModelBase
             OverlayOpacity,
             _issuedRollRequests,
             _clearDiceIdCounter,
+            ResultsVisible,
+            ResultFontSize,
             DebugVisible: ShowDebugInfo);
     }
 

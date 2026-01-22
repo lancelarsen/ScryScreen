@@ -44,6 +44,8 @@ public static class LastSessionPersistence
 
         public string? DiceRollerRollDirection { get; set; }
         public double? DiceRollerOverlayOpacity { get; set; }
+        public string? DiceRollerResultFontSize { get; set; }
+        public bool? DiceRollerResultsVisible { get; set; }
         public bool DiceRollerShowDebugInfo { get; set; }
         public List<DiceRollerDieConfig>? DiceRollerDieConfigs { get; set; }
 
@@ -98,6 +100,8 @@ public static class LastSessionPersistence
 
             DiceRollerRollDirection = vm.DiceRoller.RollDirection.ToString(),
             DiceRollerOverlayOpacity = Clamp(vm.DiceRoller.OverlayOpacity, 0, 1),
+            DiceRollerResultFontSize = vm.DiceRoller.ResultFontSize.ToString(),
+            DiceRollerResultsVisible = vm.DiceRoller.ResultsVisible,
             DiceRollerShowDebugInfo = vm.DiceRoller.ShowDebugInfo,
             DiceRollerDieConfigs = vm.DiceRoller.DiceVisualConfigs
                 .Select(c => new DiceRollerDieConfig
@@ -333,6 +337,17 @@ public static class LastSessionPersistence
                 if (state.DiceRollerOverlayOpacity is not null)
                 {
                     vm.DiceRoller.OverlayOpacity = Clamp(state.DiceRollerOverlayOpacity.Value, 0, 1);
+                }
+
+                if (!string.IsNullOrWhiteSpace(state.DiceRollerResultFontSize)
+                    && Enum.TryParse<DiceRollerResultFontSize>(state.DiceRollerResultFontSize, ignoreCase: true, out var diceFontSize))
+                {
+                    vm.DiceRoller.ResultFontSize = diceFontSize;
+                }
+
+                if (state.DiceRollerResultsVisible is not null)
+                {
+                    vm.DiceRoller.ResultsVisible = state.DiceRollerResultsVisible.Value;
                 }
 
                 vm.DiceRoller.ShowDebugInfo = state.DiceRollerShowDebugInfo;

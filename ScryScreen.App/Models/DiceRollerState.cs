@@ -4,6 +4,13 @@ namespace ScryScreen.App.Models;
 
 public sealed record DiceDieRotation(int Sides, float X, float Y, float Z, float W);
 
+public enum DiceRollerResultFontSize
+{
+    Small,
+    Medium,
+    Large,
+}
+
 public enum DiceRollDirection
 {
     Right,
@@ -27,6 +34,8 @@ public sealed record DiceRollerState(
     double OverlayOpacity = 0.65,
     IReadOnlyList<DiceRollRequest>? RollRequests = null,
     long ClearDiceId = 0,
+    bool ResultsVisible = true,
+    DiceRollerResultFontSize ResultFontSize = DiceRollerResultFontSize.Medium,
     bool DebugVisible = false)
 {
     public static DiceRollerState Default { get; } = new(
@@ -37,5 +46,7 @@ public sealed record DiceRollerState(
         VisualConfigRevision: 0,
         OverlayOpacity: 0.65,
         RollRequests: System.Array.Empty<DiceRollRequest>(),
+        ResultsVisible: true,
+        ResultFontSize: DiceRollerResultFontSize.Medium,
         DebugVisible: false);
 }

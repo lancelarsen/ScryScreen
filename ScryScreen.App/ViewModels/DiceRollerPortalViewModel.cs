@@ -39,9 +39,28 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
     [ObservableProperty]
     private bool debugVisible;
 
+    [ObservableProperty]
+    private bool resultsVisible = true;
+
+    [ObservableProperty]
+    private DiceRollerResultFontSize resultFontSize = DiceRollerResultFontSize.Medium;
+
+    public double ResultFontPixelSize => ResultFontSize switch
+    {
+        DiceRollerResultFontSize.Small => 26,
+        DiceRollerResultFontSize.Medium => 34,
+        _ => 42,
+    };
+
+    public bool HasVisibleText => ResultsVisible && HasText;
+
     public bool HasText => !string.IsNullOrWhiteSpace(Text);
 
-    partial void OnTextChanged(string value) => OnPropertyChanged(nameof(HasText));
+    partial void OnTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasText));
+        OnPropertyChanged(nameof(HasVisibleText));
+    }
 
     public void Update(DiceRollerState state)
     {
@@ -54,5 +73,13 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
         OverlayOpacity = state.OverlayOpacity;
         ClearDiceId = state.ClearDiceId;
         DebugVisible = state.DebugVisible;
+        ResultsVisible = state.ResultsVisible;
+        ResultFontSize = state.ResultFontSize;
     }
+
+    partial void OnResultFontSizeChanged(DiceRollerResultFontSize value)
+        => OnPropertyChanged(nameof(ResultFontPixelSize));
+
+    partial void OnResultsVisibleChanged(bool value)
+        => OnPropertyChanged(nameof(HasVisibleText));
 }

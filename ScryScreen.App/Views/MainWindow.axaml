@@ -1988,7 +1988,7 @@
                                 <Grid Grid.Column="2" VerticalAlignment="Center">
                                     <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="12" HorizontalAlignment="Right">
                                         <!-- Opacity (hourglass-style) -->
-                                        <Grid Grid.Column="0" ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6" VerticalAlignment="Center">
+                                        <Grid Grid.Column="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" VerticalAlignment="Center">
                                             <TextBlock Grid.Column="0" Text="Overlay" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="1" Text="0%" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
                                             <Slider Grid.Column="2"
@@ -1998,6 +1998,31 @@
                                                     Maximum="1"
                                                     Value="{Binding DiceRoller.OverlayOpacity, Mode=TwoWay}" />
                                             <TextBlock Grid.Column="3" Text="100%" Foreground="{DynamicResource ScryTextMuted}" FontSize="10" VerticalAlignment="Center" />
+
+                                            <TextBlock Grid.Column="4" Text="Font" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" Margin="8,0,0,0" />
+
+                                            <ComboBox Grid.Column="5"
+                                                     MinWidth="96"
+                                                     MaxWidth="110"
+                                                     Height="36"
+                                                     VerticalAlignment="Center"
+                                                     FontSize="12"
+                                                     ItemsSource="{Binding DiceRoller.ResultFontSizes}"
+                                                     SelectedItem="{Binding DiceRoller.ResultFontSize, Mode=TwoWay}" />
+
+                                            <ToggleButton Grid.Column="6"
+                                                          Classes="circleSmall noAccent"
+                                                          IsChecked="{Binding DiceRoller.ResultsVisible, Mode=TwoWay}"
+                                                          ToolTip.Tip="Show roll text">
+                                                <Grid>
+                                                    <i:Icon Value="mdi-eye" FontSize="18"
+                                                            IsVisible="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                                            Foreground="{DynamicResource ScrySuccess}" />
+                                                    <i:Icon Value="mdi-eye-off" FontSize="18"
+                                                            IsVisible="{Binding !IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                                            Foreground="{DynamicResource ScryDanger}" />
+                                                </Grid>
+                                            </ToggleButton>
                                         </Grid>
 
                                         <!-- Gear: Dice configuration -->

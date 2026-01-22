@@ -9,7 +9,8 @@
              x:DataType="vm:DiceRollerPortalViewModel">
 
   <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False">
-    <Grid HorizontalAlignment="Center"
+    <Grid IsVisible="{Binding HasVisibleText}"
+          HorizontalAlignment="Center"
           VerticalAlignment="Top"
           Margin="24,24,24,0"
           MaxWidth="1100">
@@ -23,7 +24,7 @@
       <controls:BoldTotalsTextBlock RawText="{Binding Text}"
                                     Margin="18,14"
                                     Foreground="White"
-                                    FontSize="34"
+                                    FontSize="{Binding ResultFontPixelSize}"
                                     FontWeight="SemiBold"
                                     TextAlignment="Center"
                                     TextWrapping="Wrap" />

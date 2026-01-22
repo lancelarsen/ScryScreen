@@ -174,6 +174,12 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(IsShowingText));
             OnPropertyChanged(nameof(IsShowingVideo));
             OnPropertyChanged(nameof(IsShowingNativeSurface));
+            OnPropertyChanged(nameof(IsShowingInitiativeInMainWindow));
+            OnPropertyChanged(nameof(IsShowingInitiativeInOverlayWindow));
+            OnPropertyChanged(nameof(IsShowingHourglassInMainWindow));
+            OnPropertyChanged(nameof(IsShowingHourglassInOverlayWindow));
+            OnPropertyChanged(nameof(IsShowingMapMasterInMainWindow));
+            OnPropertyChanged(nameof(IsShowingMapMasterInOverlayWindow));
             OnPropertyChanged(nameof(IsShowingIdleLogo));
             OnPropertyChanged(nameof(IsShowingNonIdleText));
         }
@@ -205,6 +211,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(Initiative));
             OnPropertyChanged(nameof(HasInitiative));
             OnPropertyChanged(nameof(IsShowingInitiative));
+            OnPropertyChanged(nameof(IsShowingInitiativeInMainWindow));
+            OnPropertyChanged(nameof(IsShowingInitiativeInOverlayWindow));
             OnPropertyChanged(nameof(IsShowingText));
         }
     }
@@ -223,6 +231,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(Hourglass));
             OnPropertyChanged(nameof(HasHourglass));
             OnPropertyChanged(nameof(IsShowingHourglass));
+            OnPropertyChanged(nameof(IsShowingHourglassInMainWindow));
+            OnPropertyChanged(nameof(IsShowingHourglassInOverlayWindow));
             OnPropertyChanged(nameof(IsShowingText));
             OnPropertyChanged(nameof(IsShowingIdleLogo));
             OnPropertyChanged(nameof(IsShowingNonIdleText));
@@ -243,6 +253,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(MapMaster));
             OnPropertyChanged(nameof(HasMapMaster));
             OnPropertyChanged(nameof(IsShowingMapMaster));
+            OnPropertyChanged(nameof(IsShowingMapMasterInMainWindow));
+            OnPropertyChanged(nameof(IsShowingMapMasterInOverlayWindow));
         }
     }
 
@@ -261,6 +273,12 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(HasDiceRoller));
             OnPropertyChanged(nameof(IsShowingDiceRoller));
             OnPropertyChanged(nameof(IsShowingNativeSurface));
+            OnPropertyChanged(nameof(IsShowingInitiativeInMainWindow));
+            OnPropertyChanged(nameof(IsShowingInitiativeInOverlayWindow));
+            OnPropertyChanged(nameof(IsShowingHourglassInMainWindow));
+            OnPropertyChanged(nameof(IsShowingHourglassInOverlayWindow));
+            OnPropertyChanged(nameof(IsShowingMapMasterInMainWindow));
+            OnPropertyChanged(nameof(IsShowingMapMasterInOverlayWindow));
         }
     }
 
@@ -337,6 +355,18 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsShowingNativeSurface => IsShowingVideo || IsShowingDiceRoller;
 
+    public bool IsShowingInitiativeInMainWindow => IsShowingInitiative && !IsShowingNativeSurface;
+
+    public bool IsShowingInitiativeInOverlayWindow => IsShowingInitiative && IsShowingNativeSurface;
+
+    public bool IsShowingHourglassInMainWindow => IsShowingHourglass && !IsShowingNativeSurface;
+
+    public bool IsShowingHourglassInOverlayWindow => IsShowingHourglass && IsShowingNativeSurface;
+
+    public bool IsShowingMapMasterInMainWindow => IsShowingMapMaster && !IsShowingNativeSurface;
+
+    public bool IsShowingMapMasterInOverlayWindow => IsShowingMapMaster && IsShowingNativeSurface;
+
     public bool IsShowingText => !IsSetup && !HasInitiative && !HasHourglass && !HasImage && !HasVideo;
 
     public bool IsShowingIdleLogo =>
@@ -356,6 +386,12 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsShowingMapMaster));
         OnPropertyChanged(nameof(IsShowingDiceRoller));
         OnPropertyChanged(nameof(IsShowingNativeSurface));
+        OnPropertyChanged(nameof(IsShowingInitiativeInMainWindow));
+        OnPropertyChanged(nameof(IsShowingInitiativeInOverlayWindow));
+        OnPropertyChanged(nameof(IsShowingHourglassInMainWindow));
+        OnPropertyChanged(nameof(IsShowingHourglassInOverlayWindow));
+        OnPropertyChanged(nameof(IsShowingMapMasterInMainWindow));
+        OnPropertyChanged(nameof(IsShowingMapMasterInOverlayWindow));
         OnPropertyChanged(nameof(IsShowingText));
         OnPropertyChanged(nameof(IsShowingIdleLogo));
         OnPropertyChanged(nameof(IsShowingNonIdleText));
@@ -443,6 +479,12 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasVideo));
         OnPropertyChanged(nameof(IsShowingVideo));
         OnPropertyChanged(nameof(IsShowingNativeSurface));
+        OnPropertyChanged(nameof(IsShowingInitiativeInMainWindow));
+        OnPropertyChanged(nameof(IsShowingInitiativeInOverlayWindow));
+        OnPropertyChanged(nameof(IsShowingHourglassInMainWindow));
+        OnPropertyChanged(nameof(IsShowingHourglassInOverlayWindow));
+        OnPropertyChanged(nameof(IsShowingMapMasterInMainWindow));
+        OnPropertyChanged(nameof(IsShowingMapMasterInOverlayWindow));
         OnPropertyChanged(nameof(IsShowingText));
         OnPropertyChanged(nameof(IsShowingIdleLogo));
         OnPropertyChanged(nameof(IsShowingNonIdleText));
@@ -899,6 +941,12 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasVideo));
         OnPropertyChanged(nameof(IsShowingVideo));
         OnPropertyChanged(nameof(IsShowingNativeSurface));
+        OnPropertyChanged(nameof(IsShowingInitiativeInMainWindow));
+        OnPropertyChanged(nameof(IsShowingInitiativeInOverlayWindow));
+        OnPropertyChanged(nameof(IsShowingHourglassInMainWindow));
+        OnPropertyChanged(nameof(IsShowingHourglassInOverlayWindow));
+        OnPropertyChanged(nameof(IsShowingMapMasterInMainWindow));
+        OnPropertyChanged(nameof(IsShowingMapMasterInOverlayWindow));
         OnPropertyChanged(nameof(IsShowingText));
         OnPropertyChanged(nameof(IsShowingIdleLogo));
         OnPropertyChanged(nameof(IsShowingNonIdleText));

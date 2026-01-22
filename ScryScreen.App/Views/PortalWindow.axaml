@@ -77,7 +77,7 @@
                     VerticalAlignment="Center" />
 
                 <!-- Map Master reveal mask (below Hourglass/Initiative/Dice) -->
-                <Grid IsVisible="{Binding IsShowingMapMaster}" IsHitTestVisible="False">
+                <Grid IsVisible="{Binding IsShowingMapMasterInMainWindow}" IsHitTestVisible="False">
                   <Grid Opacity="{Binding MapMaster.PlayerMaskOpacity}">
                     <Border IsVisible="{Binding MapMaster.IsSolidBlackMask}"
                             Background="Black">
@@ -120,12 +120,12 @@
           IsHitTestVisible="False" />
 
       <!-- Keep hourglass visible above effects -->
-      <Grid IsVisible="{Binding IsShowingHourglass}" IsHitTestVisible="False">
+      <Grid IsVisible="{Binding IsShowingHourglassInMainWindow}" IsHitTestVisible="False">
         <views:HourglassPortalView DataContext="{Binding Hourglass}" />
       </Grid>
 
       <!-- Initiative tracker above Map Master -->
-      <Grid IsVisible="{Binding IsShowingInitiative}">
+      <Grid IsVisible="{Binding IsShowingInitiativeInMainWindow}">
         <views:InitiativeTrackerPortalView DataContext="{Binding Initiative}" />
       </Grid>
 
