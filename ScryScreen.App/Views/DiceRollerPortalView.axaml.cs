@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -175,7 +176,7 @@ public partial class DiceRollerPortalView : UserControl
             ApplyBackdropToTray();
             ApplyVisualConfigToTray();
             ApplyClearToTray();
-            ApplyRollRequestToTray();
+            ApplyRollRequestsToTray();
             ApplyRotationsToTray();
         }, DispatcherPriority.Render);
     }
@@ -326,9 +327,9 @@ public partial class DiceRollerPortalView : UserControl
             Dispatcher.UIThread.Post(ApplyRotationsToTray, DispatcherPriority.Render);
         }
 
-        if (e.PropertyName == nameof(DiceRollerPortalViewModel.RollRequest) && _vm is not null)
+        if (e.PropertyName == nameof(DiceRollerPortalViewModel.RollRequests) && _vm is not null)
         {
-            Dispatcher.UIThread.Post(ApplyRollRequestToTray, DispatcherPriority.Render);
+            Dispatcher.UIThread.Post(ApplyRollRequestsToTray, DispatcherPriority.Render);
         }
 
         if (e.PropertyName == nameof(DiceRollerPortalViewModel.ClearDiceId) && _vm is not null)
@@ -423,7 +424,7 @@ public partial class DiceRollerPortalView : UserControl
         _tray.ClearAllDice();
     }
 
-    private void ApplyRollRequestToTray()
+    private void ApplyRollRequestsToTray()
     {
         if (_tray is null || _vm is null)
         {
@@ -435,27 +436,31 @@ public partial class DiceRollerPortalView : UserControl
             return;
         }
 
-        var req = _vm.RollRequest;
-        if (req is null)
+        var requests = _vm.RollRequests;
+        if (requests is null || requests.Count == 0)
         {
             return;
         }
 
-        if (req.RequestId == _lastRollRequestId)
+        foreach (var req in requests.OrderBy(r => r.RequestId))
         {
-            return;
-        }
+            if (req.RequestId <= _lastRollRequestId)
+            {
+                continue;
+            }
 
-        _lastRollRequestId = req.RequestId;
-        if (req.Terms is null || req.Terms.Count == 0)
-        {
-            return;
-        }
+            _lastRollRequestId = Math.Max(_lastRollRequestId, req.RequestId);
 
-        foreach (var term in req.Terms)
-        {
-            // Sign affects math/display, not the physical roll.
-            _tray.RequestRandomRoll(req.RequestId, term.Sides, term.Count, req.Direction);
+            if (req.Terms is null || req.Terms.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var term in req.Terms)
+            {
+                // Sign affects math/display, not the physical roll.
+                _tray.RequestRandomRoll(req.RequestId, term.Sides, term.Count, req.Direction);
+            }
         }
     }
 
@@ -499,7 +504,7 @@ public partial class DiceRollerPortalView : UserControl
         if (_tray is not null)
         {
             ApplyRotationsToTray();
-            ApplyRollRequestToTray();
+            ApplyRollRequestsToTray();
             _timer.Stop();
             DiceCanvas.Children.Clear();
             _anims.Clear();

@@ -37,12 +37,12 @@
             VerticalAlignment="Top"
             Margin="24,24,24,0"
             MaxWidth="1100">
-      <TextBlock Text="{Binding Text}"
-                 Foreground="White"
-                 FontSize="34"
-                 FontWeight="SemiBold"
-                 TextAlignment="Center"
-                 TextWrapping="Wrap" />
+      <controls:BoldTotalsTextBlock RawText="{Binding Text}"
+                                    Foreground="White"
+                                    FontSize="34"
+                                    FontWeight="SemiBold"
+                                    TextAlignment="Center"
+                                    TextWrapping="Wrap" />
     </Border>
   </Grid>
 </UserControl>

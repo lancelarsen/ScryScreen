@@ -24,7 +24,7 @@ public sealed record DiceRollerState(
     IReadOnlyList<DiceDieVisualConfig> VisualConfigs,
     long VisualConfigRevision = 0,
     DiceRollDirection RollDirection = DiceRollDirection.Right,
-    DiceRollRequest? RollRequest = null,
+    IReadOnlyList<DiceRollRequest>? RollRequests = null,
     long ClearDiceId = 0,
     bool DebugVisible = false)
 {
@@ -34,5 +34,6 @@ public sealed record DiceRollerState(
         Rotations: System.Array.Empty<DiceDieRotation>(),
         VisualConfigs: System.Array.Empty<DiceDieVisualConfig>(),
         VisualConfigRevision: 0,
+        RollRequests: System.Array.Empty<DiceRollRequest>(),
         DebugVisible: false);
 }

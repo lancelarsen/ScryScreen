@@ -1656,7 +1656,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 state.VisualConfigs,
                 state.VisualConfigRevision,
                 state.RollDirection,
-                state.RollRequest,
+                state.RollRequests,
                 state.ClearDiceId,
                 state.DebugVisible);
         }

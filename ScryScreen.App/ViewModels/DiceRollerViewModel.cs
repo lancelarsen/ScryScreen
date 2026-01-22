@@ -15,6 +15,8 @@ public partial class DiceRollerViewModel : ViewModelBase
 {
     private readonly Random _rng = new();
     private long _rollIdCounter;
+    private long _trayRequestIdCounter;
+    private long _trayBatchIdCounter;
     private long _clearDiceIdCounter;
     private readonly Dictionary<int, DiceDieRotation> _rotationsBySides = new();
 
@@ -38,8 +40,19 @@ public partial class DiceRollerViewModel : ViewModelBase
         public required int ConstantTotal { get; init; }
     }
 
+    private sealed class PendingTrayRollBatch
+    {
+        public required long BatchId { get; init; }
+        public required string BatchExpression { get; init; }
+        public required List<long> RequestIdsInOrder { get; init; }
+        public Dictionary<long, int> TotalsByRequestId { get; } = new();
+        public Dictionary<long, string> DetailsByRequestId { get; } = new();
+    }
+
     private readonly Dictionary<long, PendingTrayRoll> _pendingTrayRollsByRequestId = new();
-    private DiceRollRequest? _lastIssuedRollRequest;
+    private readonly Dictionary<long, long> _trayBatchIdByRequestId = new();
+    private readonly Dictionary<long, PendingTrayRollBatch> _pendingTrayRollBatchesByBatchId = new();
+    private IReadOnlyList<DiceRollRequest> _lastIssuedRollRequests = Array.Empty<DiceRollRequest>();
 
     private long _visualConfigRevision;
 
@@ -115,9 +128,132 @@ public partial class DiceRollerViewModel : ViewModelBase
             visualConfigs,
             VisualConfigRevision: _visualConfigRevision,
             RollDirection,
-            _lastIssuedRollRequest,
+            _lastIssuedRollRequests,
             _clearDiceIdCounter,
             DebugVisible: ShowDebugInfo);
+    }
+
+    private static List<DiceRollDiceTerm> MergeLikeTermsPreserveOrder(List<DiceRollDiceTerm> parsedTerms)
+    {
+        var mergedCounts = new Dictionary<(int Sides, int Sign), (int FirstIndex, int Count)>();
+        for (var idx = 0; idx < parsedTerms.Count; idx++)
+        {
+            var t = parsedTerms[idx];
+            var key = (t.Sides, t.Sign);
+            if (mergedCounts.TryGetValue(key, out var existing))
+            {
+                mergedCounts[key] = (existing.FirstIndex, existing.Count + t.Count);
+            }
+            else
+            {
+                mergedCounts[key] = (idx, t.Count);
+            }
+        }
+
+        return mergedCounts
+            .OrderBy(kvp => kvp.Value.FirstIndex)
+            .Select(kvp => new DiceRollDiceTerm(kvp.Key.Sides, kvp.Value.Count, kvp.Key.Sign))
+            .ToList();
+    }
+
+    private static string BuildPreviewText(List<DiceRollDiceTerm> terms, int constantTotal)
+    {
+        var previewParts = new List<string>();
+        foreach (var t in terms)
+        {
+            var termText = $"{t.Count}d{t.Sides}";
+            if (previewParts.Count == 0)
+            {
+                previewParts.Add(t.Sign < 0 ? "-" + termText : termText);
+            }
+            else
+            {
+                previewParts.Add((t.Sign < 0 ? "-" : "+") + termText);
+            }
+        }
+
+        if (constantTotal != 0)
+        {
+            previewParts.Add((constantTotal < 0 ? "-" : "+") + Math.Abs(constantTotal));
+        }
+
+        return string.Join(string.Empty, previewParts);
+    }
+
+    private static bool TryParseTrayBatchExpression(
+        string? expression,
+        out List<(string GroupExpression, List<DiceRollDiceTerm> Terms, int ConstantTotal, string Preview)> groups,
+        out string? batchExpression,
+        out string? error)
+    {
+        groups = new List<(string GroupExpression, List<DiceRollDiceTerm> Terms, int ConstantTotal, string Preview)>();
+        batchExpression = null;
+        error = null;
+
+        var text = (expression ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        static string Normalize(string s) => (s ?? string.Empty).Replace(" ", string.Empty);
+
+        var rawGroups = text.Split(',', StringSplitOptions.TrimEntries);
+        if (rawGroups.Length == 0)
+        {
+            return false;
+        }
+
+        // Prevent pathological input from spawning huge numbers of dice.
+        const int maxGroups = 10;
+        if (rawGroups.Length > maxGroups)
+        {
+            error = $"3D tray supports up to {maxGroups} comma-separated rolls.";
+            return false;
+        }
+
+        var totalDiceAllGroups = 0;
+
+        var normalizedGroups = rawGroups.Select(Normalize).ToArray();
+        batchExpression = string.Join(",", normalizedGroups);
+
+        foreach (var raw in rawGroups)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                error = "Invalid roll expression.";
+                return false;
+            }
+
+            var groupExpression = Normalize(raw);
+
+            if (!TryParseTrayExpression(raw, out var parsedTerms, out var constantTotal, out var parseError))
+            {
+                error = string.IsNullOrWhiteSpace(parseError) ? "Invalid roll expression." : parseError;
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(parseError))
+            {
+                error = parseError;
+                return false;
+            }
+
+            var merged = MergeLikeTermsPreserveOrder(parsedTerms);
+            var diceCount = merged.Sum(t => t.Count);
+            totalDiceAllGroups += diceCount;
+
+            groups.Add((groupExpression, merged, constantTotal, BuildPreviewText(merged, constantTotal)));
+        }
+
+        const int maxTotalDice = 100;
+        if (totalDiceAllGroups > maxTotalDice)
+        {
+            error = $"3D tray supports up to {maxTotalDice} total dice across comma-separated rolls.";
+            return false;
+        }
+
+        return groups.Count > 0;
     }
 
     public bool IsRollDirectionRight => RollDirection == DiceRollDirection.Right;
@@ -264,6 +400,77 @@ public partial class DiceRollerViewModel : ViewModelBase
     {
         LastErrorText = null;
 
+        // Comma-separated batch rolls: "4d6+2d4,2d6,3d4+10".
+        if ((Expression ?? string.Empty).Contains(',', StringComparison.Ordinal))
+        {
+            if (TryParseTrayBatchExpression(Expression, out var groups, out var batchExpression, out var batchError))
+            {
+                if (!string.IsNullOrWhiteSpace(batchError))
+                {
+                    LastErrorText = batchError;
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(batchExpression))
+                {
+                    LastErrorText = "Invalid roll expression.";
+                    return;
+                }
+
+            _pendingTrayRollsByRequestId.Clear();
+            _pendingTrayRollBatchesByBatchId.Clear();
+            _trayBatchIdByRequestId.Clear();
+
+            var batchId = ++_trayBatchIdCounter;
+            var requests = new List<DiceRollRequest>(capacity: groups.Count);
+            var requestIdsInOrder = new List<long>(capacity: groups.Count);
+
+            foreach (var g in groups)
+            {
+                var requestId = ++_trayRequestIdCounter;
+                requestIdsInOrder.Add(requestId);
+
+                    var req = new DiceRollRequest(RequestId: requestId, Terms: g.Terms, Direction: RollDirection);
+                requests.Add(req);
+
+                _pendingTrayRollsByRequestId[requestId] = new PendingTrayRoll
+                {
+                    Request = req,
+                        Terms = g.Terms
+                        .Select(t => new PendingTrayRollTerm
+                        {
+                            Sides = t.Sides,
+                            Count = t.Count,
+                            Sign = t.Sign,
+                            Values = new List<int>(capacity: Math.Clamp(t.Count, 1, MaxTrayDiceCount)),
+                        })
+                        .ToList(),
+                        ConstantTotal = g.ConstantTotal,
+                };
+                _trayBatchIdByRequestId[requestId] = batchId;
+            }
+
+            _pendingTrayRollBatchesByBatchId[batchId] = new PendingTrayRollBatch
+            {
+                BatchId = batchId,
+                    BatchExpression = batchExpression,
+                RequestIdsInOrder = requestIdsInOrder,
+            };
+
+                _lastIssuedRollRequests = requests;
+                RollId = ++_rollIdCounter;
+                LastResultText = $"Rolling {groups.Count} totals...";
+                StateChanged?.Invoke();
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(batchError))
+            {
+                LastErrorText = batchError;
+                return;
+            }
+        }
+
         // Physics-driven tray roll for simple additive/subtractive dice expressions.
         if (TryParseTrayExpression(Expression, out var parsedTerms, out var constantTotal, out var parseError))
         {
@@ -273,32 +480,20 @@ public partial class DiceRollerViewModel : ViewModelBase
                 return;
             }
 
-            // Merge like terms for simpler aggregation + display, but preserve the user's term order.
-            var mergedCounts = new Dictionary<(int Sides, int Sign), (int FirstIndex, int Count)>();
-            for (var idx = 0; idx < parsedTerms.Count; idx++)
-            {
-                var t = parsedTerms[idx];
-                var key = (t.Sides, t.Sign);
-                if (mergedCounts.TryGetValue(key, out var existing))
-                {
-                    mergedCounts[key] = (existing.FirstIndex, existing.Count + t.Count);
-                }
-                else
-                {
-                    mergedCounts[key] = (idx, t.Count);
-                }
-            }
+            var merged = MergeLikeTermsPreserveOrder(parsedTerms);
 
-            var merged = mergedCounts
-                .OrderBy(kvp => kvp.Value.FirstIndex)
-                .Select(kvp => new DiceRollDiceTerm(kvp.Key.Sides, kvp.Value.Count, kvp.Key.Sign))
-                .ToList();
+            _pendingTrayRollsByRequestId.Clear();
+            _pendingTrayRollBatchesByBatchId.Clear();
+            _trayBatchIdByRequestId.Clear();
 
-            RollId = ++_rollIdCounter;
-            _lastIssuedRollRequest = new DiceRollRequest(RequestId: RollId, Terms: merged, Direction: RollDirection);
-            _pendingTrayRollsByRequestId[RollId] = new PendingTrayRoll
+            var batchId = ++_trayBatchIdCounter;
+            var requestId = ++_trayRequestIdCounter;
+            var req = new DiceRollRequest(RequestId: requestId, Terms: merged, Direction: RollDirection);
+            _lastIssuedRollRequests = new[] { req };
+
+            _pendingTrayRollsByRequestId[requestId] = new PendingTrayRoll
             {
-                Request = _lastIssuedRollRequest,
+                Request = req,
                 Terms = merged
                     .Select(t => new PendingTrayRollTerm
                     {
@@ -311,26 +506,16 @@ public partial class DiceRollerViewModel : ViewModelBase
                 ConstantTotal = constantTotal,
             };
 
-            var previewParts = new List<string>();
-            foreach (var t in merged)
+            _trayBatchIdByRequestId[requestId] = batchId;
+            _pendingTrayRollBatchesByBatchId[batchId] = new PendingTrayRollBatch
             {
-                var termText = $"{t.Count}d{t.Sides}";
-                if (previewParts.Count == 0)
-                {
-                    previewParts.Add(t.Sign < 0 ? "-" + termText : termText);
-                }
-                else
-                {
-                    previewParts.Add((t.Sign < 0 ? "-" : "+") + termText);
-                }
-            }
+                BatchId = batchId,
+                BatchExpression = BuildPreviewText(merged, constantTotal),
+                RequestIdsInOrder = new List<long> { requestId },
+            };
 
-            if (constantTotal != 0)
-            {
-                previewParts.Add((constantTotal < 0 ? "-" : "+") + Math.Abs(constantTotal));
-            }
-
-            LastResultText = $"Rolling {string.Join(string.Empty, previewParts)}...";
+            RollId = ++_rollIdCounter;
+            LastResultText = $"Rolling {BuildPreviewText(merged, constantTotal)}...";
             StateChanged?.Invoke();
             return;
         }
@@ -341,7 +526,7 @@ public partial class DiceRollerViewModel : ViewModelBase
             return;
         }
 
-        _lastIssuedRollRequest = null;
+        _lastIssuedRollRequests = Array.Empty<DiceRollRequest>();
 
         if (!DiceExpressionEvaluator.TryEvaluate(Expression, _rng, out var result, out var error))
         {
@@ -383,48 +568,98 @@ public partial class DiceRollerViewModel : ViewModelBase
 
         _pendingTrayRollsByRequestId.Remove(requestId);
 
-        // Special-case d100 display when it's the only term and has exactly one value.
-        if (pending.Terms.Count == 1 && pending.Terms[0].Sides == 100 && pending.Terms[0].Values.Count == 1 && pending.ConstantTotal == 0)
-        {
-            var v = pending.Terms[0].Values[0];
-            LastResultText = $"1d100({v}) = {v}%";
-        }
-        else
-        {
-            var parts = new List<string>();
-            foreach (var t in pending.Terms)
-            {
-                var label = $"{t.Count}d{t.Sides}";
-                var valuesText = $"({string.Join(",", t.Values)})";
-                var termText = label + valuesText;
+        var diceTotal = pending.Terms.Sum(t => t.Sign * t.Values.Sum());
+        var total = diceTotal + pending.ConstantTotal;
 
-                if (parts.Count == 0)
+        if (!_trayBatchIdByRequestId.TryGetValue(requestId, out var batchId)
+            || !_pendingTrayRollBatchesByBatchId.TryGetValue(batchId, out var batch))
+        {
+            return;
+        }
+
+        batch.TotalsByRequestId[requestId] = total;
+
+        // For batch display, record a compact per-group summary once the group is complete.
+        if (batch.RequestIdsInOrder.Count > 1)
+        {
+            // Values are shown in term order; sign affects total, not the physical results.
+            var orderedValues = pending.Terms.SelectMany(t => t.Values).ToList();
+            var valuesText = orderedValues.Count == 0 ? "()" : $"({string.Join(",", orderedValues)})";
+            var preview = BuildPreviewText(pending.Request.Terms.ToList(), pending.ConstantTotal);
+            var detail = $"{preview} {valuesText} = {total}";
+            batch.DetailsByRequestId[requestId] = detail;
+        }
+
+        // If this is a single-group roll, keep the detailed result text.
+        if (batch.RequestIdsInOrder.Count == 1)
+        {
+            // Special-case d100 display when it's the only term and has exactly one value.
+            if (pending.Terms.Count == 1 && pending.Terms[0].Sides == 100 && pending.Terms[0].Values.Count == 1 && pending.ConstantTotal == 0)
+            {
+                var v = pending.Terms[0].Values[0];
+                LastResultText = $"1d100({v}) = {v}%";
+            }
+            else
+            {
+                var parts = new List<string>();
+                foreach (var t in pending.Terms)
                 {
-                    parts.Add(t.Sign < 0 ? "-" + termText : termText);
+                    var label = $"{t.Count}d{t.Sides}";
+                    var valuesText = $"({string.Join(",", t.Values)})";
+                    var termText = label + valuesText;
+
+                    if (parts.Count == 0)
+                    {
+                        parts.Add(t.Sign < 0 ? "-" + termText : termText);
+                    }
+                    else
+                    {
+                        parts.Add((t.Sign < 0 ? " - " : " + ") + termText);
+                    }
                 }
-                else
+
+                if (pending.ConstantTotal != 0)
                 {
-                    parts.Add((t.Sign < 0 ? " - " : " + ") + termText);
+                    parts.Add((pending.ConstantTotal < 0 ? " - " : " + ") + Math.Abs(pending.ConstantTotal));
                 }
+
+                LastResultText = $"{string.Concat(parts)} = {total}";
             }
 
-            if (pending.ConstantTotal != 0)
+            History.Insert(0, LastResultText);
+            while (History.Count > 20)
             {
-                parts.Add((pending.ConstantTotal < 0 ? " - " : " + ") + Math.Abs(pending.ConstantTotal));
+                History.RemoveAt(History.Count - 1);
             }
 
-            var diceTotal = pending.Terms.Sum(t => t.Sign * t.Values.Sum());
-            var total = diceTotal + pending.ConstantTotal;
-            LastResultText = $"{string.Concat(parts)} = {total}";
+            StateChanged?.Invoke();
+            return;
         }
 
-        History.Insert(0, LastResultText);
-        while (History.Count > 20)
+        // Multi-group batch: once all groups are done, display the group details in order.
+        if (batch.RequestIdsInOrder.All(id => batch.TotalsByRequestId.ContainsKey(id)))
         {
-            History.RemoveAt(History.Count - 1);
-        }
+            var details = batch.RequestIdsInOrder
+                .Select(id => batch.DetailsByRequestId.TryGetValue(id, out var d) ? d : batch.TotalsByRequestId[id].ToString())
+                .ToList();
 
-        StateChanged?.Invoke();
+            LastResultText = string.Join(", ", details);
+
+            History.Insert(0, LastResultText);
+            while (History.Count > 20)
+            {
+                History.RemoveAt(History.Count - 1);
+            }
+
+            // Cleanup finished batch.
+            _pendingTrayRollBatchesByBatchId.Remove(batchId);
+            foreach (var id in batch.RequestIdsInOrder)
+            {
+                _trayBatchIdByRequestId.Remove(id);
+            }
+
+            StateChanged?.Invoke();
+        }
     }
 
     [RelayCommand]
@@ -466,7 +701,9 @@ public partial class DiceRollerViewModel : ViewModelBase
         History.Clear();
         _rotationsBySides.Clear();
         _pendingTrayRollsByRequestId.Clear();
-        _lastIssuedRollRequest = null;
+        _pendingTrayRollBatchesByBatchId.Clear();
+        _trayBatchIdByRequestId.Clear();
+        _lastIssuedRollRequests = Array.Empty<DiceRollRequest>();
         _clearDiceIdCounter++;
         StateChanged?.Invoke();
     }

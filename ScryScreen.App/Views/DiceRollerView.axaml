@@ -239,7 +239,7 @@
         <ItemsControl ItemsSource="{Binding History}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <TextBlock Text="{Binding}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,6" />
+              <controls:BoldTotalsTextBlock RawText="{Binding}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,6" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
