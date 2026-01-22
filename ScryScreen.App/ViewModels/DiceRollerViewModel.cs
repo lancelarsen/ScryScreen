@@ -23,10 +23,19 @@ public partial class DiceRollerViewModel : ViewModelBase
     private static double Clamp(double value, double min, double max)
         => value < min ? min : (value > max ? max : value);
 
+    private sealed class PendingTrayRollTerm
+    {
+        public required int Sides { get; init; }
+        public required int Count { get; init; }
+        public required int Sign { get; init; }
+        public required List<int> Values { get; init; }
+    }
+
     private sealed class PendingTrayRoll
     {
         public required DiceRollRequest Request { get; init; }
-        public required List<int> Values { get; init; }
+        public required List<PendingTrayRollTerm> Terms { get; init; }
+        public required int ConstantTotal { get; init; }
     }
 
     private readonly Dictionary<long, PendingTrayRoll> _pendingTrayRollsByRequestId = new();
@@ -117,41 +126,117 @@ public partial class DiceRollerViewModel : ViewModelBase
     public bool IsRollDirectionDown => RollDirection == DiceRollDirection.Down;
     public bool IsRollDirectionRandom => RollDirection == DiceRollDirection.Random;
 
-    private static bool TryParseDicePool(string? expression, out int count, out int sides)
+    private static bool TryParseTrayExpression(string? expression, out List<DiceRollDiceTerm> terms, out int constantTotal, out string? error)
     {
-        count = 0;
-        sides = 0;
+        terms = new List<DiceRollDiceTerm>();
+        constantTotal = 0;
+        error = null;
+
         var text = (expression ?? string.Empty).Replace(" ", string.Empty);
         if (string.IsNullOrWhiteSpace(text))
         {
             return false;
         }
 
-        // Accept only "NdS" or "dS".
-        if (text.StartsWith("d", StringComparison.OrdinalIgnoreCase))
+        int i = 0;
+        var sign = +1;
+
+        while (i < text.Length)
         {
-            text = "1" + text;
+            var ch = text[i];
+            if (ch == '+')
+            {
+                sign = +1;
+                i++;
+                continue;
+            }
+            if (ch == '-')
+            {
+                sign = -1;
+                i++;
+                continue;
+            }
+
+            var start = i;
+            while (i < text.Length && char.IsDigit(text[i]))
+            {
+                i++;
+            }
+
+            var hasNumber = i > start;
+            var numberText = hasNumber ? text.Substring(start, i - start) : string.Empty;
+
+            // Dice term
+            if (i < text.Length && (text[i] == 'd' || text[i] == 'D'))
+            {
+                i++;
+                var sidesStart = i;
+                while (i < text.Length && char.IsDigit(text[i]))
+                {
+                    i++;
+                }
+
+                if (i == sidesStart)
+                {
+                    error = "Missing die sides (e.g. d6).";
+                    return false;
+                }
+
+                if (!int.TryParse(text.AsSpan(sidesStart, i - sidesStart), out var sides) || sides is < 2 or > 100)
+                {
+                    error = "Invalid die sides.";
+                    return false;
+                }
+
+                var count = 1;
+                if (hasNumber && (!int.TryParse(numberText, out count) || count <= 0))
+                {
+                    error = "Invalid dice count.";
+                    return false;
+                }
+
+                terms.Add(new DiceRollDiceTerm(sides, count, sign));
+                continue;
+            }
+
+            // Integer constant
+            if (!hasNumber)
+            {
+                error = "Invalid roll expression.";
+                return false;
+            }
+
+            if (!int.TryParse(numberText, out var constant))
+            {
+                error = "Invalid number.";
+                return false;
+            }
+
+            constantTotal += sign * constant;
         }
 
-        var dIndex = text.IndexOf('d');
-        if (dIndex < 0)
-        {
-            dIndex = text.IndexOf('D');
-        }
-
-        if (dIndex <= 0)
+        if (terms.Count == 0)
         {
             return false;
         }
 
-        if (!int.TryParse(text.AsSpan(0, dIndex), out count) || count <= 0)
+        var totalDice = terms.Sum(t => t.Count);
+        if (totalDice > MaxTrayDiceCount)
         {
+            error = $"3D tray supports up to {MaxTrayDiceCount} dice per roll.";
             return false;
         }
 
-        if (!int.TryParse(text.AsSpan(dIndex + 1), out sides) || sides is < 2 or > 100)
+        // d100 is implemented as a paired d10 (tens/ones) per requestId.
+        // Supporting multiple d100 in a single request would require request grouping.
+        var d100Terms = terms.Where(t => t.Sides == 100).ToList();
+        if (d100Terms.Count > 0)
         {
-            return false;
+            if (d100Terms.Count != 1 || d100Terms[0].Count != 1)
+            {
+                error = "3D tray currently supports only 1d100 per roll.";
+                return false;
+            }
         }
 
         return true;
@@ -179,34 +264,80 @@ public partial class DiceRollerViewModel : ViewModelBase
     {
         LastErrorText = null;
 
-        // Physics-driven tray roll for simple NdS expressions: the portal tray determines the final values.
-        if (TryParseDicePool(Expression, out var count, out var sides))
+        // Physics-driven tray roll for simple additive/subtractive dice expressions.
+        if (TryParseTrayExpression(Expression, out var parsedTerms, out var constantTotal, out var parseError))
         {
-            if (count > MaxTrayDiceCount)
+            if (!string.IsNullOrWhiteSpace(parseError))
             {
-                LastErrorText = $"3D tray supports up to {MaxTrayDiceCount} dice per roll.";
+                LastErrorText = parseError;
                 return;
             }
 
-            // d100 is implemented as a paired d10 (tens/ones) per requestId.
-            // Supporting multiple d100 in a single request would require request grouping.
-            if (sides == 100 && count != 1)
+            // Merge like terms for simpler aggregation + display, but preserve the user's term order.
+            var mergedCounts = new Dictionary<(int Sides, int Sign), (int FirstIndex, int Count)>();
+            for (var idx = 0; idx < parsedTerms.Count; idx++)
             {
-                LastErrorText = "3D tray currently supports only 1d100 per roll.";
-                return;
+                var t = parsedTerms[idx];
+                var key = (t.Sides, t.Sign);
+                if (mergedCounts.TryGetValue(key, out var existing))
+                {
+                    mergedCounts[key] = (existing.FirstIndex, existing.Count + t.Count);
+                }
+                else
+                {
+                    mergedCounts[key] = (idx, t.Count);
+                }
             }
+
+            var merged = mergedCounts
+                .OrderBy(kvp => kvp.Value.FirstIndex)
+                .Select(kvp => new DiceRollDiceTerm(kvp.Key.Sides, kvp.Value.Count, kvp.Key.Sign))
+                .ToList();
 
             RollId = ++_rollIdCounter;
-            _lastIssuedRollRequest = new DiceRollRequest(RequestId: RollId, Sides: sides, Count: count, Direction: RollDirection);
+            _lastIssuedRollRequest = new DiceRollRequest(RequestId: RollId, Terms: merged, Direction: RollDirection);
             _pendingTrayRollsByRequestId[RollId] = new PendingTrayRoll
             {
                 Request = _lastIssuedRollRequest,
-                Values = new List<int>(capacity: Math.Clamp(count, 1, MaxTrayDiceCount)),
+                Terms = merged
+                    .Select(t => new PendingTrayRollTerm
+                    {
+                        Sides = t.Sides,
+                        Count = t.Count,
+                        Sign = t.Sign,
+                        Values = new List<int>(capacity: Math.Clamp(t.Count, 1, MaxTrayDiceCount)),
+                    })
+                    .ToList(),
+                ConstantTotal = constantTotal,
             };
-            LastResultText = sides == 100
-                ? "Rolling 1d100 (percentile)..."
-                : $"Rolling {count}d{sides}...";
+
+            var previewParts = new List<string>();
+            foreach (var t in merged)
+            {
+                var termText = $"{t.Count}d{t.Sides}";
+                if (previewParts.Count == 0)
+                {
+                    previewParts.Add(t.Sign < 0 ? "-" + termText : termText);
+                }
+                else
+                {
+                    previewParts.Add((t.Sign < 0 ? "-" : "+") + termText);
+                }
+            }
+
+            if (constantTotal != 0)
+            {
+                previewParts.Add((constantTotal < 0 ? "-" : "+") + Math.Abs(constantTotal));
+            }
+
+            LastResultText = $"Rolling {string.Join(string.Empty, previewParts)}...";
             StateChanged?.Invoke();
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(parseError))
+        {
+            LastErrorText = parseError;
             return;
         }
 
@@ -236,36 +367,57 @@ public partial class DiceRollerViewModel : ViewModelBase
             return;
         }
 
-        var req = pending.Request;
-        if (req.Sides != sides)
-        {
-            return;
-        }
-
-        if (pending.Values.Count >= req.Count)
+        var term = pending.Terms.FirstOrDefault(t => t.Sides == sides && t.Values.Count < t.Count);
+        if (term is null)
         {
             return;
         }
 
         LastErrorText = null;
+        term.Values.Add(value);
 
-        pending.Values.Add(value);
-
-        if (pending.Values.Count < req.Count)
+        if (pending.Terms.Any(t => t.Values.Count < t.Count))
         {
             return;
         }
 
         _pendingTrayRollsByRequestId.Remove(requestId);
 
-        var values = pending.Values;
-        var total = values.Sum();
+        // Special-case d100 display when it's the only term and has exactly one value.
+        if (pending.Terms.Count == 1 && pending.Terms[0].Sides == 100 && pending.Terms[0].Values.Count == 1 && pending.ConstantTotal == 0)
+        {
+            var v = pending.Terms[0].Values[0];
+            LastResultText = $"1d100({v}) = {v}%";
+        }
+        else
+        {
+            var parts = new List<string>();
+            foreach (var t in pending.Terms)
+            {
+                var label = $"{t.Count}d{t.Sides}";
+                var valuesText = $"({string.Join(",", t.Values)})";
+                var termText = label + valuesText;
 
-        LastResultText = sides == 100
-            ? $"1d100({value}) = {value}%"
-            : (req.Count == 1
-                ? $"1d{sides}({value}) = {value}"
-                : $"{req.Count}d{sides}({string.Join(",", values)}) = {total}");
+                if (parts.Count == 0)
+                {
+                    parts.Add(t.Sign < 0 ? "-" + termText : termText);
+                }
+                else
+                {
+                    parts.Add((t.Sign < 0 ? " - " : " + ") + termText);
+                }
+            }
+
+            if (pending.ConstantTotal != 0)
+            {
+                parts.Add((pending.ConstantTotal < 0 ? " - " : " + ") + Math.Abs(pending.ConstantTotal));
+            }
+
+            var diceTotal = pending.Terms.Sum(t => t.Sign * t.Values.Sum());
+            var total = diceTotal + pending.ConstantTotal;
+            LastResultText = $"{string.Concat(parts)} = {total}";
+        }
+
         History.Insert(0, LastResultText);
         while (History.Count > 20)
         {

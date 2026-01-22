@@ -447,7 +447,16 @@ public partial class DiceRollerPortalView : UserControl
         }
 
         _lastRollRequestId = req.RequestId;
-        _tray.RequestRandomRoll(req.RequestId, req.Sides, req.Count, req.Direction);
+        if (req.Terms is null || req.Terms.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var term in req.Terms)
+        {
+            // Sign affects math/display, not the physical roll.
+            _tray.RequestRandomRoll(req.RequestId, term.Sides, term.Count, req.Direction);
+        }
     }
 
     private void OnTrayDieRollCompleted(object? sender, DiceTray3DHost.DieRollCompletedEventArgs e)

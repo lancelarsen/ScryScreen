@@ -13,7 +13,9 @@ public enum DiceRollDirection
     Random,
 }
 
-public sealed record DiceRollRequest(long RequestId, int Sides, int Count = 1, DiceRollDirection Direction = DiceRollDirection.Right);
+public sealed record DiceRollDiceTerm(int Sides, int Count, int Sign = 1);
+
+public sealed record DiceRollRequest(long RequestId, IReadOnlyList<DiceRollDiceTerm> Terms, DiceRollDirection Direction = DiceRollDirection.Right);
 
 public sealed record DiceRollerState(
     string Text,
