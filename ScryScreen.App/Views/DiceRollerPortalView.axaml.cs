@@ -447,7 +447,7 @@ public partial class DiceRollerPortalView : UserControl
         }
 
         _lastRollRequestId = req.RequestId;
-        _tray.RequestRandomRoll(req.RequestId, req.Sides, req.Direction);
+        _tray.RequestRandomRoll(req.RequestId, req.Sides, req.Count, req.Direction);
     }
 
     private void OnTrayDieRollCompleted(object? sender, DiceTray3DHost.DieRollCompletedEventArgs e)

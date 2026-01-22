@@ -18,10 +18,18 @@ public partial class DiceRollerViewModel : ViewModelBase
     private long _clearDiceIdCounter;
     private readonly Dictionary<int, DiceDieRotation> _rotationsBySides = new();
 
+    private const int MaxTrayDiceCount = 20;
+
     private static double Clamp(double value, double min, double max)
         => value < min ? min : (value > max ? max : value);
 
-    private readonly Dictionary<long, DiceRollRequest> _pendingSingleDieRollsByRequestId = new();
+    private sealed class PendingTrayRoll
+    {
+        public required DiceRollRequest Request { get; init; }
+        public required List<int> Values { get; init; }
+    }
+
+    private readonly Dictionary<long, PendingTrayRoll> _pendingTrayRollsByRequestId = new();
     private DiceRollRequest? _lastIssuedRollRequest;
 
     private long _visualConfigRevision;
@@ -109,8 +117,9 @@ public partial class DiceRollerViewModel : ViewModelBase
     public bool IsRollDirectionDown => RollDirection == DiceRollDirection.Down;
     public bool IsRollDirectionRandom => RollDirection == DiceRollDirection.Random;
 
-    private static bool TryParseSingleDie(string? expression, out int sides)
+    private static bool TryParseDicePool(string? expression, out int count, out int sides)
     {
+        count = 0;
         sides = 0;
         var text = (expression ?? string.Empty).Replace(" ", string.Empty);
         if (string.IsNullOrWhiteSpace(text))
@@ -118,7 +127,7 @@ public partial class DiceRollerViewModel : ViewModelBase
             return false;
         }
 
-        // Accept only "1dN" or "dN".
+        // Accept only "NdS" or "dS".
         if (text.StartsWith("d", StringComparison.OrdinalIgnoreCase))
         {
             text = "1" + text;
@@ -130,12 +139,12 @@ public partial class DiceRollerViewModel : ViewModelBase
             dIndex = text.IndexOf('D');
         }
 
-        if (dIndex <= 0 || dIndex != 1)
+        if (dIndex <= 0)
         {
             return false;
         }
 
-        if (!int.TryParse(text.AsSpan(0, dIndex), out var count) || count != 1)
+        if (!int.TryParse(text.AsSpan(0, dIndex), out count) || count <= 0)
         {
             return false;
         }
@@ -170,15 +179,33 @@ public partial class DiceRollerViewModel : ViewModelBase
     {
         LastErrorText = null;
 
-        // Physics-driven single-die roll: the portal tray determines the final value.
-        if (TryParseSingleDie(Expression, out var sides))
+        // Physics-driven tray roll for simple NdS expressions: the portal tray determines the final values.
+        if (TryParseDicePool(Expression, out var count, out var sides))
         {
+            if (count > MaxTrayDiceCount)
+            {
+                LastErrorText = $"3D tray supports up to {MaxTrayDiceCount} dice per roll.";
+                return;
+            }
+
+            // d100 is implemented as a paired d10 (tens/ones) per requestId.
+            // Supporting multiple d100 in a single request would require request grouping.
+            if (sides == 100 && count != 1)
+            {
+                LastErrorText = "3D tray currently supports only 1d100 per roll.";
+                return;
+            }
+
             RollId = ++_rollIdCounter;
-            _lastIssuedRollRequest = new DiceRollRequest(RequestId: RollId, Sides: sides, Direction: RollDirection);
-            _pendingSingleDieRollsByRequestId[RollId] = _lastIssuedRollRequest;
+            _lastIssuedRollRequest = new DiceRollRequest(RequestId: RollId, Sides: sides, Count: count, Direction: RollDirection);
+            _pendingTrayRollsByRequestId[RollId] = new PendingTrayRoll
+            {
+                Request = _lastIssuedRollRequest,
+                Values = new List<int>(capacity: Math.Clamp(count, 1, MaxTrayDiceCount)),
+            };
             LastResultText = sides == 100
                 ? "Rolling 1d100 (percentile)..."
-                : $"Rolling 1d{sides}...";
+                : $"Rolling {count}d{sides}...";
             StateChanged?.Invoke();
             return;
         }
@@ -204,22 +231,41 @@ public partial class DiceRollerViewModel : ViewModelBase
 
     private void OnSingleDieRollCompleted(long requestId, int sides, int value)
     {
-        if (!_pendingSingleDieRollsByRequestId.TryGetValue(requestId, out var req))
+        if (!_pendingTrayRollsByRequestId.TryGetValue(requestId, out var pending))
         {
             return;
         }
 
+        var req = pending.Request;
         if (req.Sides != sides)
         {
             return;
         }
 
+        if (pending.Values.Count >= req.Count)
+        {
+            return;
+        }
+
         LastErrorText = null;
-        _pendingSingleDieRollsByRequestId.Remove(requestId);
+
+        pending.Values.Add(value);
+
+        if (pending.Values.Count < req.Count)
+        {
+            return;
+        }
+
+        _pendingTrayRollsByRequestId.Remove(requestId);
+
+        var values = pending.Values;
+        var total = values.Sum();
 
         LastResultText = sides == 100
             ? $"1d100({value}) = {value}%"
-            : $"1d{sides}({value}) = {value}";
+            : (req.Count == 1
+                ? $"1d{sides}({value}) = {value}"
+                : $"{req.Count}d{sides}({string.Join(",", values)}) = {total}");
         History.Insert(0, LastResultText);
         while (History.Count > 20)
         {
@@ -267,7 +313,7 @@ public partial class DiceRollerViewModel : ViewModelBase
         LastResultText = string.Empty;
         History.Clear();
         _rotationsBySides.Clear();
-        _pendingSingleDieRollsByRequestId.Clear();
+        _pendingTrayRollsByRequestId.Clear();
         _lastIssuedRollRequest = null;
         _clearDiceIdCounter++;
         StateChanged?.Invoke();

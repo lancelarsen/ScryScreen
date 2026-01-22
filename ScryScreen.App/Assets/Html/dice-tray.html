@@ -2862,6 +2862,8 @@
           if (msg.type === 'rollRandom') {
             const requestId = Number(msg.requestId);
             const sides = Number(msg.sides);
+            const countRaw = (msg.count == null) ? 1 : Number(msg.count);
+            const count = (Number.isFinite(countRaw) && countRaw > 0) ? Math.min(20, Math.floor(countRaw)) : 1;
             const dir = msg.direction || msg.dir || 'right';
             if (!Number.isFinite(requestId) || requestId <= 0) return;
             if (!Number.isFinite(sides) || sides < 2 || sides > 100) return;
@@ -2872,9 +2874,15 @@
               kickRandomRoll(tens, requestId, 1, { group: 'd100', part: 'tens' }, dir);
               kickRandomRoll(ones, requestId, 2, { group: 'd100', part: 'ones' }, dir);
             } else {
-              const d = spawnDie(sides);
-              if (!d) return;
-              kickRandomRoll(d, requestId, 0, null, dir);
+              let any = false;
+              for (let i = 0; i < count; i++) {
+                const d = spawnDie(sides);
+                if (!d) break;
+                any = true;
+                // seedSalt differentiates dice within the same requestId
+                kickRandomRoll(d, requestId, i, null, dir);
+              }
+              if (!any) return;
             }
             // Hide the old stage dice (if present) now that we're showing 3D dice.
           }
