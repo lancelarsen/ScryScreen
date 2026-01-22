@@ -9,19 +9,24 @@
              x:DataType="vm:DiceRollerPortalViewModel">
 
   <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False">
-    <Border Background="Transparent"
-            CornerRadius="14"
-            Padding="18,14"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Margin="24,24,24,0"
-            MaxWidth="1100">
+    <Grid HorizontalAlignment="Center"
+          VerticalAlignment="Top"
+          Margin="24,24,24,0"
+          MaxWidth="1100">
+
+      <!-- Backdrop-only layer: opacity does NOT affect text. -->
+      <Border Background="Black"
+              Opacity="{Binding OverlayOpacity}"
+              CornerRadius="14"
+              Padding="18,14" />
+
       <controls:BoldTotalsTextBlock RawText="{Binding Text}"
+                                    Margin="18,14"
                                     Foreground="White"
                                     FontSize="34"
                                     FontWeight="SemiBold"
                                     TextAlignment="Center"
                                     TextWrapping="Wrap" />
-    </Border>
+    </Grid>
   </Grid>
 </UserControl>

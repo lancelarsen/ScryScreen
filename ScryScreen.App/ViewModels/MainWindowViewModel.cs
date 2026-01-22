@@ -1510,6 +1510,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         if (e.PropertyName == nameof(DiceRollerViewModel.RollDirection) ||
+            e.PropertyName == nameof(DiceRollerViewModel.OverlayOpacity) ||
             e.PropertyName == nameof(DiceRollerViewModel.ShowDebugInfo))
         {
             ScheduleDebouncedLastSessionStateSave();
@@ -1650,15 +1651,16 @@ public partial class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(state.Text))
         {
             state = new DiceRollerState(
-                "Dice Tray",
-                state.RollId,
-                state.Rotations,
-                state.VisualConfigs,
-                state.VisualConfigRevision,
-                state.RollDirection,
-                state.RollRequests,
-                state.ClearDiceId,
-                state.DebugVisible);
+                Text: "Dice Tray",
+                RollId: state.RollId,
+                Rotations: state.Rotations,
+                VisualConfigs: state.VisualConfigs,
+                VisualConfigRevision: state.VisualConfigRevision,
+                RollDirection: state.RollDirection,
+                OverlayOpacity: state.OverlayOpacity,
+                RollRequests: state.RollRequests,
+                ClearDiceId: state.ClearDiceId,
+                DebugVisible: state.DebugVisible);
         }
 
         _portalHost.SetContentDiceRollerOverlay(portal.PortalNumber, state);

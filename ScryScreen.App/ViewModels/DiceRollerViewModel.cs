@@ -59,11 +59,15 @@ public partial class DiceRollerViewModel : ViewModelBase
 
     private long _visualConfigRevision;
 
+    private double overlayOpacity = 0.65;
+
     public event Action? StateChanged;
 
     public DiceRollerViewModel()
     {
         Expression = "1d20";
+
+        OverlayOpacity = 0.65;
 
         DiceVisualConfigs = new ObservableCollection<DiceDieVisualConfigViewModel>(new[]
         {
@@ -98,6 +102,23 @@ public partial class DiceRollerViewModel : ViewModelBase
     [ObservableProperty]
     private bool showDebugInfo;
 
+    public double OverlayOpacity
+    {
+        get => overlayOpacity;
+        set
+        {
+            var clamped = Clamp(value, 0.0, 1.0);
+            if (Math.Abs(overlayOpacity - clamped) < 1e-9)
+            {
+                return;
+            }
+
+            overlayOpacity = clamped;
+            OnPropertyChanged(nameof(OverlayOpacity));
+            StateChanged?.Invoke();
+        }
+    }
+
     [ObservableProperty]
     private DiceRollDirection rollDirection = DiceRollDirection.Right;
 
@@ -131,6 +152,7 @@ public partial class DiceRollerViewModel : ViewModelBase
             visualConfigs,
             VisualConfigRevision: _visualConfigRevision,
             RollDirection,
+            OverlayOpacity,
             _issuedRollRequests,
             _clearDiceIdCounter,
             DebugVisible: ShowDebugInfo);

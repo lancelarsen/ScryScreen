@@ -173,6 +173,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(IsShowingImage));
             OnPropertyChanged(nameof(IsShowingText));
             OnPropertyChanged(nameof(IsShowingVideo));
+            OnPropertyChanged(nameof(IsShowingNativeSurface));
             OnPropertyChanged(nameof(IsShowingIdleLogo));
             OnPropertyChanged(nameof(IsShowingNonIdleText));
         }
@@ -259,6 +260,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(DiceRoller));
             OnPropertyChanged(nameof(HasDiceRoller));
             OnPropertyChanged(nameof(IsShowingDiceRoller));
+            OnPropertyChanged(nameof(IsShowingNativeSurface));
         }
     }
 
@@ -333,6 +335,8 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsShowingDiceRoller => !IsSetup && HasDiceRoller;
 
+    public bool IsShowingNativeSurface => IsShowingVideo || IsShowingDiceRoller;
+
     public bool IsShowingText => !IsSetup && !HasInitiative && !HasHourglass && !HasImage && !HasVideo;
 
     public bool IsShowingIdleLogo =>
@@ -351,6 +355,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsShowingHourglass));
         OnPropertyChanged(nameof(IsShowingMapMaster));
         OnPropertyChanged(nameof(IsShowingDiceRoller));
+        OnPropertyChanged(nameof(IsShowingNativeSurface));
         OnPropertyChanged(nameof(IsShowingText));
         OnPropertyChanged(nameof(IsShowingIdleLogo));
         OnPropertyChanged(nameof(IsShowingNonIdleText));
@@ -437,6 +442,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ContentVideoPath));
         OnPropertyChanged(nameof(HasVideo));
         OnPropertyChanged(nameof(IsShowingVideo));
+        OnPropertyChanged(nameof(IsShowingNativeSurface));
         OnPropertyChanged(nameof(IsShowingText));
         OnPropertyChanged(nameof(IsShowingIdleLogo));
         OnPropertyChanged(nameof(IsShowingNonIdleText));
@@ -892,6 +898,7 @@ public partial class PortalWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ContentVideoPath));
         OnPropertyChanged(nameof(HasVideo));
         OnPropertyChanged(nameof(IsShowingVideo));
+        OnPropertyChanged(nameof(IsShowingNativeSurface));
         OnPropertyChanged(nameof(IsShowingText));
         OnPropertyChanged(nameof(IsShowingIdleLogo));
         OnPropertyChanged(nameof(IsShowingNonIdleText));

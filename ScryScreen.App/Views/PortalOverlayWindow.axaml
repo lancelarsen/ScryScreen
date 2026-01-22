@@ -24,7 +24,7 @@
       QuakeEnabled="{Binding OverlayEffects.QuakeEnabled}"
       QuakeIntensity="{Binding OverlayEffects.QuakeIntensity}"
       QuakeTrigger="{Binding OverlayEffects.QuakeTrigger}"
-      EmitAudioEvents="{Binding IsShowingVideo}"
+      EmitAudioEvents="{Binding IsShowingNativeSurface}"
       AudioPortalNumber="{Binding PortalNumber}">
 
     <Grid IsHitTestVisible="False">
@@ -43,7 +43,7 @@
           FogIntensity="{Binding OverlayEffects.FogIntensity}"
           SmokeEnabled="{Binding OverlayEffects.SmokeEnabled}"
           SmokeIntensity="{Binding OverlayEffects.SmokeIntensity}"
-          EmitAudioEvents="{Binding IsShowingVideo}"
+          EmitAudioEvents="{Binding IsShowingNativeSurface}"
           AudioPortalNumber="{Binding PortalNumber}"
           IsHitTestVisible="False" />
 

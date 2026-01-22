@@ -43,6 +43,7 @@ public static class LastSessionPersistence
         public string? MapMasterMaskType { get; set; }
 
         public string? DiceRollerRollDirection { get; set; }
+        public double? DiceRollerOverlayOpacity { get; set; }
         public bool DiceRollerShowDebugInfo { get; set; }
         public List<DiceRollerDieConfig>? DiceRollerDieConfigs { get; set; }
 
@@ -96,6 +97,7 @@ public static class LastSessionPersistence
             MapMasterMaskType = vm.MapMaster.SelectedMaskType.ToString(),
 
             DiceRollerRollDirection = vm.DiceRoller.RollDirection.ToString(),
+            DiceRollerOverlayOpacity = Clamp(vm.DiceRoller.OverlayOpacity, 0, 1),
             DiceRollerShowDebugInfo = vm.DiceRoller.ShowDebugInfo,
             DiceRollerDieConfigs = vm.DiceRoller.DiceVisualConfigs
                 .Select(c => new DiceRollerDieConfig
@@ -326,6 +328,11 @@ public static class LastSessionPersistence
                     && Enum.TryParse<DiceRollDirection>(state.DiceRollerRollDirection, ignoreCase: true, out var dir))
                 {
                     vm.DiceRoller.RollDirection = dir;
+                }
+
+                if (state.DiceRollerOverlayOpacity is not null)
+                {
+                    vm.DiceRoller.OverlayOpacity = Clamp(state.DiceRollerOverlayOpacity.Value, 0, 1);
                 }
 
                 vm.DiceRoller.ShowDebugInfo = state.DiceRollerShowDebugInfo;

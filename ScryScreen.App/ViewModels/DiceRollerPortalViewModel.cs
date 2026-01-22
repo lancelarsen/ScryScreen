@@ -16,6 +16,9 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
     private string text = string.Empty;
 
     [ObservableProperty]
+    private double overlayOpacity = 0.65;
+
+    [ObservableProperty]
     private long rollId;
 
     [ObservableProperty]
@@ -48,6 +51,7 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
         RollRequests = state.RollRequests ?? Array.Empty<DiceRollRequest>();
         VisualConfigs = state.VisualConfigs ?? Array.Empty<DiceDieVisualConfig>();
         VisualConfigRevision = state.VisualConfigRevision;
+        OverlayOpacity = state.OverlayOpacity;
         ClearDiceId = state.ClearDiceId;
         DebugVisible = state.DebugVisible;
     }
