@@ -99,7 +99,11 @@ public partial class MainWindowViewModel : ViewModelBase
         Effects = new EffectsSettingsViewModel();
         Effects.PropertyChanged += OnGlobalEffectsChanged;
 
-        Portals.CollectionChanged += (_, _) => UpdateEffectsAudioMix();
+        Portals.CollectionChanged += (_, _) =>
+        {
+            UpdateEffectsAudioMix();
+            UpdateDiceRollerTrayAssignment();
+        };
 
         _initiativeTracker = new InitiativeTrackerViewModel();
         _initiativeTracker.StateChanged += OnInitiativeStateChanged;
@@ -149,6 +153,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // Start with one portal for convenience.
         AddPortal();
+
+        UpdateDiceRollerTrayAssignment();
 
         // Ensure portals start with a consistent effects state.
         ApplyEffectsToAllPortals();
@@ -718,6 +724,8 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             _portalHost.ClearDiceRollerOverlay(portal.PortalNumber);
         }
+
+        UpdateDiceRollerTrayAssignment();
     }
 
     [ObservableProperty]
@@ -1981,6 +1989,13 @@ public partial class MainWindowViewModel : ViewModelBase
         UpdatePortalMediaSelectionFlags();
 
         UpdateEffectsAudioMix();
+
+        UpdateDiceRollerTrayAssignment();
+    }
+
+    private void UpdateDiceRollerTrayAssignment()
+    {
+        DiceRoller.IsTrayAssigned = Portals.Any(p => p.IsSelectedForDiceRoller);
     }
 
     private OverlayEffectsState LookupEffectsForFile(string filePath)

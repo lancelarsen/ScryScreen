@@ -53,7 +53,10 @@ public static class DiceExpressionEvaluator
 
             if (term.DiceSides > 0)
             {
-                sb.Append(term.DiceCount.ToString(CultureInfo.InvariantCulture));
+                if (term.DiceCount != 1)
+                {
+                    sb.Append(term.DiceCount.ToString(CultureInfo.InvariantCulture));
+                }
                 sb.Append('d');
                 sb.Append(term.DiceSides.ToString(CultureInfo.InvariantCulture));
                 sb.Append('(');

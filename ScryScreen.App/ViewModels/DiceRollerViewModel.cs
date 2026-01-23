@@ -21,6 +21,14 @@ public partial class DiceRollerViewModel : ViewModelBase
     private readonly Dictionary<int, DiceDieRotation> _rotationsBySides = new();
 
     private const int MaxTrayDiceCount = 20;
+    private static readonly HashSet<int> TraySupportedSides = new() { 4, 6, 8, 10, 12, 20, 100 };
+
+    private enum D20PickMode
+    {
+        None = 0,
+        Advantage = 1,
+        Disadvantage = 2,
+    }
 
     private static double Clamp(double value, double min, double max)
         => value < min ? min : (value > max ? max : value);
@@ -38,6 +46,7 @@ public partial class DiceRollerViewModel : ViewModelBase
         public required DiceRollRequest Request { get; init; }
         public required List<PendingTrayRollTerm> Terms { get; init; }
         public required int ConstantTotal { get; init; }
+        public D20PickMode D20Mode { get; init; }
     }
 
     private sealed class PendingTrayRollBatch
@@ -69,7 +78,7 @@ public partial class DiceRollerViewModel : ViewModelBase
 
     public DiceRollerViewModel()
     {
-        Expression = "1d20";
+        Expression = "d20";
 
         OverlayOpacity = 0.65;
         ResultFontSize = DiceRollerResultFontSize.Medium;
@@ -116,7 +125,7 @@ public partial class DiceRollerViewModel : ViewModelBase
     public ObservableCollection<DiceDieVisualConfigViewModel> DiceVisualConfigs { get; }
 
     [ObservableProperty]
-    private string expression = "1d20";
+    private string expression = "d20";
 
     [ObservableProperty]
     private string lastResultText = string.Empty;
@@ -168,6 +177,18 @@ public partial class DiceRollerViewModel : ViewModelBase
 
     [ObservableProperty]
     private long rollId;
+
+    // When false, we still allow GM rolls and history, but we must not emit WebView/tray requests.
+    [ObservableProperty]
+    private bool isTrayAssigned;
+
+    partial void OnIsTrayAssignedChanged(bool value)
+    {
+        if (!value)
+        {
+            CancelPendingTrayRolls();
+        }
+    }
 
     public DiceRollerState SnapshotState()
     {
@@ -269,7 +290,7 @@ public partial class DiceRollerViewModel : ViewModelBase
         var previewParts = new List<string>();
         foreach (var t in terms)
         {
-            var termText = $"{t.Count}d{t.Sides}";
+            var termText = t.Count == 1 ? $"d{t.Sides}" : $"{t.Count}d{t.Sides}";
             if (previewParts.Count == 0)
             {
                 previewParts.Add(t.Sign < 0 ? "-" + termText : termText);
@@ -508,6 +529,17 @@ public partial class DiceRollerViewModel : ViewModelBase
     {
         LastErrorText = null;
 
+        Expression = (Expression ?? string.Empty).Trim();
+
+        // If the tray isn't assigned to any portal, do not emit any tray/WebView requests.
+        // Still support clicking dice + writing to history by evaluating locally.
+        if (!IsTrayAssigned)
+        {
+            CancelPendingTrayRolls();
+            EvaluateWithoutTrayAndCommit(Expression);
+            return;
+        }
+
         // Comma-separated batch rolls: "4d6+2d4,2d6,3d4+10".
         if ((Expression ?? string.Empty).Contains(',', StringComparison.Ordinal))
         {
@@ -522,6 +554,14 @@ public partial class DiceRollerViewModel : ViewModelBase
                 if (string.IsNullOrWhiteSpace(batchExpression))
                 {
                     LastErrorText = "Invalid roll expression.";
+                    return;
+                }
+
+                // If any group uses dice we don't have 3D models for, fall back to a normal RNG roll
+                // (still show in history, but don't try to drive the WebView tray).
+                if (groups.Any(g => g.Terms.Any(t => !TraySupportedSides.Contains(t.Sides))))
+                {
+                    EvaluateWithoutTrayAndCommit(Expression);
                     return;
                 }
 
@@ -574,6 +614,10 @@ public partial class DiceRollerViewModel : ViewModelBase
                 LastErrorText = batchError;
                 return;
             }
+
+            // Not tray-parsable as a batch; attempt a normal RNG roll (this also supports commas).
+            EvaluateWithoutTrayAndCommit(Expression);
+            return;
         }
 
         // Physics-driven tray roll for simple additive/subtractive dice expressions.
@@ -586,6 +630,13 @@ public partial class DiceRollerViewModel : ViewModelBase
             }
 
             var merged = MergeLikeTermsPreserveOrder(parsedTerms);
+
+            // If the expression uses dice we don't have 3D models for (e.g., d7), don't emit tray requests.
+            if (merged.Any(t => !TraySupportedSides.Contains(t.Sides)))
+            {
+                EvaluateWithoutTrayAndCommit(Expression);
+                return;
+            }
 
             var batchId = ++_trayBatchIdCounter;
             var requestId = ++_trayRequestIdCounter;
@@ -631,13 +682,18 @@ public partial class DiceRollerViewModel : ViewModelBase
 
         // Non-tray evaluator path doesn't emit tray requests.
 
-        if (!DiceExpressionEvaluator.TryEvaluate(Expression, _rng, out var result, out var error))
+        EvaluateWithoutTrayAndCommit(Expression);
+    }
+
+    private void EvaluateWithoutTrayAndCommit(string? expression)
+    {
+        if (!TryEvaluateWithoutTray(expression, out var displayText, out var evalError))
         {
-            LastErrorText = string.IsNullOrWhiteSpace(error) ? "Invalid dice expression." : error;
+            LastErrorText = string.IsNullOrWhiteSpace(evalError) ? "Invalid dice expression." : evalError;
             return;
         }
 
-        LastResultText = result.DisplayText;
+        LastResultText = displayText;
         RollId = ++_rollIdCounter;
         History.Insert(0, LastResultText);
         while (History.Count > 20)
@@ -646,6 +702,61 @@ public partial class DiceRollerViewModel : ViewModelBase
         }
 
         StateChanged?.Invoke();
+    }
+
+    private void CancelPendingTrayRolls()
+    {
+        _pendingTrayRollsByRequestId.Clear();
+        _pendingTrayRollBatchesByBatchId.Clear();
+        _trayBatchIdByRequestId.Clear();
+        _issuedRollRequests.Clear();
+    }
+
+    private bool TryEvaluateWithoutTray(string? expression, out string displayText, out string? error)
+    {
+        displayText = string.Empty;
+        error = null;
+
+        var text = expression ?? string.Empty;
+
+        // Support comma-separated batch expressions even without the tray.
+        if (text.Contains(',', StringComparison.Ordinal))
+        {
+            var parts = text
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .ToList();
+
+            if (parts.Count == 0)
+            {
+                error = "Invalid roll expression.";
+                return false;
+            }
+
+            var results = new List<string>(capacity: parts.Count);
+            foreach (var p in parts)
+            {
+                if (!DiceExpressionEvaluator.TryEvaluate(p, _rng, out var r, out var e))
+                {
+                    error = string.IsNullOrWhiteSpace(e) ? "Invalid dice expression." : e;
+                    return false;
+                }
+
+                results.Add(r.DisplayText);
+            }
+
+            displayText = string.Join(", ", results);
+            return true;
+        }
+
+        if (!DiceExpressionEvaluator.TryEvaluate(expression, _rng, out var single, out var singleError))
+        {
+            error = singleError;
+            return false;
+        }
+
+        displayText = single.DisplayText;
+        return true;
     }
 
     private void OnSingleDieRollCompleted(long requestId, int sides, int value)
@@ -696,18 +807,32 @@ public partial class DiceRollerViewModel : ViewModelBase
         // If this is a single-group roll, keep the detailed result text.
         if (batch.RequestIdsInOrder.Count == 1)
         {
+            // Special-case d20 advantage/disadvantage: 2d20, keep highest/lowest.
+            if (pending.D20Mode != D20PickMode.None
+                && pending.Terms.Count == 1
+                && pending.Terms[0].Sides == 20
+                && pending.Terms[0].Count == 2
+                && pending.Terms[0].Values.Count == 2
+                && pending.ConstantTotal == 0)
+            {
+                var a = pending.Terms[0].Values[0];
+                var b = pending.Terms[0].Values[1];
+                var chosen = pending.D20Mode == D20PickMode.Advantage ? Math.Max(a, b) : Math.Min(a, b);
+                var tag = pending.D20Mode == D20PickMode.Advantage ? "A" : "D";
+                LastResultText = $"d20{tag}({a},{b}) = {chosen}";
+            }
             // Special-case d100 display when it's the only term and has exactly one value.
-            if (pending.Terms.Count == 1 && pending.Terms[0].Sides == 100 && pending.Terms[0].Values.Count == 1 && pending.ConstantTotal == 0)
+            else if (pending.Terms.Count == 1 && pending.Terms[0].Sides == 100 && pending.Terms[0].Values.Count == 1 && pending.ConstantTotal == 0)
             {
                 var v = pending.Terms[0].Values[0];
-                LastResultText = $"1d100({v}) = {v}%";
+                LastResultText = $"d100({v}) = {v}%";
             }
             else
             {
                 var parts = new List<string>();
                 foreach (var t in pending.Terms)
                 {
-                    var label = $"{t.Count}d{t.Sides}";
+                    var label = t.Count == 1 ? $"d{t.Sides}" : $"{t.Count}d{t.Sides}";
                     var valuesText = $"({string.Join(",", t.Values)})";
                     var termText = label + valuesText;
 
@@ -782,8 +907,83 @@ public partial class DiceRollerViewModel : ViewModelBase
             return;
         }
 
-        Expression = $"1d{sides}";
+        Expression = $"d{sides}";
         Roll();
+    }
+
+    [RelayCommand]
+    private void RollD20Advantage()
+        => RollD20Pick(D20PickMode.Advantage);
+
+    [RelayCommand]
+    private void RollD20Disadvantage()
+        => RollD20Pick(D20PickMode.Disadvantage);
+
+    private void RollD20Pick(D20PickMode mode)
+    {
+        LastErrorText = null;
+
+        if (!IsTrayAssigned)
+        {
+            CancelPendingTrayRolls();
+            EvaluateD20PickWithoutTrayAndCommit(mode);
+            return;
+        }
+
+        var terms = new List<DiceRollDiceTerm> { new DiceRollDiceTerm(20, 2, +1) };
+
+        var batchId = ++_trayBatchIdCounter;
+        var requestId = ++_trayRequestIdCounter;
+        var req = new DiceRollRequest(RequestId: requestId, Terms: terms, Direction: RollDirection);
+        TrackIssuedRequests(new[] { req });
+
+        _pendingTrayRollsByRequestId[requestId] = new PendingTrayRoll
+        {
+            Request = req,
+            Terms = new List<PendingTrayRollTerm>
+            {
+                new PendingTrayRollTerm
+                {
+                    Sides = 20,
+                    Count = 2,
+                    Sign = +1,
+                    Values = new List<int>(capacity: 2),
+                },
+            },
+            ConstantTotal = 0,
+            D20Mode = mode,
+        };
+
+        _trayBatchIdByRequestId[requestId] = batchId;
+        _pendingTrayRollBatchesByBatchId[batchId] = new PendingTrayRollBatch
+        {
+            BatchId = batchId,
+            BatchExpression = mode == D20PickMode.Advantage ? "d20A" : "d20D",
+            RequestIdsInOrder = new List<long> { requestId },
+        };
+
+        TrimPendingIfNeeded();
+        RollId = ++_rollIdCounter;
+        LastResultText = mode == D20PickMode.Advantage ? "Rolling d20 (advantage)..." : "Rolling d20 (disadvantage)...";
+        StateChanged?.Invoke();
+    }
+
+    private void EvaluateD20PickWithoutTrayAndCommit(D20PickMode mode)
+    {
+        var a = _rng.Next(1, 21);
+        var b = _rng.Next(1, 21);
+        var chosen = mode == D20PickMode.Advantage ? Math.Max(a, b) : Math.Min(a, b);
+        var tag = mode == D20PickMode.Advantage ? "A" : "D";
+
+        LastResultText = $"d20{tag}({a},{b}) = {chosen}";
+        RollId = ++_rollIdCounter;
+        History.Insert(0, LastResultText);
+        while (History.Count > 20)
+        {
+            History.RemoveAt(History.Count - 1);
+        }
+
+        StateChanged?.Invoke();
     }
 
     [RelayCommand]
