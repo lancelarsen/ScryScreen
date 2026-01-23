@@ -9,12 +9,11 @@
              x:Class="ScryScreen.App.Views.DiceRollerView"
              x:DataType="vm:DiceRollerViewModel">
 
-  <Border Background="#0A0F18"
-          BorderBrush="{DynamicResource ScryBorder}"
-          BorderThickness="1"
+  <Border Background="Transparent"
+          BorderThickness="0"
           CornerRadius="10"
-          Padding="10">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+        Padding="10,10,10,4">
+      <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
       <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
       <!-- Clear (compact circle button) -->
       <Button Width="28" Height="28"
@@ -187,11 +186,19 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-        <TextBlock Text="Roll" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+      <!-- Roll row + History box share a common column layout so the history right edge lines up with the Roll button -->
+      <Grid Grid.Row="2"
+        RowDefinitions="Auto,Auto"
+            ColumnDefinitions="Auto,Auto,Auto,*"
+            ColumnSpacing="8"
+            RowSpacing="10">
+        <TextBlock Grid.Row="0" Grid.Column="0"
+                   Text="Roll" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
-        <TextBox Grid.Column="1"
+        <TextBox Grid.Row="0" Grid.Column="1"
+                 Width="320"
                  Height="36"
+                 HorizontalAlignment="Left"
                  Background="#0A0F18"
                  BorderBrush="{DynamicResource ScryBorder}"
                  BorderThickness="1"
@@ -199,51 +206,56 @@
                  Padding="10,4"
                  VerticalContentAlignment="Center"
                  Text="{Binding Expression, Mode=TwoWay}"
-                 Watermark="e.g. 2d6+3" />
+                 Watermark="e.g. 2d6+3">
+          <TextBox.KeyBindings>
+            <KeyBinding Gesture="Enter" Command="{Binding RollCommand}" />
+          </TextBox.KeyBindings>
+        </TextBox>
 
-        <Button Grid.Column="2"
-                Background="#0A0F18"
-                BorderBrush="{DynamicResource ScryBorder}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Padding="12,6"
+        <Button Grid.Row="0" Grid.Column="2"
+                Width="28"
+                Height="28"
+                Classes="circleSmall"
                 Command="{Binding RollCommand}">
-          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-            <i:Icon Value="mdi-dice-multiple" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
-            <TextBlock Text="Roll" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
-          </StackPanel>
+          <i:Icon Value="mdi-dice-multiple" FontSize="18"
+                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
         </Button>
 
-        <Button Grid.Column="3"
+        <!-- History box: this is the only outlined panel in the Dice Tray UI -->
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
                 Background="#0A0F18"
                 BorderBrush="{DynamicResource ScryBorder}"
                 BorderThickness="1"
-                CornerRadius="8"
-                Padding="12,6"
-                Command="{Binding ClearCommand}">
-          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-            <i:Icon Value="mdi-broom" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
-            <TextBlock Text="Clear" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
+                CornerRadius="10"
+                Padding="10,4,10,8">
+          <Grid RowDefinitions="Auto,*" RowSpacing="6">
+            <TextBlock Grid.Row="0"
+                       IsVisible="{Binding LastErrorText, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                       Text="{Binding LastErrorText}"
+                       Foreground="#F87171"
+                       FontSize="12"
+                       TextWrapping="Wrap" />
+
+            <ScrollViewer Grid.Row="1"
+                          MaxHeight="126"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding History}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Spacing="6" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <controls:BoldTotalsTextBlock RawText="{Binding}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" TextWrapping="Wrap" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Grid>
+        </Border>
       </Grid>
-
-      <TextBlock Grid.Row="3"
-                 IsVisible="{Binding LastErrorText, Converter={StaticResource StringNotNullOrEmptyConverter}}"
-                 Text="{Binding LastErrorText}"
-                 Foreground="#F87171"
-                 FontSize="12"
-                 TextWrapping="Wrap" />
-
-      <ScrollViewer Grid.Row="4" MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <ItemsControl ItemsSource="{Binding History}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <controls:BoldTotalsTextBlock RawText="{Binding}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,6" />
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
     </Grid>
   </Border>
 </UserControl>
