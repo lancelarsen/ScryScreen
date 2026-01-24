@@ -18,6 +18,9 @@ public sealed partial class InitiativeEntryViewModel : ViewModelBase
     private string name = string.Empty;
 
     [ObservableProperty]
+    private string playerName = string.Empty;
+
+    [ObservableProperty]
     private string initiative = string.Empty;
 
     [ObservableProperty]
@@ -40,6 +43,12 @@ public sealed partial class InitiativeEntryViewModel : ViewModelBase
 
     [ObservableProperty]
     private string currentHp = string.Empty;
+
+    [ObservableProperty]
+    private string armorClass = string.Empty;
+
+    [ObservableProperty]
+    private string passivePerception = string.Empty;
 
     public ObservableCollection<InitiativeEntryConditionViewModel> Conditions { get; } = new();
 

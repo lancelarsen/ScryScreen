@@ -1660,52 +1660,48 @@
                             </ItemsControl>
 
                             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
-                                <Button Background="#0A0F18"
-                                        BorderBrush="{DynamicResource ScryBorder}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="12,6"
-                                        Command="{Binding InitiativeTracker.SortCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                        <i:Icon Value="mdi-sort" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
-                                        <TextBlock Text="Sort by Init" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                <Button Classes="circleSmall"
+                                        Command="{Binding InitiativeTracker.SortCommand}"
+                                        ToolTip.Tip="Sort by Initiative">
+                                    <i:Icon Value="mdi-sort" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                 </Button>
 
-                                <Button Background="#0A0F18"
-                                        BorderBrush="{DynamicResource ScryBorder}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="12,6"
+                                <Button Classes="circleSmall"
                                         Click="OnLoadInitiativeConfig"
-                                        ToolTip.Tip="Load Initiative Settings">
-                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                        <i:Icon Value="mdi-folder-open" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
-                                        <TextBlock Text="Load" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                        ToolTip.Tip="Load Custom Initiative Settings">
+                                    <i:Icon Value="mdi-folder-open" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                 </Button>
 
-                                <Button Background="#0A0F18"
-                                        BorderBrush="{DynamicResource ScryBorder}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="12,6"
+                                <Button Classes="circleSmall"
                                         Click="OnSaveInitiativeConfig"
-                                        ToolTip.Tip="Save Initiative Settings">
-                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                        <i:Icon Value="mdi-content-save" FontSize="16" Foreground="{DynamicResource ScryTextMuted}" />
-                                        <TextBlock Text="Save" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                        ToolTip.Tip="Save Custom Initiative Settings">
+                                    <i:Icon Value="mdi-content-save" FontSize="18"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                 </Button>
 
                                 <ToggleButton Classes="circleSmall"
                                               IsChecked="{Binding AutoSaveInitiativeEnabled, Mode=TwoWay}"
                                               Checked="OnAutoSaveInitiativeChecked"
                                               Unchecked="OnAutoSaveInitiativeUnchecked"
-                                              ToolTip.Tip="Auto-Save to Last Save File">
+                                              ToolTip.Tip="Auto-Save Custom Initiative Settings to Last Save File">
                                     <i:Icon Value="mdi-content-save-cog" FontSize="18"
                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                 </ToggleButton>
+
+                                <ComboBox Width="180"
+                                          Height="36"
+                                          VerticalAlignment="Center"
+                                          ItemsSource="{Binding InitiativeTracker.GameTypeOptions}"
+                                          SelectedItem="{Binding InitiativeTracker.SelectedGameType, Mode=TwoWay}"
+                                          ToolTip.Tip="Game Type">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource ScryTextMuted}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
                             </StackPanel>
 
                             <Grid Grid.Column="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">

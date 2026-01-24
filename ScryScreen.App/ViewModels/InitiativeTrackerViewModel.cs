@@ -14,6 +14,14 @@ using ScryScreen.Core.InitiativeTracker;
 
 namespace ScryScreen.App.ViewModels;
 
+public enum InitiativeGameType
+{
+    DungeonsAndDragons,
+    CallOfCthulhu,
+}
+
+public sealed record InitiativeGameTypeOption(InitiativeGameType Value, string DisplayName);
+
 public sealed partial class InitiativeTrackerViewModel : ViewModelBase
 {
     private const int DefaultRowCount = 5;
@@ -93,11 +101,24 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         InitiativePortalFontSize.Large,
     };
 
+    public IReadOnlyList<InitiativeGameTypeOption> GameTypeOptions { get; } = new[]
+    {
+        new InitiativeGameTypeOption(InitiativeGameType.DungeonsAndDragons, "Dungeons & Dragons"),
+        new InitiativeGameTypeOption(InitiativeGameType.CallOfCthulhu, "Call of Cthulhu"),
+    };
+
     [ObservableProperty]
     private double overlayOpacity;
 
     [ObservableProperty]
     private InitiativePortalFontSize portalFontSize = InitiativePortalFontSize.Medium;
+
+    [ObservableProperty]
+    private InitiativeGameTypeOption selectedGameType = new(
+        InitiativeGameType.DungeonsAndDragons,
+        "Dungeons & Dragons");
+
+    public bool ShowAcAndPpColumns => SelectedGameType.Value == InitiativeGameType.DungeonsAndDragons;
 
     [ObservableProperty]
     private bool showConditionsConfiguration;
@@ -151,8 +172,18 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         StateChanged?.Invoke();
     }
 
+    partial void OnSelectedGameTypeChanged(InitiativeGameTypeOption value)
+    {
+        OnPropertyChanged(nameof(ShowAcAndPpColumns));
+
+        // UI + persistence setting; notify auto-save.
+        StateChanged?.Invoke();
+    }
+
     partial void OnSelectedConditionChanged(ConditionDefinitionViewModel? value)
     {
+
+        SelectedGameType = GameTypeOptions[0];
         OnPropertyChanged(nameof(HasSelectedCondition));
         OnPropertyChanged(nameof(CanDeleteSelectedCondition));
         OnPropertyChanged(nameof(CanEditSelectedConditionIdentity));
@@ -204,16 +235,20 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         {
             OverlayOpacity = OverlayOpacity,
             PortalFontSize = PortalFontSize.ToString(),
+            GameType = SelectedGameType.Value.ToString(),
             Entries = Entries.Select(e => new InitiativeTrackerConfigEntry
             {
                 Id = e.Id,
                 Name = e.Name ?? string.Empty,
+                PlayerName = e.PlayerName ?? string.Empty,
                 Initiative = e.Initiative ?? string.Empty,
                 Mod = e.Mod ?? string.Empty,
                 IsHidden = e.IsHidden,
                 Notes = e.Notes,
                 MaxHp = e.MaxHp ?? string.Empty,
                 CurrentHp = e.CurrentHp ?? string.Empty,
+                ArmorClass = e.ArmorClass ?? string.Empty,
+                PassivePerception = e.PassivePerception ?? string.Empty,
                 Conditions = e.Conditions
                     .Select(c => new InitiativeTrackerConfigEntryCondition
                     {
@@ -537,6 +572,15 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
         OverlayOpacity = Math.Clamp(config.OverlayOpacity, 0.0, 1.0);
         PortalFontSize = parsedFontSize;
 
+        var parsedGameType = InitiativeGameType.DungeonsAndDragons;
+        if (!string.IsNullOrWhiteSpace(config.GameType)
+            && Enum.TryParse(config.GameType, ignoreCase: true, out InitiativeGameType gt))
+        {
+            parsedGameType = gt;
+        }
+
+        SelectedGameType = GameTypeOptions.FirstOrDefault(o => o.Value == parsedGameType) ?? GameTypeOptions[0];
+
         // Rebuild collection from file.
         Entries.Clear();
 
@@ -553,12 +597,15 @@ public sealed partial class InitiativeTrackerViewModel : ViewModelBase
             var vm = new InitiativeEntryViewModel(id)
             {
                 Name = entry.Name ?? string.Empty,
+                PlayerName = entry.PlayerName ?? string.Empty,
                 Initiative = entry.Initiative ?? string.Empty,
                 Mod = entry.Mod ?? string.Empty,
                 IsHidden = entry.IsHidden,
                 Notes = entry.Notes,
                 MaxHp = entry.MaxHp ?? string.Empty,
                 CurrentHp = entry.CurrentHp ?? string.Empty,
+                ArmorClass = entry.ArmorClass ?? string.Empty,
+                PassivePerception = entry.PassivePerception ?? string.Empty,
             };
 
             // Back-compat: if MaxHp exists but CurrentHp is missing, keep CurrentHp blank.

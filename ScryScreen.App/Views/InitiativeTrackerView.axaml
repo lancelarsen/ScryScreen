@@ -150,6 +150,7 @@
               <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <TextBox Watermark="Name"
                          Width="200"
+                         ToolTip.Tip="Custom Condition Name"
                          Text="{Binding NewCustomConditionNameText, Mode=TwoWay}" />
 
                 <Button Classes="circleSmall"
@@ -171,7 +172,7 @@
         <ItemsControl ItemsSource="{Binding Entries}">
           <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:InitiativeEntryViewModel" x:CompileBindings="False">
-                      <Grid ColumnDefinitions="24,36,Auto,Auto,Auto,Auto,3*,Auto,5*,36,36,36" RowDefinitions="Auto,Auto" ColumnSpacing="4" RowSpacing="0" Margin="0,0,0,2" VerticalAlignment="Center">
+                      <Grid ColumnDefinitions="24,36,Auto,Auto,Auto,Auto,Auto,Auto,3*,Auto,Auto,5*,36,36,36" RowDefinitions="Auto,Auto" ColumnSpacing="4" RowSpacing="0" Margin="0,0,0,2" VerticalAlignment="Center">
               <Image Source="avares://ScryScreen.App/Assets/Images/Gem Transparent.png"
                 Width="20"
                 Height="20"
@@ -195,6 +196,7 @@
                        TextAlignment="Center"
                        HorizontalContentAlignment="Center"
                        Watermark="Init"
+                       ToolTip.Tip="Initiative Roll"
                        beh:NumericTextBoxBehavior.IsNumericOnly="True"
                        beh:SelectAllOnFocusBehavior.IsEnabled="True"
                        Text="{Binding Initiative, Mode=TwoWay}" />
@@ -205,6 +207,7 @@
                        TextAlignment="Center"
                        HorizontalContentAlignment="Center"
                        Watermark="Mod"
+                       ToolTip.Tip="Initiative Modifier"
                        beh:NumericTextBoxBehavior.IsNumericOnly="True"
                        beh:SelectAllOnFocusBehavior.IsEnabled="True"
                        Text="{Binding Mod, Mode=TwoWay}" />
@@ -215,6 +218,7 @@
                        TextAlignment="Center"
                        HorizontalContentAlignment="Center"
                        Watermark="Max"
+                       ToolTip.Tip="Total HP"
                        beh:NumericTextBoxBehavior.IsNumericOnly="True"
                        beh:NumericTextBoxBehavior.AllowNegative="False"
                        beh:SelectAllOnFocusBehavior.IsEnabled="True"
@@ -226,16 +230,44 @@
                        TextAlignment="Center"
                        HorizontalContentAlignment="Center"
                        Watermark="HP"
+                       ToolTip.Tip="Current HP"
                        beh:NumericTextBoxBehavior.IsNumericOnly="True"
                        beh:NumericTextBoxBehavior.AllowNegative="False"
                        beh:SelectAllOnFocusBehavior.IsEnabled="True"
                        Text="{Binding CurrentHp, Mode=TwoWay}" />
 
-              <TextBox Grid.Column="6" Watermark="Name" Text="{Binding Name, Mode=TwoWay}" />
+              <TextBox Grid.Column="6"
+                       Width="42"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       HorizontalContentAlignment="Center"
+                       Watermark="AC"
+                       ToolTip.Tip="Armor Class"
+                       IsVisible="{Binding DataContext.ShowAcAndPpColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       beh:NumericTextBoxBehavior.IsNumericOnly="True"
+                       beh:NumericTextBoxBehavior.AllowNegative="False"
+                       beh:SelectAllOnFocusBehavior.IsEnabled="True"
+                       Text="{Binding ArmorClass, Mode=TwoWay}" />
+
+              <TextBox Grid.Column="7"
+                       Width="42"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       HorizontalContentAlignment="Center"
+                       Watermark="PP"
+                       ToolTip.Tip="Passive Perception"
+                       IsVisible="{Binding DataContext.ShowAcAndPpColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       beh:NumericTextBoxBehavior.IsNumericOnly="True"
+                       beh:NumericTextBoxBehavior.AllowNegative="False"
+                       beh:SelectAllOnFocusBehavior.IsEnabled="True"
+                       Text="{Binding PassivePerception, Mode=TwoWay}" />
+
+              <TextBox Grid.Column="8" Watermark="Name" ToolTip.Tip="Character Name" Text="{Binding Name, Mode=TwoWay}" />
 
               <!-- Add-condition controls stay on the main row to keep scanning fast. -->
-              <StackPanel Grid.Column="7" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <StackPanel Grid.Column="9" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                 <ComboBox Width="140"
+                          ToolTip.Tip="Condition"
                           ItemsSource="{Binding DataContext.ConditionDefinitions, RelativeSource={RelativeSource AncestorType=UserControl}}"
                           SelectedItem="{Binding SelectedConditionToAdd, Mode=TwoWay}">
                   <ComboBox.ItemTemplate>
@@ -246,6 +278,7 @@
                 </ComboBox>
 
                 <ComboBox Width="64"
+                          ToolTip.Tip="Condition Length in Rounds"
                           ItemsSource="{Binding DataContext.ConditionDurationOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
                           SelectedItem="{Binding SelectedConditionRoundsToAdd, Mode=TwoWay}"
                           IsVisible="{Binding SelectedConditionToAdd.IsManualOnly, Converter={StaticResource InverseBooleanConverter}}">
@@ -265,16 +298,18 @@
                 </Button>
               </StackPanel>
 
-              <TextBox Grid.Column="8" Watermark="GM Notes" Text="{Binding Notes, Mode=TwoWay}" />
+              <TextBox Grid.Column="10" Width="140" Watermark="Player" ToolTip.Tip="Player Name" Text="{Binding PlayerName, Mode=TwoWay}" />
 
-              <ToggleButton Grid.Column="9" Classes="circleSmall noAccent" IsChecked="{Binding IsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
+              <TextBox Grid.Column="11" Watermark="GM Notes" ToolTip.Tip="GM Notes" Text="{Binding Notes, Mode=TwoWay}" />
+
+              <ToggleButton Grid.Column="12" Classes="circleSmall noAccent" IsChecked="{Binding IsHidden, Mode=TwoWay}" ToolTip.Tip="Show/Hide">
                 <Grid>
                   <i:Icon IsVisible="{Binding !IsHidden}" Value="mdi-eye" FontSize="18" Foreground="{DynamicResource ScrySuccess}" />
                   <i:Icon IsVisible="{Binding IsHidden}" Value="mdi-eye-off" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
                 </Grid>
               </ToggleButton>
 
-              <Button Grid.Column="10"
+              <Button Grid.Column="13"
                       Classes="circleSmall"
                       ToolTip.Tip="Delete"
                       Command="{Binding DataContext.RemoveEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -282,7 +317,7 @@
                 <i:Icon Value="mdi-delete" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
               </Button>
 
-              <Button Grid.Column="11"
+              <Button Grid.Column="14"
                       Classes="circleSmall"
                       IsVisible="{Binding IsLast}"
                       ToolTip.Tip="Add Row"
@@ -294,7 +329,7 @@
               <!-- Applied conditions shown beneath the row, starting under Init -->
               <ScrollViewer Grid.Row="1"
                             Grid.Column="2"
-                            Grid.ColumnSpan="7"
+                            Grid.ColumnSpan="8"
                             MaxHeight="36"
                             HorizontalScrollBarVisibility="Disabled"
                             VerticalScrollBarVisibility="Auto"
