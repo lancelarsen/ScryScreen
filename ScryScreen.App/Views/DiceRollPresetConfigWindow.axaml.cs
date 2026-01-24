@@ -1,6 +1,8 @@
 using System;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using ScryScreen.App.ViewModels;
 
 namespace ScryScreen.App.Views;
@@ -31,6 +33,25 @@ public partial class DiceRollPresetConfigWindow : Window
         _ = sender;
         _ = e;
         Close();
+    }
+
+    private void OnHeaderPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        // Don't start a window drag when the click originated from an interactive control.
+        if (e.Source is Control visual)
+        {
+            if (visual.FindAncestorOfType<Button>() is not null || visual.FindAncestorOfType<TextBox>() is not null)
+            {
+                return;
+            }
+        }
+
+        BeginMoveDrag(e);
     }
 
     private void OnSaveClick(object? sender, RoutedEventArgs e)

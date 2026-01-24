@@ -10,7 +10,9 @@
         Width="380"
         CanResize="False"
         SizeToContent="Height"
-        SystemDecorations="None">
+  SystemDecorations="None"
+  Background="Transparent"
+  TransparencyLevelHint="Transparent">
 
   <Border Background="#0A0F18"
           BorderBrush="{DynamicResource ScryBorder}"
@@ -19,14 +21,18 @@
           Padding="12">
     <StackPanel Spacing="10">
 
-      <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-        <TextBlock Grid.Column="0" Text="Edit Roll Button" Foreground="{DynamicResource ScryTextMuted}" FontWeight="SemiBold" />
+      <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center" PointerPressed="OnHeaderPointerPressed">
+        <TextBlock Grid.Column="0"
+                   Text="Custom Roll Configuration"
+                   Foreground="{DynamicResource ScryTextMuted}"
+                   FontWeight="SemiBold"
+                   Cursor="Hand" />
         <Button Grid.Column="1" Width="28" Height="28" Classes="circleSmall" ToolTip.Tip="Close" Click="OnCloseClick">
           <i:Icon Value="mdi-close" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
         </Button>
       </Grid>
 
-      <TextBlock Text="Button name" Foreground="{DynamicResource ScryTextMuted}" />
+      <TextBlock Text="Name" Foreground="{DynamicResource ScryTextMuted}" />
 
       <TextBox Height="36"
                Background="#0A0F18"
@@ -37,7 +43,7 @@
                VerticalContentAlignment="Center"
                Text="{Binding DisplayName, Mode=TwoWay}" />
 
-      <TextBlock Text="Expression" Foreground="{DynamicResource ScryTextMuted}" />
+      <TextBlock Text="Roll Equation" Foreground="{DynamicResource ScryTextMuted}" />
       <TextBox Height="36"
                Background="#0A0F18"
                BorderBrush="{DynamicResource ScryBorder}"

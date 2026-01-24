@@ -10,6 +10,7 @@ public sealed partial class DiceRollPresetViewModel : ObservableObject
 		Expression = expression;
 		DisplayName = displayName;
 		IconKey = iconKey;
+		IsPercent = string.Equals(iconKey, "mdi-percent", StringComparison.Ordinal);
 	}
 
 	[ObservableProperty]
@@ -19,11 +20,15 @@ public sealed partial class DiceRollPresetViewModel : ObservableObject
 	private string iconKey;
 
 	[ObservableProperty]
+	private bool isPercent;
+
+	[ObservableProperty]
 	private string displayName;
 
 	partial void OnExpressionChanged(string value)
 	{
 		var key = DiceRollerViewModel.GetPresetIconKeyForExpression(value);
+		IsPercent = string.Equals(key, "mdi-percent", StringComparison.Ordinal);
 		if (!string.Equals(IconKey, key, StringComparison.Ordinal))
 		{
 			IconKey = key;

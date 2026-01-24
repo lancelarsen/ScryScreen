@@ -301,55 +301,90 @@
         </Grid>
       </Border>
 
-      <!-- Roll row + History box share a common column layout so the history right edge lines up with the Roll button -->
-      <Grid Grid.Row="2"
-        RowDefinitions="Auto,Auto"
-            ColumnDefinitions="Auto,Auto,Auto,Auto,*"
-            ColumnSpacing="8"
-            RowSpacing="10">
-        <TextBlock Grid.Row="0" Grid.Column="0"
-                   Text="Roll" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+      <!-- Roll input (left) + Custom buttons (right). History stays under the roll input even when the custom buttons wrap. -->
+      <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto" RowSpacing="10">
+          <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8">
+            <TextBlock Grid.Column="0"
+                       Text="Roll" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
-        <TextBox Grid.Row="0" Grid.Column="1"
-                 Width="284"
-                 Height="36"
-                 HorizontalAlignment="Left"
-                 Background="#0A0F18"
-                 BorderBrush="{DynamicResource ScryBorder}"
-                 BorderThickness="1"
-                 CornerRadius="8"
-                 Padding="10,4"
-                 VerticalContentAlignment="Center"
-                 Text="{Binding Expression, Mode=TwoWay}"
-                 Watermark="e.g. 2d6+3">
-          <TextBox.KeyBindings>
-            <KeyBinding Gesture="Enter" Command="{Binding RollCommand}" />
-          </TextBox.KeyBindings>
-        </TextBox>
+            <TextBox Grid.Column="1"
+                     Width="284"
+                     Height="36"
+                     HorizontalAlignment="Left"
+                     Background="#0A0F18"
+                     BorderBrush="{DynamicResource ScryBorder}"
+                     BorderThickness="1"
+                     CornerRadius="8"
+                     Padding="10,4"
+                     VerticalContentAlignment="Center"
+                     Text="{Binding Expression, Mode=TwoWay}"
+                     Watermark="e.g. 2d6+3">
+              <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding RollCommand}" />
+              </TextBox.KeyBindings>
+            </TextBox>
 
-        <Button Grid.Row="0" Grid.Column="2"
-                Width="28"
-                Height="28"
-                Classes="circleSmall"
-                Command="{Binding RollCommand}">
-          <i:Icon Value="mdi-dice-multiple" FontSize="18"
-                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-        </Button>
+            <Button Grid.Column="2"
+                    Width="28"
+                    Height="28"
+                    Classes="circleSmall"
+                    Command="{Binding RollCommand}">
+              <i:Icon Value="mdi-dice-multiple" FontSize="18"
+                      Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+            </Button>
 
-        <Button Grid.Row="0" Grid.Column="3"
-          Width="28"
-          Height="28"
-          Classes="circleSmall"
-          ToolTip.Tip="Save this roll as a button"
-          Command="{Binding CreateCustomRollPresetCommand}">
-          <i:Icon Value="mdi-plus" FontSize="18"
-            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-        </Button>
+            <Button Grid.Column="3"
+                    Width="28"
+                    Height="28"
+                    Classes="circleSmall"
+                    ToolTip.Tip="Save this roll as a button"
+                    Command="{Binding CreateCustomRollPresetCommand}">
+              <i:Icon Value="mdi-plus" FontSize="18"
+                      Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+            </Button>
+          </Grid>
 
-        <ItemsControl Grid.Row="0" Grid.Column="4"
+          <!-- History box: this is the only outlined panel in the Dice Tray UI -->
+          <Border Grid.Row="1"
+                  Background="#0A0F18"
+                  BorderBrush="{DynamicResource ScryBorder}"
+                  BorderThickness="1"
+                  CornerRadius="10"
+                  Padding="10,4,10,8">
+            <Grid RowDefinitions="Auto,*" RowSpacing="6">
+              <TextBlock Grid.Row="0"
+                         IsVisible="{Binding LastErrorText, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                         Text="{Binding LastErrorText}"
+                         Foreground="#F87171"
+                         FontSize="12"
+                         TextWrapping="Wrap" />
+
+              <ScrollViewer Grid.Row="1"
+                            MaxHeight="126"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding History}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="6" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <controls:BoldTotalsTextBlock RawText="{Binding}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" TextWrapping="Wrap" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Grid>
+          </Border>
+        </Grid>
+
+        <ItemsControl Grid.Column="1"
                       IsVisible="{Binding HasCustomRollPresets}"
                       ItemsSource="{Binding CustomRollPresets}"
-                      VerticalAlignment="Center">
+                      VerticalAlignment="Top">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <WrapPanel Orientation="Horizontal" />
@@ -358,7 +393,7 @@
 
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:DiceRollPresetViewModel">
-              <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,0" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,8" VerticalAlignment="Center">
                 <Button Background="Transparent"
                         BorderBrush="{DynamicResource ScryBorder}"
                         BorderThickness="1"
@@ -368,7 +403,21 @@
                         Command="{Binding $parent[UserControl].DataContext.RollCustomRollPresetCommand}"
                         CommandParameter="{Binding}">
                   <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <i:Icon Value="{Binding IconKey}" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                    <Border Width="18" Height="18"
+                            CornerRadius="9"
+                          BorderThickness="1"
+                            BorderBrush="{DynamicResource ScryTextMuted}"
+                            IsVisible="{Binding IsPercent}">
+                      <TextBlock Text="%"
+                           FontSize="11"
+                                 FontWeight="Bold"
+                                 Foreground="{DynamicResource ScryTextMuted}"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                           Margin="0,0,0,0" />
+                    </Border>
+
+                    <i:Icon Value="{Binding IconKey}" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" IsVisible="{Binding !IsPercent}" />
                     <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
@@ -383,41 +432,6 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-
-        <!-- History box: this is the only outlined panel in the Dice Tray UI -->
-        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
-                Background="#0A0F18"
-                BorderBrush="{DynamicResource ScryBorder}"
-                BorderThickness="1"
-                CornerRadius="10"
-                Padding="10,4,10,8">
-          <Grid RowDefinitions="Auto,*" RowSpacing="6">
-            <TextBlock Grid.Row="0"
-                       IsVisible="{Binding LastErrorText, Converter={StaticResource StringNotNullOrEmptyConverter}}"
-                       Text="{Binding LastErrorText}"
-                       Foreground="#F87171"
-                       FontSize="12"
-                       TextWrapping="Wrap" />
-
-            <ScrollViewer Grid.Row="1"
-                          MaxHeight="126"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
-              <ItemsControl ItemsSource="{Binding History}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <StackPanel Spacing="6" />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <controls:BoldTotalsTextBlock RawText="{Binding}" Foreground="{DynamicResource ScryTextMuted}" FontSize="12" TextWrapping="Wrap" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </ScrollViewer>
-          </Grid>
-        </Border>
       </Grid>
     </Grid>
   </Border>
