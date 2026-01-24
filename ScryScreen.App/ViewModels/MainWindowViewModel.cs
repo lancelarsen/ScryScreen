@@ -1519,7 +1519,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (e.PropertyName == nameof(DiceRollerViewModel.RollDirection) ||
             e.PropertyName == nameof(DiceRollerViewModel.OverlayOpacity) ||
-            e.PropertyName == nameof(DiceRollerViewModel.ShowDebugInfo))
+            e.PropertyName == nameof(DiceRollerViewModel.ShowDebugInfo) ||
+            e.PropertyName == nameof(DiceRollerViewModel.ClearAfterEachRoll))
         {
             ScheduleDebouncedLastSessionStateSave();
         }

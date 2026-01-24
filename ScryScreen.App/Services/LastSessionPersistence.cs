@@ -355,6 +355,11 @@ public static class LastSessionPersistence
 
                 vm.DiceRoller.ShowDebugInfo = state.DiceRollerShowDebugInfo;
 
+                if (state.DiceRollerClearAfterEachRoll is not null)
+                {
+                    vm.DiceRoller.ClearAfterEachRoll = state.DiceRollerClearAfterEachRoll.Value;
+                }
+
 
                 if (state.DiceRollerDieConfigs is not null)
                 {

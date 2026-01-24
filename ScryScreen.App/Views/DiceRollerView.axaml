@@ -30,7 +30,7 @@
         Classes="circleSmall effectToggle"
         ToolTip.Tip="Clear tray dice before each roll"
         IsChecked="{Binding ClearAfterEachRoll, Mode=TwoWay}">
-        <svg:Svg Path="/Assets/Icons/wind_left.svg" Width="18" Height="18" />
+        <svg:Svg Path="/Assets/Icons/air_left.svg" Width="18" Height="18" />
       </ToggleButton>
 
       <Border Width="1" Height="24" Background="{DynamicResource ScryBorder}" Opacity="0.7" Margin="2,0" />
