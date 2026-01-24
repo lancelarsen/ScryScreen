@@ -51,7 +51,17 @@ public static class LastSessionPersistence
 
         public bool? DiceRollerClearAfterEachRoll { get; set; }
 
+        public List<DiceRollerCustomPreset>? DiceRollerCustomPresets { get; set; }
+
+        public bool? MediaIsGroupedView { get; set; }
+
         public DateTimeOffset SavedAtUtc { get; set; }
+    }
+
+    private sealed class DiceRollerCustomPreset
+    {
+        public string Expression { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
     }
 
     private sealed class DiceRollerDieConfig
@@ -115,6 +125,15 @@ public static class LastSessionPersistence
                 .OrderBy(c => c.Sides)
                 .ToList(),
                DiceRollerClearAfterEachRoll = vm.DiceRoller.ClearAfterEachRoll,
+               DiceRollerCustomPresets = vm.DiceRoller.CustomRollPresets
+                   .Select(p => new DiceRollerCustomPreset
+                   {
+                       Expression = p.Expression,
+                       DisplayName = p.DisplayName,
+                   })
+                   .ToList(),
+
+               MediaIsGroupedView = vm.Media.IsGroupedView,
 
             SavedAtUtc = DateTimeOffset.UtcNow,
         };
@@ -360,6 +379,21 @@ public static class LastSessionPersistence
                     vm.DiceRoller.ClearAfterEachRoll = state.DiceRollerClearAfterEachRoll.Value;
                 }
 
+                vm.DiceRoller.CustomRollPresets.Clear();
+                if (state.DiceRollerCustomPresets is not null)
+                {
+                    foreach (var preset in state.DiceRollerCustomPresets)
+                    {
+                        if (preset is null || string.IsNullOrWhiteSpace(preset.Expression))
+                        {
+                            continue;
+                        }
+
+                        vm.DiceRoller.CustomRollPresets.Add(
+                            DiceRollerViewModel.CreateCustomRollPresetViewModel(preset.Expression, preset.DisplayName));
+                    }
+                }
+
 
                 if (state.DiceRollerDieConfigs is not null)
                 {
@@ -375,6 +409,11 @@ public static class LastSessionPersistence
                         target.NumberScale = Clamp(cfg.NumberScale, 0.5, 2.0);
                     }
                 }
+            }
+
+            if (state?.MediaIsGroupedView is not null)
+            {
+                vm.Media.IsGroupedView = state.MediaIsGroupedView.Value;
             }
 
             // Restore selected media (if it exists in the loaded folder).

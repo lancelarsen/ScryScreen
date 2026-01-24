@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ScryScreen.App.ViewModels"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
+        mc:Ignorable="d"
+        x:Class="ScryScreen.App.Views.DiceRollPresetConfigWindow"
+        x:DataType="vm:DiceRollPresetViewModel"
+        Width="380"
+        CanResize="False"
+        SizeToContent="Height"
+        SystemDecorations="None">
+
+  <Border Background="#0A0F18"
+          BorderBrush="{DynamicResource ScryBorder}"
+          BorderThickness="1"
+          CornerRadius="10"
+          Padding="12">
+    <StackPanel Spacing="10">
+
+      <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <TextBlock Grid.Column="0" Text="Edit Roll Button" Foreground="{DynamicResource ScryTextMuted}" FontWeight="SemiBold" />
+        <Button Grid.Column="1" Width="28" Height="28" Classes="circleSmall" ToolTip.Tip="Close" Click="OnCloseClick">
+          <i:Icon Value="mdi-close" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+        </Button>
+      </Grid>
+
+      <TextBlock Text="Button name" Foreground="{DynamicResource ScryTextMuted}" />
+
+      <TextBox Height="36"
+               Background="#0A0F18"
+               BorderBrush="{DynamicResource ScryBorder}"
+               BorderThickness="1"
+               CornerRadius="8"
+               Padding="10,4"
+               VerticalContentAlignment="Center"
+               Text="{Binding DisplayName, Mode=TwoWay}" />
+
+      <TextBlock Text="Expression" Foreground="{DynamicResource ScryTextMuted}" />
+      <TextBox Height="36"
+               Background="#0A0F18"
+               BorderBrush="{DynamicResource ScryBorder}"
+               BorderThickness="1"
+               CornerRadius="8"
+               Padding="10,4"
+               VerticalContentAlignment="Center"
+               Text="{Binding Expression, Mode=TwoWay}"
+               Watermark="e.g. 2d6+3" />
+
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <Button Grid.Column="1"
+                Width="110"
+                Classes="circleSmall"
+                Click="OnSaveClick">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <i:Icon Value="mdi-content-save" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+            <TextBlock Text="Save" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <Button Grid.Column="2"
+                Width="110"
+                Classes="circleSmall"
+                Click="OnDeleteClick">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <i:Icon Value="mdi-delete" FontSize="18" Foreground="{DynamicResource ScryDanger}" />
+            <TextBlock Text="Delete" VerticalAlignment="Center" Foreground="{DynamicResource ScryDanger}" />
+          </StackPanel>
+        </Button>
+      </Grid>
+    </StackPanel>
+  </Border>
+</Window>

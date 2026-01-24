@@ -829,6 +829,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnMediaPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (!IsAutoSaveSuppressed && e.PropertyName == nameof(MediaLibraryViewModel.IsGroupedView))
+        {
+            ScheduleDebouncedLastSessionStateSave();
+        }
+
         if (e.PropertyName == nameof(MediaLibraryViewModel.SelectedItem))
         {
             UpdatePortalMediaSelectionFlags();
@@ -1520,7 +1525,8 @@ public partial class MainWindowViewModel : ViewModelBase
         if (e.PropertyName == nameof(DiceRollerViewModel.RollDirection) ||
             e.PropertyName == nameof(DiceRollerViewModel.OverlayOpacity) ||
             e.PropertyName == nameof(DiceRollerViewModel.ShowDebugInfo) ||
-            e.PropertyName == nameof(DiceRollerViewModel.ClearAfterEachRoll))
+            e.PropertyName == nameof(DiceRollerViewModel.ClearAfterEachRoll) ||
+            e.PropertyName == nameof(DiceRollerViewModel.CustomRollPresets))
         {
             ScheduleDebouncedLastSessionStateSave();
         }

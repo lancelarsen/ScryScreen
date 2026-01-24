@@ -151,8 +151,19 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
             rootName = folderPath;
         }
 
+        static bool IsIgnoredDirectory(string directoryPath)
+        {
+            var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(directoryPath));
+            return string.Equals(name, "ignore", StringComparison.OrdinalIgnoreCase);
+        }
+
         void AddGroupForDirectory(string directoryPath)
         {
+            if (IsIgnoredDirectory(directoryPath))
+            {
+                return;
+            }
+
             var relative = Path.GetRelativePath(folderPath, directoryPath);
             var header = relative == "."
                 ? rootName
@@ -222,6 +233,11 @@ public sealed partial class MediaLibraryViewModel : ViewModelBase
 
             foreach (var subDir in Directory.EnumerateDirectories(directoryPath).OrderBy(d => d, StringComparer.OrdinalIgnoreCase))
             {
+                if (IsIgnoredDirectory(subDir))
+                {
+                    continue;
+                }
+
                 AddGroupForDirectory(subDir);
             }
         }

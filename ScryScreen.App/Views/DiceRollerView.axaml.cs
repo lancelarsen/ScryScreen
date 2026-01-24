@@ -1,5 +1,6 @@
 using System;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using ScryScreen.App.ViewModels;
 
 namespace ScryScreen.App.Views;
@@ -52,5 +53,49 @@ public partial class DiceRollerView : UserControl
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         _ = e;
+    }
+
+    private async void OnPresetGearClick(object? sender, RoutedEventArgs e)
+    {
+        _ = e;
+
+        if (_vm is null)
+        {
+            return;
+        }
+
+        if (sender is not Button btn)
+        {
+            return;
+        }
+
+        if (btn.DataContext is not DiceRollPresetViewModel preset)
+        {
+            return;
+        }
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+
+        var dlg = new DiceRollPresetConfigWindow(preset)
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        };
+
+        dlg.DeleteRequested += (_, __) =>
+        {
+            if (_vm.DeleteCustomRollPresetCommand.CanExecute(preset))
+            {
+                _vm.DeleteCustomRollPresetCommand.Execute(preset);
+            }
+        };
+
+        if (owner is not null)
+        {
+            await dlg.ShowDialog(owner);
+        }
+        else
+        {
+            dlg.Show();
+        }
     }
 }

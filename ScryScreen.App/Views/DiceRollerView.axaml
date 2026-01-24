@@ -304,14 +304,14 @@
       <!-- Roll row + History box share a common column layout so the history right edge lines up with the Roll button -->
       <Grid Grid.Row="2"
         RowDefinitions="Auto,Auto"
-            ColumnDefinitions="Auto,Auto,Auto,*"
+            ColumnDefinitions="Auto,Auto,Auto,Auto,*"
             ColumnSpacing="8"
             RowSpacing="10">
         <TextBlock Grid.Row="0" Grid.Column="0"
                    Text="Roll" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
 
         <TextBox Grid.Row="0" Grid.Column="1"
-                 Width="320"
+                 Width="284"
                  Height="36"
                  HorizontalAlignment="Left"
                  Background="#0A0F18"
@@ -336,8 +336,56 @@
                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
         </Button>
 
+        <Button Grid.Row="0" Grid.Column="3"
+          Width="28"
+          Height="28"
+          Classes="circleSmall"
+          ToolTip.Tip="Save this roll as a button"
+          Command="{Binding CreateCustomRollPresetCommand}">
+          <i:Icon Value="mdi-plus" FontSize="18"
+            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+        </Button>
+
+        <ItemsControl Grid.Row="0" Grid.Column="4"
+                      IsVisible="{Binding HasCustomRollPresets}"
+                      ItemsSource="{Binding CustomRollPresets}"
+                      VerticalAlignment="Center">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DiceRollPresetViewModel">
+              <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,0" VerticalAlignment="Center">
+                <Button Background="Transparent"
+                        BorderBrush="{DynamicResource ScryBorder}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="8,4"
+                        ToolTip.Tip="{Binding Expression}"
+                        Command="{Binding $parent[UserControl].DataContext.RollCustomRollPresetCommand}"
+                        CommandParameter="{Binding}">
+                  <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <i:Icon Value="{Binding IconKey}" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                    <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource ScryTextMuted}" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+
+                <Button Width="28" Height="28"
+                        Classes="circleSmall"
+                        ToolTip.Tip="Configure"
+                        Click="OnPresetGearClick">
+                  <i:Icon Value="mdi-cog" FontSize="18" Foreground="{DynamicResource ScryTextMuted}" />
+                </Button>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <!-- History box: this is the only outlined panel in the Dice Tray UI -->
-        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
                 Background="#0A0F18"
                 BorderBrush="{DynamicResource ScryBorder}"
                 BorderThickness="1"

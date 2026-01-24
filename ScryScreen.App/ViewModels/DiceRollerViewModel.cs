@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Numerics;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -253,6 +254,10 @@ public partial class DiceRollerViewModel : ViewModelBase
 
     public event Action? StateChanged;
 
+    public ObservableCollection<DiceRollPresetViewModel> CustomRollPresets { get; } = new();
+
+    public bool HasCustomRollPresets => CustomRollPresets.Count > 0;
+
     public DiceRollerViewModel()
     {
         Expression = "d20";
@@ -272,6 +277,159 @@ public partial class DiceRollerViewModel : ViewModelBase
         });
 
         DiceRollerEventBus.SingleDieRollCompleted += OnSingleDieRollCompleted;
+
+        CustomRollPresets.CollectionChanged += OnCustomRollPresetsChanged;
+    }
+
+    private void OnCustomRollPresetsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (var item in e.OldItems.OfType<DiceRollPresetViewModel>())
+            {
+                item.PropertyChanged -= OnCustomRollPresetPropertyChanged;
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (var item in e.NewItems.OfType<DiceRollPresetViewModel>())
+            {
+                item.PropertyChanged += OnCustomRollPresetPropertyChanged;
+            }
+        }
+
+        NotifyCustomRollPresetsChanged();
+    }
+
+    private void OnCustomRollPresetPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        _ = sender;
+
+        if (e.PropertyName == nameof(DiceRollPresetViewModel.DisplayName) ||
+            e.PropertyName == nameof(DiceRollPresetViewModel.Expression))
+        {
+            NotifyCustomRollPresetsChanged();
+        }
+    }
+
+    private void NotifyCustomRollPresetsChanged()
+    {
+        OnPropertyChanged(nameof(CustomRollPresets));
+        OnPropertyChanged(nameof(HasCustomRollPresets));
+    }
+
+    private static bool TryGetFirstDieSides(string? expression, out int sides)
+    {
+        sides = 0;
+
+        var text = (expression ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        // Find the first 'd'/'D' with digits immediately after it.
+        for (var index = 0; index < text.Length - 1; index++)
+        {
+            var ch = text[index];
+            if (ch != 'd' && ch != 'D')
+            {
+                continue;
+            }
+
+            var next = text[index + 1];
+            if (!char.IsDigit(next))
+            {
+                continue;
+            }
+
+            var end = index + 1;
+            while (end < text.Length && char.IsDigit(text[end]))
+            {
+                end++;
+            }
+
+            if (int.TryParse(text[(index + 1)..end], out var parsed) && parsed is >= 2 and <= 100)
+            {
+                sides = parsed;
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    internal static string GetPresetIconKeyForExpression(string? expression)
+    {
+        if (!TryGetFirstDieSides(expression, out var sides))
+        {
+            return "mdi-dice-multiple-outline";
+        }
+
+        return sides switch
+        {
+            4 => "mdi-dice-d4-outline",
+            6 => "mdi-dice-d6-outline",
+            8 => "mdi-dice-d8-outline",
+            10 => "mdi-dice-d10-outline",
+            12 => "mdi-dice-d12-outline",
+            20 => "mdi-dice-d20-outline",
+            100 => "mdi-percent",
+            _ => "mdi-dice-multiple-outline",
+        };
+    }
+
+    internal static DiceRollPresetViewModel CreateCustomRollPresetViewModel(string? expression, string? displayName)
+    {
+        var trimmed = (expression ?? string.Empty).Trim();
+        var name = (displayName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = trimmed;
+        }
+
+        return new DiceRollPresetViewModel(trimmed, name, GetPresetIconKeyForExpression(trimmed));
+    }
+
+    [RelayCommand]
+    private void CreateCustomRollPreset()
+    {
+        var trimmed = (Expression ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            LastErrorText = "Enter a roll expression to save.";
+            return;
+        }
+
+        LastErrorText = null;
+
+        CustomRollPresets.Add(CreateCustomRollPresetViewModel(trimmed, trimmed));
+    }
+
+    [RelayCommand]
+    private void DeleteCustomRollPreset(DiceRollPresetViewModel? preset)
+    {
+        if (preset is null)
+        {
+            return;
+        }
+
+        CustomRollPresets.Remove(preset);
+    }
+
+    [RelayCommand]
+    private void RollCustomRollPreset(DiceRollPresetViewModel? preset)
+    {
+        if (preset is null)
+        {
+            return;
+        }
+
+        Expression = preset.Expression;
+        Roll();
     }
 
     public IReadOnlyList<DiceRollerResultFontSize> ResultFontSizes { get; } = new[]
