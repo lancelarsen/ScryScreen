@@ -18,7 +18,7 @@ public class DiceRollerTrayAssignmentTests
 
         Assert.False(string.IsNullOrWhiteSpace(vm.LastResultText));
         Assert.DoesNotContain("Rolling ", vm.LastResultText);
-        Assert.Contains("d20(", vm.LastResultText);
+        Assert.Contains("d20 (", vm.LastResultText);
         Assert.True(vm.History.Count >= 1);
 
         var snapshot = vm.SnapshotState();

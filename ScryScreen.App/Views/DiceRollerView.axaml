@@ -39,7 +39,7 @@
             <i:Icon Value="mdi-dice-d20-outline" FontSize="28" Foreground="{DynamicResource ScryTextMuted}" />
             <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,0,0"
                     Background="#0A0F18" CornerRadius="6" Padding="2,0">
-              <TextBlock Text="A" FontSize="12" FontWeight="Bold"
+              <TextBlock Text="A" FontSize="10" FontWeight="Bold"
                          Foreground="{DynamicResource ScrySuccess}" />
             </Border>
           </Grid>
@@ -52,7 +52,7 @@
             <i:Icon Value="mdi-dice-d20-outline" FontSize="28" Foreground="{DynamicResource ScryTextMuted}" />
             <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,0,0"
                     Background="#0A0F18" CornerRadius="6" Padding="2,0">
-              <TextBlock Text="D" FontSize="12" FontWeight="Bold"
+              <TextBlock Text="D" FontSize="10" FontWeight="Bold"
                          Foreground="{DynamicResource ScryDanger}" />
             </Border>
           </Grid>
@@ -95,6 +95,86 @@
                      Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                      HorizontalAlignment="Center" VerticalAlignment="Center"
                      Margin="0,1,0,0" />
+        </Button>
+
+        <Button Width="28" Height="28"
+                Classes="circleSmall"
+                Foreground="{DynamicResource ScryTextMuted}"
+                BorderBrush="{DynamicResource ScryTextMuted}"
+                BorderThickness="2"
+                ToolTip.Tip="Roll d100A (reroll tens, keep lowest)"
+                Command="{Binding RollD100AdvantageCommand}">
+          <Grid Width="28" Height="28">
+            <TextBlock Text="%" FontSize="14" FontWeight="Bold"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Margin="0,1,0,0" />
+            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Background="#0A0F18" CornerRadius="6" Padding="2,0">
+              <TextBlock Text="A" FontSize="10" FontWeight="Bold"
+                         Foreground="{DynamicResource ScrySuccess}" />
+            </Border>
+          </Grid>
+        </Button>
+
+        <Button Width="28" Height="28"
+                Classes="circleSmall"
+                Foreground="{DynamicResource ScryTextMuted}"
+                BorderBrush="{DynamicResource ScryTextMuted}"
+                BorderThickness="2"
+                ToolTip.Tip="Roll d100AA (reroll tens twice, keep lowest)"
+                Command="{Binding RollD100Advantage2Command}">
+          <Grid Width="28" Height="28">
+            <TextBlock Text="%" FontSize="14" FontWeight="Bold"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Margin="0,1,0,0" />
+            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Background="#0A0F18" CornerRadius="6" Padding="1,0">
+              <TextBlock Text="AA" FontSize="9" FontWeight="Bold"
+                         Foreground="{DynamicResource ScrySuccess}" />
+            </Border>
+          </Grid>
+        </Button>
+
+        <Button Width="28" Height="28"
+                Classes="circleSmall"
+                Foreground="{DynamicResource ScryTextMuted}"
+                BorderBrush="{DynamicResource ScryTextMuted}"
+                BorderThickness="2"
+                ToolTip.Tip="Roll d100D (reroll tens, keep highest)"
+                Command="{Binding RollD100DisadvantageCommand}">
+          <Grid Width="28" Height="28">
+            <TextBlock Text="%" FontSize="14" FontWeight="Bold"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Margin="0,1,0,0" />
+            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Background="#0A0F18" CornerRadius="6" Padding="2,0">
+              <TextBlock Text="D" FontSize="10" FontWeight="Bold"
+                         Foreground="{DynamicResource ScryDanger}" />
+            </Border>
+          </Grid>
+        </Button>
+
+        <Button Width="28" Height="28"
+                Classes="circleSmall"
+                Foreground="{DynamicResource ScryTextMuted}"
+                BorderBrush="{DynamicResource ScryTextMuted}"
+                BorderThickness="2"
+                ToolTip.Tip="Roll d100DD (reroll tens twice, keep highest)"
+                Command="{Binding RollD100Disadvantage2Command}">
+          <Grid Width="28" Height="28">
+            <TextBlock Text="%" FontSize="14" FontWeight="Bold"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Margin="0,1,0,0" />
+            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Background="#0A0F18" CornerRadius="6" Padding="1,0">
+              <TextBlock Text="DD" FontSize="9" FontWeight="Bold"
+                         Foreground="{DynamicResource ScryDanger}" />
+            </Border>
+          </Grid>
         </Button>
 
         <Border Width="1" Height="24" Background="{DynamicResource ScryBorder}" Opacity="0.7" Margin="2,0" />

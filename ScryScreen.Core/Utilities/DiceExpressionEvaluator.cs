@@ -59,7 +59,7 @@ public static class DiceExpressionEvaluator
                 }
                 sb.Append('d');
                 sb.Append(term.DiceSides.ToString(CultureInfo.InvariantCulture));
-                sb.Append('(');
+                sb.Append(" (");
 
                 var subtotal = 0;
                 for (var r = 0; r < term.DiceCount; r++)

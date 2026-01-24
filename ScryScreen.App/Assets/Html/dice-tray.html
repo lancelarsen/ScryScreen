@@ -2868,11 +2868,26 @@
             if (!Number.isFinite(requestId) || requestId <= 0) return;
             if (!Number.isFinite(sides) || sides < 2 || sides > 100) return;
             if (sides === 100) {
-              const tens = spawnDie(10, 'd100Tens', 100);
-              const ones = spawnDie(10, null, 100);
-              if (!tens || !ones) return;
-              kickRandomRoll(tens, requestId, 1, { group: 'd100', part: 'tens' }, dir);
-              kickRandomRoll(ones, requestId, 2, { group: 'd100', part: 'ones' }, dir);
+              // Two modes:
+              // - count === 1: normal d100 percentile roll (one tens + one ones) combined into a single 1..100 result.
+              // - count  >  1: percentile *tens-only* roll(s) used by d100A/AA/... and d100D/DD/...; each die reports a decade.
+              if (count === 1) {
+                const tens = spawnDie(10, 'd100Tens', 100);
+                const ones = spawnDie(10, null, 100);
+                if (!tens || !ones) return;
+                kickRandomRoll(tens, requestId, 1, { group: 'd100', part: 'tens' }, dir);
+                kickRandomRoll(ones, requestId, 2, { group: 'd100', part: 'ones' }, dir);
+              } else {
+                let any = false;
+                for (let i = 0; i < count; i++) {
+                  const d = spawnDie(10, 'd100Tens', 100);
+                  if (!d) break;
+                  any = true;
+                  // Report each as a d100 decade: 10..90, and 100 represents 00.
+                  kickRandomRoll(d, requestId, i, { group: 'd100TensPick' }, dir);
+                }
+                if (!any) return;
+              }
             } else {
               let any = false;
               for (let i = 0; i < count; i++) {
@@ -3625,6 +3640,19 @@
                   const report = d.anim.report;
                   if (report && report.group === 'd100' && (report.part === 'ones' || report.part === 'tens')) {
                     recordD100Part(d.anim.requestId, report.part, d.anim.value);
+                  } else if (report && report.group === 'd100TensPick') {
+                    const digit = d.anim.value;
+                    const decade = (digit === 10) ? 100 : (digit * 10);
+                    try {
+                      if (window.chrome && window.chrome.webview) {
+                        window.chrome.webview.postMessage(JSON.stringify({
+                          type: 'rollResult',
+                          requestId: d.anim.requestId,
+                          sides: 100,
+                          value: decade,
+                        }));
+                      }
+                    } catch { }
                   } else if (window.chrome && window.chrome.webview) {
                     try {
                       window.chrome.webview.postMessage(JSON.stringify({

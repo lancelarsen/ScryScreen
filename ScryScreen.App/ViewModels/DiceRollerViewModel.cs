@@ -30,6 +30,180 @@ public partial class DiceRollerViewModel : ViewModelBase
         Disadvantage = 2,
     }
 
+    private enum D100TensPickMode
+    {
+        None = 0,
+        Advantage = 1,
+        Disadvantage = 2,
+    }
+
+    private static bool TryParseD20PickExpression(string? expression, out D20PickMode mode, out int modifier, out string? error)
+    {
+        mode = D20PickMode.None;
+        modifier = 0;
+        error = null;
+
+        var text = (expression ?? string.Empty).Replace(" ", string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        // Accept: d20A, d20D, 1d20A, 1d20D, with optional +/- integer modifier.
+        // Examples: d20A, d20D+5, 1d20a-2
+        var index = 0;
+        if (text.StartsWith("1", StringComparison.Ordinal))
+        {
+            index = 1;
+        }
+
+        if (text.Length < index + 4)
+        {
+            return false;
+        }
+
+        if (char.ToLowerInvariant(text[index]) != 'd')
+        {
+            return false;
+        }
+
+        if (!text.AsSpan(index + 1, 2).SequenceEqual("20"))
+        {
+            return false;
+        }
+
+        var tagIndex = index + 3;
+        if (tagIndex >= text.Length)
+        {
+            return false;
+        }
+
+        var tag = char.ToUpperInvariant(text[tagIndex]);
+        if (tag != 'A' && tag != 'D')
+        {
+            return false;
+        }
+
+        mode = tag == 'A' ? D20PickMode.Advantage : D20PickMode.Disadvantage;
+
+        var modifierStart = tagIndex + 1;
+        if (modifierStart >= text.Length)
+        {
+            modifier = 0;
+            return true;
+        }
+
+        // Only allow modifiers like +5 or -2. If there's other trailing content (e.g. comma batch),
+        // this is not a standalone d20A/d20D expression.
+        if (text[modifierStart] != '+' && text[modifierStart] != '-')
+        {
+            return false;
+        }
+
+        var modText = text.Substring(modifierStart);
+        if (!int.TryParse(modText, out modifier))
+        {
+            error = "Invalid modifier.";
+        }
+
+        return true;
+    }
+
+    private static bool TryParseD100TensPickExpression(
+        string? expression,
+        out D100TensPickMode mode,
+        out int pickCount,
+        out int modifier,
+        out string? error)
+    {
+        mode = D100TensPickMode.None;
+        pickCount = 0;
+        modifier = 0;
+        error = null;
+
+        var text = (expression ?? string.Empty).Replace(" ", string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        // Accept: d100A, d100AA, d100AAA, d100D, d100DD, d100DDD (and optional leading 1)
+        // with optional +/- integer modifier.
+        // The tens die is rolled (1 + pickCount) times; for A pick the lowest tens; for D pick the highest tens.
+        var index = 0;
+        if (text.StartsWith("1", StringComparison.Ordinal))
+        {
+            index = 1;
+        }
+
+        if (text.Length < index + 5)
+        {
+            return false;
+        }
+
+        if (char.ToLowerInvariant(text[index]) != 'd')
+        {
+            return false;
+        }
+
+        if (!text.AsSpan(index + 1, 3).SequenceEqual("100"))
+        {
+            return false;
+        }
+
+        var tagIndex = index + 4;
+        if (tagIndex >= text.Length)
+        {
+            return false;
+        }
+
+        var tag = char.ToUpperInvariant(text[tagIndex]);
+        if (tag != 'A' && tag != 'D')
+        {
+            return false;
+        }
+
+        mode = tag == 'A' ? D100TensPickMode.Advantage : D100TensPickMode.Disadvantage;
+
+        var cursor = tagIndex;
+        var count = 0;
+        while (cursor < text.Length && char.ToUpperInvariant(text[cursor]) == tag)
+        {
+            count++;
+            cursor++;
+            if (count > 3)
+            {
+                error = "Too many A/D markers (max 3).";
+                return true;
+            }
+        }
+
+        pickCount = count;
+        if (pickCount <= 0)
+        {
+            return false;
+        }
+
+        if (cursor >= text.Length)
+        {
+            modifier = 0;
+            return true;
+        }
+
+        if (text[cursor] != '+' && text[cursor] != '-')
+        {
+            return false;
+        }
+
+        var modText = text.Substring(cursor);
+        if (!int.TryParse(modText, out modifier))
+        {
+            error = "Invalid modifier.";
+        }
+
+        return true;
+    }
+
     private static double Clamp(double value, double min, double max)
         => value < min ? min : (value > max ? max : value);
 
@@ -47,6 +221,9 @@ public partial class DiceRollerViewModel : ViewModelBase
         public required List<PendingTrayRollTerm> Terms { get; init; }
         public required int ConstantTotal { get; init; }
         public D20PickMode D20Mode { get; init; }
+        public D100TensPickMode D100Mode { get; init; }
+        public int D100PickCount { get; init; }
+        public int D100Modifier { get; init; }
     }
 
     private sealed class PendingTrayRollBatch
@@ -531,6 +708,36 @@ public partial class DiceRollerViewModel : ViewModelBase
 
         Expression = (Expression ?? string.Empty).Trim();
 
+        var isCommaBatch = (Expression ?? string.Empty).Contains(',', StringComparison.Ordinal);
+
+        // Special shorthand: d100A/d100AA/d100AAA and d100D/d100DD/d100DDD with optional +/- modifier.
+        // These can be tray-driven when assigned; otherwise RNG-only.
+        if (!isCommaBatch
+            && TryParseD100TensPickExpression(Expression, out var d100Mode, out var d100PickCount, out var d100Modifier, out var d100Error))
+        {
+            if (!string.IsNullOrWhiteSpace(d100Error))
+            {
+                LastErrorText = d100Error;
+                return;
+            }
+
+            RollD100TensPick(d100Mode, d100PickCount, d100Modifier);
+            return;
+        }
+
+        // Special shorthand: d20A/d20D (advantage/disadvantage) with optional +/- modifier.
+        if (!isCommaBatch && TryParseD20PickExpression(Expression, out var pickMode, out var pickModifier, out var pickError))
+        {
+            if (!string.IsNullOrWhiteSpace(pickError))
+            {
+                LastErrorText = pickError;
+                return;
+            }
+
+            RollD20Pick(pickMode, pickModifier);
+            return;
+        }
+
         // If the tray isn't assigned to any portal, do not emit any tray/WebView requests.
         // Still support clicking dice + writing to history by evaluating locally.
         if (!IsTrayAssigned)
@@ -541,7 +748,7 @@ public partial class DiceRollerViewModel : ViewModelBase
         }
 
         // Comma-separated batch rolls: "4d6+2d4,2d6,3d4+10".
-        if ((Expression ?? string.Empty).Contains(',', StringComparison.Ordinal))
+        if (isCommaBatch)
         {
             if (TryParseTrayBatchExpression(Expression, out var groups, out var batchExpression, out var batchError))
             {
@@ -606,12 +813,6 @@ public partial class DiceRollerViewModel : ViewModelBase
                 RollId = ++_rollIdCounter;
                 LastResultText = $"Rolling {groups.Count} totals...";
                 StateChanged?.Invoke();
-                return;
-            }
-
-            if (!string.IsNullOrWhiteSpace(batchError))
-            {
-                LastErrorText = batchError;
                 return;
             }
 
@@ -736,6 +937,36 @@ public partial class DiceRollerViewModel : ViewModelBase
             var results = new List<string>(capacity: parts.Count);
             foreach (var p in parts)
             {
+                if (TryParseD100TensPickExpression(p, out var d100Mode, out var d100PickCount, out var d100Modifier, out var d100Error))
+                {
+                    if (!string.IsNullOrWhiteSpace(d100Error))
+                    {
+                        error = d100Error;
+                        return false;
+                    }
+
+                    results.Add(EvaluateD100TensPickWithoutTray(d100Mode, d100PickCount, d100Modifier));
+                    continue;
+                }
+
+                if (TryParseD20PickExpression(p, out var mode, out var mod, out var pickError))
+                {
+                    if (!string.IsNullOrWhiteSpace(pickError))
+                    {
+                        error = pickError;
+                        return false;
+                    }
+
+                    var a = _rng.Next(1, 21);
+                    var b = _rng.Next(1, 21);
+                    var chosen = mode == D20PickMode.Advantage ? Math.Max(a, b) : Math.Min(a, b);
+                    var totalValue = chosen + mod;
+                    var tag = mode == D20PickMode.Advantage ? "A" : "D";
+                    var modText = mod == 0 ? string.Empty : mod > 0 ? $" + {mod}" : $" - {Math.Abs(mod)}";
+                    results.Add($"d20{tag} ({a},{b}){modText} = {totalValue}");
+                    continue;
+                }
+
                 if (!DiceExpressionEvaluator.TryEvaluate(p, _rng, out var r, out var e))
                 {
                     error = string.IsNullOrWhiteSpace(e) ? "Invalid dice expression." : e;
@@ -746,6 +977,36 @@ public partial class DiceRollerViewModel : ViewModelBase
             }
 
             displayText = string.Join(", ", results);
+            return true;
+        }
+
+        if (TryParseD100TensPickExpression(text, out var singleD100Mode, out var singleD100PickCount, out var singleD100Modifier, out var singleD100Error))
+        {
+            if (!string.IsNullOrWhiteSpace(singleD100Error))
+            {
+                error = singleD100Error;
+                return false;
+            }
+
+            displayText = EvaluateD100TensPickWithoutTray(singleD100Mode, singleD100PickCount, singleD100Modifier);
+            return true;
+        }
+
+        if (TryParseD20PickExpression(text, out var singleMode, out var singleMod, out var singlePickError))
+        {
+            if (!string.IsNullOrWhiteSpace(singlePickError))
+            {
+                error = singlePickError;
+                return false;
+            }
+
+            var a = _rng.Next(1, 21);
+            var b = _rng.Next(1, 21);
+            var chosen = singleMode == D20PickMode.Advantage ? Math.Max(a, b) : Math.Min(a, b);
+            var totalValue = chosen + singleMod;
+            var tag = singleMode == D20PickMode.Advantage ? "A" : "D";
+            var modText = singleMod == 0 ? string.Empty : singleMod > 0 ? $" + {singleMod}" : $" - {Math.Abs(singleMod)}";
+            displayText = $"d20{tag} ({a},{b}){modText} = {totalValue}";
             return true;
         }
 
@@ -798,7 +1059,7 @@ public partial class DiceRollerViewModel : ViewModelBase
         {
             // Values are shown in term order; sign affects total, not the physical results.
             var orderedValues = pending.Terms.SelectMany(t => t.Values).ToList();
-            var valuesText = orderedValues.Count == 0 ? "()" : $"({string.Join(",", orderedValues)})";
+            var valuesText = orderedValues.Count == 0 ? " ()" : $" ({string.Join(",", orderedValues)})";
             var preview = BuildPreviewText(pending.Request.Terms.ToList(), pending.ConstantTotal);
             var detail = $"{preview} {valuesText} = {total}";
             batch.DetailsByRequestId[requestId] = detail;
@@ -807,25 +1068,96 @@ public partial class DiceRollerViewModel : ViewModelBase
         // If this is a single-group roll, keep the detailed result text.
         if (batch.RequestIdsInOrder.Count == 1)
         {
+            // Special-case d100 A/D tens-pick: roll (1+pickCount) tens dice + one ones die, then pick tens.
+            if (pending.D100Mode != D100TensPickMode.None
+                && pending.Terms.Count == 2
+                && pending.Terms.Any(t => t.Sides == 100)
+                && pending.Terms.Any(t => t.Sides == 10))
+            {
+                var clampedPickCount = Math.Clamp(pending.D100PickCount, 1, 3);
+                var tensTerm = pending.Terms.FirstOrDefault(t => t.Sides == 100);
+                var onesTerm = pending.Terms.FirstOrDefault(t => t.Sides == 10);
+                if (tensTerm is null || onesTerm is null)
+                {
+                    return;
+                }
+
+                if (tensTerm.Count != 1 + clampedPickCount || onesTerm.Count != 1)
+                {
+                    return;
+                }
+
+                if (tensTerm.Values.Count != tensTerm.Count || onesTerm.Values.Count != onesTerm.Count)
+                {
+                    return;
+                }
+
+                // d100 tens dice: ideally returns 10,20,...,90,100 (treat 100 as 00).
+                // If the tray ever returns a 1..100 value, normalize to a decade.
+                static int NormalizeTens(int v)
+                {
+                    if (v == 100)
+                    {
+                        return 0;
+                    }
+
+                    if (v % 10 != 0)
+                    {
+                        v = ((v - 1) / 10) * 10;
+                    }
+
+                    return Math.Clamp(v, 0, 90);
+                }
+
+                // d10 ones die: tray returns 1..10; treat 10 as 0.
+                var ones = onesTerm.Values[0] % 10;
+                var tensRolls = tensTerm.Values.Select(NormalizeTens).ToList();
+
+                var pickedTens = pending.D100Mode == D100TensPickMode.Advantage ? tensRolls.Min() : tensRolls.Max();
+                var baseValue = pickedTens + ones;
+                if (baseValue == 0)
+                {
+                    baseValue = 100;
+                }
+
+                var totalValue = baseValue + pending.D100Modifier;
+
+                var tag = pending.D100Mode == D100TensPickMode.Advantage ? 'A' : 'D';
+                var suffix = new string(tag, clampedPickCount);
+                var modText = pending.D100Modifier == 0
+                    ? string.Empty
+                    : pending.D100Modifier > 0 ? $" + {pending.D100Modifier}" : $" - {Math.Abs(pending.D100Modifier)}";
+
+                // Keep TotalsByRequestId consistent for any downstream consumers.
+                batch.TotalsByRequestId[requestId] = totalValue;
+
+                var tensText = string.Join(",", tensRolls.Select(t => t.ToString("00")));
+                LastResultText = $"d100{suffix} ({tensText} + {ones}){modText} = {totalValue}";
+            }
             // Special-case d20 advantage/disadvantage: 2d20, keep highest/lowest.
-            if (pending.D20Mode != D20PickMode.None
+            else if (pending.D20Mode != D20PickMode.None
                 && pending.Terms.Count == 1
                 && pending.Terms[0].Sides == 20
                 && pending.Terms[0].Count == 2
-                && pending.Terms[0].Values.Count == 2
-                && pending.ConstantTotal == 0)
+                && pending.Terms[0].Values.Count == 2)
             {
                 var a = pending.Terms[0].Values[0];
                 var b = pending.Terms[0].Values[1];
                 var chosen = pending.D20Mode == D20PickMode.Advantage ? Math.Max(a, b) : Math.Min(a, b);
                 var tag = pending.D20Mode == D20PickMode.Advantage ? "A" : "D";
-                LastResultText = $"d20{tag}({a},{b}) = {chosen}";
+
+                var totalValue = chosen + pending.ConstantTotal;
+                var modText = pending.ConstantTotal == 0
+                    ? string.Empty
+                    : pending.ConstantTotal > 0 ? $" + {pending.ConstantTotal}" : $" - {Math.Abs(pending.ConstantTotal)}";
+
+                LastResultText = $"d20{tag} ({a},{b}){modText} = {totalValue}";
             }
             // Special-case d100 display when it's the only term and has exactly one value.
             else if (pending.Terms.Count == 1 && pending.Terms[0].Sides == 100 && pending.Terms[0].Values.Count == 1 && pending.ConstantTotal == 0)
             {
                 var v = pending.Terms[0].Values[0];
-                LastResultText = $"d100({v}) = {v}%";
+                LastResultText = $"d100 ({v}) = {v}%";
             }
             else
             {
@@ -833,7 +1165,7 @@ public partial class DiceRollerViewModel : ViewModelBase
                 foreach (var t in pending.Terms)
                 {
                     var label = t.Count == 1 ? $"d{t.Sides}" : $"{t.Count}d{t.Sides}";
-                    var valuesText = $"({string.Join(",", t.Values)})";
+                    var valuesText = $" ({string.Join(",", t.Values)})";
                     var termText = label + valuesText;
 
                     if (parts.Count == 0)
@@ -913,20 +1245,26 @@ public partial class DiceRollerViewModel : ViewModelBase
 
     [RelayCommand]
     private void RollD20Advantage()
-        => RollD20Pick(D20PickMode.Advantage);
+    {
+        Expression = "d20A";
+        RollD20Pick(D20PickMode.Advantage, modifier: 0);
+    }
 
     [RelayCommand]
     private void RollD20Disadvantage()
-        => RollD20Pick(D20PickMode.Disadvantage);
+    {
+        Expression = "d20D";
+        RollD20Pick(D20PickMode.Disadvantage, modifier: 0);
+    }
 
-    private void RollD20Pick(D20PickMode mode)
+    private void RollD20Pick(D20PickMode mode, int modifier)
     {
         LastErrorText = null;
 
         if (!IsTrayAssigned)
         {
             CancelPendingTrayRolls();
-            EvaluateD20PickWithoutTrayAndCommit(mode);
+            EvaluateD20PickWithoutTrayAndCommit(mode, modifier);
             return;
         }
 
@@ -950,7 +1288,7 @@ public partial class DiceRollerViewModel : ViewModelBase
                     Values = new List<int>(capacity: 2),
                 },
             },
-            ConstantTotal = 0,
+            ConstantTotal = modifier,
             D20Mode = mode,
         };
 
@@ -958,7 +1296,9 @@ public partial class DiceRollerViewModel : ViewModelBase
         _pendingTrayRollBatchesByBatchId[batchId] = new PendingTrayRollBatch
         {
             BatchId = batchId,
-            BatchExpression = mode == D20PickMode.Advantage ? "d20A" : "d20D",
+            BatchExpression = modifier == 0
+                ? (mode == D20PickMode.Advantage ? "d20A" : "d20D")
+                : (mode == D20PickMode.Advantage ? $"d20A{modifier:+#;-#}" : $"d20D{modifier:+#;-#}"),
             RequestIdsInOrder = new List<long> { requestId },
         };
 
@@ -968,14 +1308,16 @@ public partial class DiceRollerViewModel : ViewModelBase
         StateChanged?.Invoke();
     }
 
-    private void EvaluateD20PickWithoutTrayAndCommit(D20PickMode mode)
+    private void EvaluateD20PickWithoutTrayAndCommit(D20PickMode mode, int modifier)
     {
         var a = _rng.Next(1, 21);
         var b = _rng.Next(1, 21);
         var chosen = mode == D20PickMode.Advantage ? Math.Max(a, b) : Math.Min(a, b);
         var tag = mode == D20PickMode.Advantage ? "A" : "D";
 
-        LastResultText = $"d20{tag}({a},{b}) = {chosen}";
+        var totalValue = chosen + modifier;
+        var modText = modifier == 0 ? string.Empty : modifier > 0 ? $" + {modifier}" : $" - {Math.Abs(modifier)}";
+        LastResultText = $"d20{tag} ({a},{b}){modText} = {totalValue}";
         RollId = ++_rollIdCounter;
         History.Insert(0, LastResultText);
         while (History.Count > 20)
@@ -984,6 +1326,150 @@ public partial class DiceRollerViewModel : ViewModelBase
         }
 
         StateChanged?.Invoke();
+    }
+
+    [RelayCommand]
+    private void RollD100Advantage()
+    {
+        Expression = "d100A";
+        RollD100TensPick(D100TensPickMode.Advantage, pickCount: 1, modifier: 0);
+    }
+
+    [RelayCommand]
+    private void RollD100Advantage2()
+    {
+        Expression = "d100AA";
+        RollD100TensPick(D100TensPickMode.Advantage, pickCount: 2, modifier: 0);
+    }
+
+    [RelayCommand]
+    private void RollD100Disadvantage()
+    {
+        Expression = "d100D";
+        RollD100TensPick(D100TensPickMode.Disadvantage, pickCount: 1, modifier: 0);
+    }
+
+    [RelayCommand]
+    private void RollD100Disadvantage2()
+    {
+        Expression = "d100DD";
+        RollD100TensPick(D100TensPickMode.Disadvantage, pickCount: 2, modifier: 0);
+    }
+
+    private void RollD100TensPick(D100TensPickMode mode, int pickCount, int modifier)
+    {
+        LastErrorText = null;
+
+        if (!IsTrayAssigned)
+        {
+            CancelPendingTrayRolls();
+            RollD100TensPickWithoutTrayAndCommit(mode, pickCount, modifier);
+            return;
+        }
+
+        var clampedPickCount = Math.Clamp(pickCount, 1, 3);
+        var tensDiceCount = 1 + clampedPickCount;
+
+        // Percentile: roll (1+pickCount) tens dice + one ones die.
+        // Use d100 dice for tens so the tray shows 00/10/20/...; use a single d10 for ones.
+        var terms = new List<DiceRollDiceTerm>
+        {
+            new DiceRollDiceTerm(100, tensDiceCount, +1),
+            new DiceRollDiceTerm(10, 1, +1),
+        };
+
+        var batchId = ++_trayBatchIdCounter;
+        var requestId = ++_trayRequestIdCounter;
+        var req = new DiceRollRequest(RequestId: requestId, Terms: terms, Direction: RollDirection);
+        TrackIssuedRequests(new[] { req });
+
+        _pendingTrayRollsByRequestId[requestId] = new PendingTrayRoll
+        {
+            Request = req,
+            Terms = new List<PendingTrayRollTerm>
+            {
+                new PendingTrayRollTerm
+                {
+                    Sides = 100,
+                    Count = tensDiceCount,
+                    Sign = +1,
+                    Values = new List<int>(capacity: tensDiceCount),
+                },
+                new PendingTrayRollTerm
+                {
+                    Sides = 10,
+                    Count = 1,
+                    Sign = +1,
+                    Values = new List<int>(capacity: 1),
+                },
+            },
+            ConstantTotal = 0,
+            D100Mode = mode,
+            D100PickCount = clampedPickCount,
+            D100Modifier = modifier,
+        };
+
+        var tag = mode == D100TensPickMode.Advantage ? 'A' : 'D';
+        var suffix = new string(tag, clampedPickCount);
+        var expr = modifier == 0 ? $"d100{suffix}" : $"d100{suffix}{modifier:+#;-#}";
+
+        _trayBatchIdByRequestId[requestId] = batchId;
+        _pendingTrayRollBatchesByBatchId[batchId] = new PendingTrayRollBatch
+        {
+            BatchId = batchId,
+            BatchExpression = expr,
+            RequestIdsInOrder = new List<long> { requestId },
+        };
+
+        TrimPendingIfNeeded();
+        RollId = ++_rollIdCounter;
+        LastResultText = $"Rolling {expr}...";
+        StateChanged?.Invoke();
+    }
+
+    private void RollD100TensPickWithoutTrayAndCommit(D100TensPickMode mode, int pickCount, int modifier)
+    {
+        LastErrorText = null;
+
+        LastResultText = EvaluateD100TensPickWithoutTray(mode, pickCount, modifier);
+        RollId = ++_rollIdCounter;
+        History.Insert(0, LastResultText);
+        while (History.Count > 20)
+        {
+            History.RemoveAt(History.Count - 1);
+        }
+
+        StateChanged?.Invoke();
+    }
+
+    private string EvaluateD100TensPickWithoutTray(D100TensPickMode mode, int pickCount, int modifier)
+    {
+        var count = Math.Clamp(pickCount, 1, 3);
+
+        // Tens die gets rolled (1 + count) times.
+        var tensRolls = new List<int>(capacity: 1 + count);
+        for (var i = 0; i < 1 + count; i++)
+        {
+            tensRolls.Add(_rng.Next(0, 10) * 10);
+        }
+
+        var ones = _rng.Next(0, 10);
+
+        var pickedTens = mode == D100TensPickMode.Advantage ? tensRolls.Min() : tensRolls.Max();
+        var baseValue = pickedTens + ones;
+        if (baseValue == 0)
+        {
+            baseValue = 100;
+        }
+
+        var totalValue = baseValue + modifier;
+
+        var tag = mode == D100TensPickMode.Advantage ? 'A' : 'D';
+        var suffix = new string(tag, count);
+
+        var modText = modifier == 0 ? string.Empty : modifier > 0 ? $" + {modifier}" : $" - {Math.Abs(modifier)}";
+        var tensText = string.Join(",", tensRolls.Select(t => t.ToString("00")));
+        return $"d100{suffix} ({tensText} + {ones}){modText} = {totalValue}";
     }
 
     [RelayCommand]

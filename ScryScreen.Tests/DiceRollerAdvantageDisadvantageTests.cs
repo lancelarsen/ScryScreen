@@ -15,7 +15,7 @@ public class DiceRollerAdvantageDisadvantageTests
 
         vm.RollD20AdvantageCommand.Execute(null);
 
-        Assert.Contains("d20A(", vm.LastResultText);
+        Assert.Contains("d20A (", vm.LastResultText);
         Assert.DoesNotContain("Rolling ", vm.LastResultText);
         Assert.True(vm.History.Count >= 1);
         var snapshot = vm.SnapshotState();
@@ -33,7 +33,7 @@ public class DiceRollerAdvantageDisadvantageTests
 
         vm.RollD20DisadvantageCommand.Execute(null);
 
-        Assert.Contains("d20D(", vm.LastResultText);
+        Assert.Contains("d20D (", vm.LastResultText);
         Assert.DoesNotContain("Rolling ", vm.LastResultText);
         Assert.True(vm.History.Count >= 1);
         var snapshot = vm.SnapshotState();
