@@ -61,12 +61,12 @@
         VerticalAlignment="Center" />
 
       <!-- Idle state: show the logo instead of the literal word "Idle" -->
-      <Image IsVisible="{Binding IsShowingIdleLogo}"
-             Source="avares://ScryScreen.App/Assets/Images/scry_logo_black.png"
-             Stretch="Uniform"
-             MaxHeight="520"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+            <Image IsVisible="{Binding IsShowingIdleLogo}"
+              Source="avares://ScryScreen.App/Assets/Images/scry_logo_black.png"
+              Stretch="Uniform"
+              MaxHeight="520"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center" />
 
       <!-- Setup mode: persistent until first assignment -->
                   <Image IsVisible="{Binding IsSetup}"

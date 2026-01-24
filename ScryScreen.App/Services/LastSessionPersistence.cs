@@ -49,6 +49,8 @@ public static class LastSessionPersistence
         public bool DiceRollerShowDebugInfo { get; set; }
         public List<DiceRollerDieConfig>? DiceRollerDieConfigs { get; set; }
 
+        public bool? DiceRollerClearAfterEachRoll { get; set; }
+
         public DateTimeOffset SavedAtUtc { get; set; }
     }
 
@@ -102,7 +104,7 @@ public static class LastSessionPersistence
             DiceRollerOverlayOpacity = Clamp(vm.DiceRoller.OverlayOpacity, 0, 1),
             DiceRollerResultFontSize = vm.DiceRoller.ResultFontSize.ToString(),
             DiceRollerResultsVisible = vm.DiceRoller.ResultsVisible,
-            DiceRollerShowDebugInfo = vm.DiceRoller.ShowDebugInfo,
+                DiceRollerShowDebugInfo = vm.DiceRoller.ShowDebugInfo,
             DiceRollerDieConfigs = vm.DiceRoller.DiceVisualConfigs
                 .Select(c => new DiceRollerDieConfig
                 {
@@ -112,6 +114,7 @@ public static class LastSessionPersistence
                 })
                 .OrderBy(c => c.Sides)
                 .ToList(),
+               DiceRollerClearAfterEachRoll = vm.DiceRoller.ClearAfterEachRoll,
 
             SavedAtUtc = DateTimeOffset.UtcNow,
         };
@@ -352,6 +355,7 @@ public static class LastSessionPersistence
 
                 vm.DiceRoller.ShowDebugInfo = state.DiceRollerShowDebugInfo;
 
+
                 if (state.DiceRollerDieConfigs is not null)
                 {
                     foreach (var cfg in state.DiceRollerDieConfigs)
@@ -402,12 +406,12 @@ public static class LastSessionPersistence
     {
         try
         {
-            Directory.CreateDirectory(path);
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
 
-            // Light touch write test to catch non-writable locations.
-            var testPath = Path.Combine(path, ".write_test");
-            File.WriteAllText(testPath, "ok");
-            File.Delete(testPath);
+            Directory.CreateDirectory(path);
             return true;
         }
         catch

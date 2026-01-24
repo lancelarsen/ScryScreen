@@ -503,6 +503,9 @@ public partial class DiceRollerPortalView : UserControl
         // Do not parse Text and re-trigger rolls from it (that causes rerolls/snapbacks).
         if (_tray is not null)
         {
+            // Text updates drive tray actions; ensure we apply a pending clear *before*
+            // emitting new roll requests so the previous dice don't linger.
+            ApplyClearToTray();
             ApplyRotationsToTray();
             ApplyRollRequestsToTray();
             _timer.Stop();

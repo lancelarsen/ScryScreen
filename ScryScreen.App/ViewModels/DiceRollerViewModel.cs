@@ -316,6 +316,9 @@ public partial class DiceRollerViewModel : ViewModelBase
     [ObservableProperty]
     private bool showDebugInfo;
 
+    [ObservableProperty]
+    private bool clearAfterEachRoll;
+
     public double OverlayOpacity
     {
         get => overlayOpacity;
@@ -745,6 +748,12 @@ public partial class DiceRollerViewModel : ViewModelBase
             CancelPendingTrayRolls();
             EvaluateWithoutTrayAndCommit(Expression);
             return;
+        }
+
+        // Auto-clear tray dice before starting a new roll.
+        if (ClearAfterEachRoll)
+        {
+            _clearDiceIdCounter++;
         }
 
         // Comma-separated batch rolls: "4d6+2d4,2d6,3d4+10".
@@ -1268,6 +1277,12 @@ public partial class DiceRollerViewModel : ViewModelBase
             return;
         }
 
+        // Auto-clear tray dice before starting a new roll.
+        if (ClearAfterEachRoll)
+        {
+            _clearDiceIdCounter++;
+        }
+
         var terms = new List<DiceRollDiceTerm> { new DiceRollDiceTerm(20, 2, +1) };
 
         var batchId = ++_trayBatchIdCounter;
@@ -1365,6 +1380,12 @@ public partial class DiceRollerViewModel : ViewModelBase
             CancelPendingTrayRolls();
             RollD100TensPickWithoutTrayAndCommit(mode, pickCount, modifier);
             return;
+        }
+
+        // Auto-clear tray dice before starting a new roll.
+        if (ClearAfterEachRoll)
+        {
+            _clearDiceIdCounter++;
         }
 
         var clampedPickCount = Math.Clamp(pickCount, 1, 3);

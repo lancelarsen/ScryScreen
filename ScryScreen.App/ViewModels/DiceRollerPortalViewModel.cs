@@ -67,11 +67,11 @@ public partial class DiceRollerPortalViewModel : ViewModelBase
         Text = state.Text;
         RollId = state.RollId;
         Rotations = state.Rotations ?? Array.Empty<DiceDieRotation>();
-        RollRequests = state.RollRequests ?? Array.Empty<DiceRollRequest>();
         VisualConfigs = state.VisualConfigs ?? Array.Empty<DiceDieVisualConfig>();
         VisualConfigRevision = state.VisualConfigRevision;
         OverlayOpacity = state.OverlayOpacity;
         ClearDiceId = state.ClearDiceId;
+        RollRequests = state.RollRequests ?? Array.Empty<DiceRollRequest>();
         DebugVisible = state.DebugVisible;
         ResultsVisible = state.ResultsVisible;
         ResultFontSize = state.ResultFontSize;
